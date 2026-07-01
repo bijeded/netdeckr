@@ -1,0 +1,60 @@
+/* MetaStack — Color tokens
+   Dark-mode metagame dashboard. Violet neon primary, mana WUBRG as secondary accents. */
+:root {
+  /* Backgrounds / surfaces */
+  --bg-app: #0a0b10;          /* app canvas */
+  --bg-elevated: #0d0e16;     /* drawers, floating panels */
+  --surface-card: #11121b;    /* cards, list rows */
+  --surface-modal: #101119;   /* modal body */
+  --surface-subtle: rgba(255,255,255,.012); /* faint panel fill */
+  --surface-faint: rgba(255,255,255,.02);   /* stat cards, inputs */
+
+  /* Text */
+  --text-primary: #e8e9f0;
+  --text-secondary: #9b9dae;
+  --text-muted: #8b8d9e;
+  --text-faint: #6b6d80;
+
+  /* Hairlines / borders */
+  --border-hair: rgba(255,255,255,.06);
+  --border-soft: rgba(255,255,255,.07);
+  --border-line: rgba(255,255,255,.08);
+
+  /* Primary — violet neon */
+  --neon-500: #b14bff;
+  --neon-600: #7a2bff;
+  --neon-tint-04: rgba(177,75,255,.04);
+  --neon-tint-08: rgba(177,75,255,.08);
+  --neon-tint-16: rgba(177,75,255,.16);
+  --neon-tint-22: rgba(177,75,255,.22);
+  --neon-border: rgba(177,75,255,.55);
+  --neon-text: #c79bff;       /* violet text on dark */
+  --neon-text-soft: #e8c9ff;
+  --neon-glow: 0 0 18px rgba(177,75,255,.25);
+  --neon-gradient: linear-gradient(140deg, #b14bff, #7a2bff);
+
+  /* Semantic — change / status */
+  --up: #2fe6a0;              /* rising / positive */
+  --up-tint: rgba(47,230,160,.12);
+  --up-border: rgba(47,230,160,.4);
+  --down: #ff5470;           /* falling / negative */
+  --down-tint: rgba(255,84,112,.12);
+  --down-border: rgba(255,84,112,.4);
+  --flat: #ffcb45;           /* no change */
+  --flat-tint: rgba(255,203,69,.1);
+  --flat-border: rgba(255,203,69,.35);
+  --live: #2fe6a0;           /* live-status dot */
+
+  /* Mana — WUBRG secondary accents */
+  --mana-w: #f3e6bd;
+  --mana-u: #2f76ed;
+  --mana-b: #5b5566;
+  --mana-r: #e0533d;
+  --mana-g: #43a05c;
+
+  /* Tier accents */
+  --tier-1: #b14bff;         /* T1 — violet */
+  --tier-2: #7fd8ff;         /* T2 — cyan */
+  --tier-3: #9b9dae;         /* T3 — neutral */
+  --tier-rogue: #6b6d80;     /* Otros */
+}

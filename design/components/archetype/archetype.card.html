@@ -1,0 +1,31 @@
+<!-- @dsCard group="Components" viewport="700x230" name="Archetype Card" subtitle="Signature metagame card" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style> body { margin:0; background:var(--bg-app); font-family:var(--font-body); padding:24px 30px; }
+  .grid { display:grid; grid-template-columns:repeat(2, 248px); gap:14px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { ArchetypeCard } = window.MetaStack;
+    function Demo() {
+      return (
+        <div className="grid">
+          <ArchetypeCard rank={1} name="Izzet Cauldron" colors="UR" pct={14.2} delta={2.1} hue={265} maxPct={14.2} selected />
+          <ArchetypeCard rank={4} name="Golgari Midrange" colors="BG" pct={8.1} delta={-1.7} hue={135} maxPct={14.2} />
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  </script>
+  <script>if(!window.__mtgTransformed){window.__mtgTransformed=1;window.Babel&&Babel.transformScriptTags();}</script>
+</body>
+</html>
