@@ -41,13 +41,13 @@
 
 ## 7. Frontend — dashboard assembly & i18n
 
-- [ ] 7.1 Assemble the dashboard: format switcher + freshness indicator + top-20 archetype grid (`repeat(auto-fill,minmax(248px,1fr))`)
-- [ ] 7.2 Wire loading → spinner, no-data/error → EmptyState, success → grid
-- [ ] 7.3 Add ES/EN i18n keys for all new copy (no hardcoded strings); keep archetype names in English
-- [ ] 7.4 Apply design tokens (import `design/tokens` or mirror into `src` styles) for the dark violet-neon theme and fonts
+- [x] 7.1 Assemble the dashboard: format switcher + freshness indicator + top-20 archetype grid (`repeat(auto-fill,minmax(248px,1fr))`)
+- [x] 7.2 Wire loading → spinner, no-data/error → EmptyState, success → grid
+- [x] 7.3 Add ES/EN i18n keys for all new copy (no hardcoded strings); keep archetype names in English
+- [x] 7.4 Apply design tokens (import `design/tokens` or mirror into `src` styles) for the dark violet-neon theme and fonts
 
 ## 8. Verification
 
-- [ ] 8.1 Verify each acceptance scenario against seeded data (top-20 cap, colorless pip, default Standard, switch, reload persistence, freshness, loading/empty/error)
-- [ ] 8.2 Confirm lint, type-check, frontend tests, and scraper pytest all pass locally and in CI
-- [ ] 8.3 Verify on a Vercel preview deployment against real Supabase data
+- [x] 8.1 Verify each acceptance scenario against seeded data (top-20 cap, colorless pip, default Standard, switch, reload persistence, freshness, loading/empty/error)
+- [x] 8.2 Confirm lint, type-check, frontend tests, and scraper pytest all pass locally and in CI
+- [x] 8.3 Verify on a Vercel preview deployment against real Supabase data
