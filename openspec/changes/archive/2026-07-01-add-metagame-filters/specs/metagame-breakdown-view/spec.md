@@ -35,7 +35,7 @@ The dashboard SHALL persist the selected window in the URL alongside the format 
 
 #### Scenario: Invalid window param falls back to default
 - **WHEN** the dashboard is opened with an absent, invalid, or unknown window param
-- **THEN** the Last 2 Weeks window is selected without error
+- **THEN** the Last 5 Days window is selected without error
 
 ## MODIFIED Requirements
 

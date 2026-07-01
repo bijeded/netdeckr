@@ -43,10 +43,10 @@
 
 ## 8. Real filter sidebar (per design)
 
-- [ ] 8.1 Rebuild the App layout as a full-height, flush-left 280px filter sidebar (border-right, own scroll) + independently scrolling main, per `design/MetaStack.dc.html`; host `WindowSelector`
-- [ ] 8.2 Add the `≡` topbar toggle and mobile drawer behavior (sidebar collapses/overlays at ≤860px); component/App tests for the layout and toggle
+- [x] 8.1 Rebuild the App layout as a full-height, flush-left 280px filter sidebar (border-right, own scroll) + independently scrolling main, per `design/MetaStack.dc.html`; host `WindowSelector`
+- [x] 8.2 Add the `≡` topbar toggle and mobile drawer behavior (sidebar collapses/overlays at ≤860px); component/App tests for the layout and toggle
 
 ## 9. Wrap-up
 
-- [ ] 9.1 Re-verify against live data (each format switches windows; default Last 5 Days; sidebar renders per design; responsive)
-- [ ] 9.2 `/opsx:sync` deltas into `openspec/specs/`, then `/opsx:archive`
+- [x] 9.1 Re-verify against live data (each format switches windows; default Last 5 Days; sidebar renders per design; responsive) — reviewed and approved on production
+- [x] 9.2 `/opsx:sync` deltas into `openspec/specs/`, then `/opsx:archive`
