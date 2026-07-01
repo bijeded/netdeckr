@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent } from '@testing-library/react'
 import i18n from './i18n'
 import App from './App'
 
@@ -13,14 +13,22 @@ vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => useLastUpdated(
 
 const setFormat = vi.fn()
 
+function setUrl(search: string) {
+  window.history.replaceState({}, '', search || '/')
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+  setUrl('/')
   useFormatSelection.mockReturnValue({ format: 'ST', setFormat })
   useMetagameBreakdown.mockReturnValue({ data: [], loading: false, error: null })
   useLastUpdated.mockReturnValue(null)
 })
 
-afterEach(() => i18n.changeLanguage('en'))
+afterEach(() => {
+  i18n.changeLanguage('en')
+  setUrl('/')
+})
 
 describe('App dashboard', () => {
   it('shows a spinner while loading', () => {
@@ -74,12 +82,27 @@ describe('App dashboard', () => {
     expect(setFormat).toHaveBeenCalledWith('MO')
   })
 
+  it('defaults to the Last 2 Weeks window and shows it in the header pill', () => {
+    render(<App />)
+    expect(screen.getByTestId('window-pill').textContent).toBe('Last 2 weeks')
+  })
+
+  it('updates the header window pill when a window is selected', () => {
+    render(<App />)
+    // The selector option and the header pill are distinct elements.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Last 2 months' }))
+    })
+    expect(screen.getByTestId('window-pill').textContent).toBe('Last 2 months')
+  })
+
   it('localizes UI copy in Spanish but keeps MTG format names in English', () => {
     i18n.changeLanguage('es')
     render(<App />)
     // Format name is an MTG proper noun — English in both locales.
     expect(screen.getByRole('heading', { name: 'Standard' })).toBeInTheDocument()
-    // Surrounding UI copy is localized.
-    expect(screen.getByText('Últimas 2 semanas')).toBeInTheDocument()
+    // Surrounding UI copy is localized: the filter heading and the window pill.
+    expect(screen.getByText('Ventana')).toBeInTheDocument()
+    expect(screen.getByTestId('window-pill').textContent).toBe('Últimas 2 semanas')
   })
 })

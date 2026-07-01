@@ -7,6 +7,7 @@ import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
 import { FormatSwitcher } from './components/FormatSwitcher'
+import { WindowSelector } from './components/WindowSelector'
 import { ArchetypeCard } from './components/ArchetypeCard'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
@@ -51,7 +52,7 @@ function LanguageToggle() {
 function App() {
   const { t, i18n } = useTranslation()
   const { format, setFormat } = useFormatSelection()
-  const { window: metaWindow } = useWindowSelection()
+  const { window: metaWindow, setWindow } = useWindowSelection()
   const { data, loading, error } = useMetagameBreakdown(format, metaWindow)
   const lastUpdated = useLastUpdated(format, metaWindow)
 
@@ -111,78 +112,88 @@ function App() {
         </div>
       </header>
 
-      {/* Format header */}
-      <section style={{ ...CONTENT_STYLE, paddingTop: 'var(--sp-8)', paddingBottom: 'var(--sp-6)' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 'var(--fw-heavy)',
-              fontSize: 'var(--fs-hero)',
-              letterSpacing: 'var(--track-tight)',
-              margin: 0,
-            }}
-          >
-            {formatName}
-          </h1>
-          <span
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'var(--fs-sm)',
-              padding: '5px 12px',
-              borderRadius: 'var(--r-pill)',
-              background: 'var(--neon-tint-16)',
-              color: 'var(--neon-text-soft)',
-              border: '1px solid var(--neon-border)',
-            }}
-          >
-            {windowLabel}
-          </span>
-        </div>
-        {freshness && (
-          <div
-            data-testid="freshness"
-            style={{
-              marginTop: 'var(--sp-2)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--fs-xs)',
-              color: 'var(--text-faint)',
-            }}
-          >
-            {t('dashboard.updated', { time: freshness })}
-          </div>
-        )}
-      </section>
+      {/* Dashboard: filter sidebar + content */}
+      <div style={{ ...CONTENT_STYLE, paddingTop: 'var(--sp-8)', paddingBottom: 'var(--sp-8)' }}>
+        <div className="dashboard-layout">
+          <aside>
+            <WindowSelector value={metaWindow} onChange={setWindow} />
+          </aside>
 
-      {/* Main */}
-      <main style={{ ...CONTENT_STYLE, paddingBottom: 'var(--sp-8)' }}>
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
-            <Spinner label={t('dashboard.loading')} />
+          <div>
+            {/* Format header */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
+              <h1
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 'var(--fw-heavy)',
+                  fontSize: 'var(--fs-hero)',
+                  letterSpacing: 'var(--track-tight)',
+                  margin: 0,
+                }}
+              >
+                {formatName}
+              </h1>
+              <span
+                data-testid="window-pill"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--fs-sm)',
+                  padding: '5px 12px',
+                  borderRadius: 'var(--r-pill)',
+                  background: 'var(--neon-tint-16)',
+                  color: 'var(--neon-text-soft)',
+                  border: '1px solid var(--neon-border)',
+                }}
+              >
+                {windowLabel}
+              </span>
+            </div>
+            {freshness && (
+              <div
+                data-testid="freshness"
+                style={{
+                  marginTop: 'var(--sp-2)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--fs-xs)',
+                  color: 'var(--text-faint)',
+                }}
+              >
+                {t('dashboard.updated', { time: freshness })}
+              </div>
+            )}
+
+            {/* Main */}
+            <main style={{ marginTop: 'var(--sp-6)' }}>
+              {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
+                  <Spinner label={t('dashboard.loading')} />
+                </div>
+              ) : error || data.length === 0 ? (
+                <EmptyState message={t('dashboard.empty')} />
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))',
+                    gap: 'var(--sp-5)',
+                  }}
+                >
+                  {data.map((archetype) => (
+                    <ArchetypeCard
+                      key={archetype.rank}
+                      rank={archetype.rank}
+                      name={archetype.name}
+                      colors={archetype.colorIdentity}
+                      sharePct={archetype.sharePct}
+                      maxPct={maxPct}
+                    />
+                  ))}
+                </div>
+              )}
+            </main>
           </div>
-        ) : error || data.length === 0 ? (
-          <EmptyState message={t('dashboard.empty')} />
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))',
-              gap: 'var(--sp-5)',
-            }}
-          >
-            {data.map((archetype) => (
-              <ArchetypeCard
-                key={archetype.rank}
-                rank={archetype.rank}
-                name={archetype.name}
-                colors={archetype.colorIdentity}
-                sharePct={archetype.sharePct}
-                maxPct={maxPct}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+        </div>
+      </div>
     </div>
   )
 }
