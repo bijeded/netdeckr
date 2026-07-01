@@ -24,30 +24,32 @@ create table if not exists public.archetypes (
   unique (format_code, name)
 );
 
--- The current "Last 2 Weeks" metagame share per archetype. Replace-on-run:
--- the scraper clears a slice and re-inserts, so no stale archetypes linger.
--- One snapshot row per (format, window, archetype). `window` is the MTGTop8
--- `meta` param (see the CHECK below); replace-on-run is scoped to (format, window).
+-- The metagame share per archetype, per format AND time window / scope.
+-- The scraper clears a slice and re-inserts, so no stale archetypes linger.
+-- One snapshot row per (format, meta_window, archetype). `meta_window` is the
+-- MTGTop8 `meta` param (see the CHECK below); replace-on-run is scoped to
+-- (format, meta_window). Named `meta_window` because `window` is a reserved
+-- SQL keyword and cannot be an unquoted column name.
 create table if not exists public.metagame_snapshots (
   format_code  text   not null references public.formats(code) on delete cascade,
-  window       text   not null default '50', -- MTGTop8 meta param: 50/326/52/46/285
+  meta_window  text   not null default '50', -- MTGTop8 meta param: 50/326/52/46/285
   archetype_id bigint not null references public.archetypes(id) on delete cascade,
   share_pct    numeric(5,2) not null,        -- metagame share %, e.g. 14.20
   rank         integer not null,             -- 1-based, by descending share
-  primary key (format_code, window, archetype_id),
+  primary key (format_code, meta_window, archetype_id),
   constraint metagame_snapshots_window_check
-    check (window in ('50', '326', '52', '46', '285'))
+    check (meta_window in ('50', '326', '52', '46', '285'))
 );
 
 -- ---------------------------------------------------------------------------
 -- Migration for a pre-existing metagame_snapshots table (feature 1 shape:
--- PK archetype_id, no window column). Idempotent; no-ops on a fresh DB where
--- the create above already produced the window-aware shape.
---   Order: add `window` (backfills existing rows to '50' via the default) →
---   ensure the window CHECK → rebuild the PK as composite if it lacks `window`.
+-- PK archetype_id, no meta_window column). Idempotent; no-ops on a fresh DB
+-- where the create above already produced the window-aware shape.
+--   Order: add `meta_window` (backfills existing rows to '50' via the default) →
+--   ensure the CHECK → rebuild the PK as composite if it lacks `meta_window`.
 -- ---------------------------------------------------------------------------
 alter table public.metagame_snapshots
-  add column if not exists window text not null default '50';
+  add column if not exists meta_window text not null default '50';
 
 do $$
 begin
@@ -58,7 +60,7 @@ begin
   ) then
     alter table public.metagame_snapshots
       add constraint metagame_snapshots_window_check
-        check (window in ('50', '326', '52', '46', '285'));
+        check (meta_window in ('50', '326', '52', '46', '285'));
   end if;
 end $$;
 
@@ -71,11 +73,11 @@ begin
       on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
     where i.indrelid = 'public.metagame_snapshots'::regclass
       and i.indisprimary
-      and a.attname = 'window'
+      and a.attname = 'meta_window'
   ) then
     alter table public.metagame_snapshots drop constraint if exists metagame_snapshots_pkey;
     alter table public.metagame_snapshots
-      add primary key (format_code, window, archetype_id);
+      add primary key (format_code, meta_window, archetype_id);
   end if;
 end $$;
 
@@ -83,26 +85,26 @@ end $$;
 -- Drop the pre-window index name if it lingers from feature 1.
 drop index if exists public.metagame_snapshots_format_rank_idx;
 create index if not exists metagame_snapshots_format_window_rank_idx
-  on public.metagame_snapshots (format_code, window, rank);
+  on public.metagame_snapshots (format_code, meta_window, rank);
 
--- Per-(format, window) freshness. Drives the "Updated X ago" indicator, which is
--- now window-aware. `formats.last_updated_at` is retained but no longer the source
+-- Per-(format, meta_window) freshness. Drives the "Updated X ago" indicator, which
+-- is now window-aware. `formats.last_updated_at` is retained but no longer the source
 -- of truth for the indicator (kept to avoid a destructive drop; see design.md).
 create table if not exists public.format_window_freshness (
   format_code     text not null references public.formats(code) on delete cascade,
-  window          text not null,
+  meta_window     text not null,
   last_updated_at timestamptz,                -- null until first successful scrape
-  primary key (format_code, window),
+  primary key (format_code, meta_window),
   constraint format_window_freshness_window_check
-    check (window in ('50', '326', '52', '46', '285'))
+    check (meta_window in ('50', '326', '52', '46', '285'))
 );
 
 -- Backfill freshness for window '50' from the legacy per-format timestamp.
-insert into public.format_window_freshness (format_code, window, last_updated_at)
+insert into public.format_window_freshness (format_code, meta_window, last_updated_at)
 select code, '50', last_updated_at
 from public.formats
 where last_updated_at is not null
-on conflict (format_code, window) do nothing;
+on conflict (format_code, meta_window) do nothing;
 
 -- ---------------------------------------------------------------------------
 -- Seed formats (idempotent)

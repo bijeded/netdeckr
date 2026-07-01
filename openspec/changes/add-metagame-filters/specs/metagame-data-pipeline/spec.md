@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Metagame data schema
-The system SHALL define a Supabase (PostgreSQL) schema that stores, per supported format AND per time window / event scope, a metagame breakdown: the set of formats, the archetypes appearing in each format's breakdown for each window, and for each archetype its metagame share percentage, its rank within the format+window, and its color identity. The five windows correspond to the MTGTop8 `meta` params: Last 2 Weeks (`50`), Last 5 Days (`326`), Last 2 Months (`52`), Large Events 2mo (`46`), and MTGO 2mo (`285`). Metagame snapshots SHALL be keyed by `(format_code, window, archetype_id)`. The schema SHALL also store, per format AND window, the timestamp of the most recent successful data update.
+The system SHALL define a Supabase (PostgreSQL) schema that stores, per supported format AND per time window / event scope, a metagame breakdown: the set of formats, the archetypes appearing in each format's breakdown for each window, and for each archetype its metagame share percentage, its rank within the format+window, and its color identity. The five windows correspond to the MTGTop8 `meta` params: Last 2 Weeks (`50`), Last 5 Days (`326`), Last 2 Months (`52`), Large Events 2mo (`46`), and MTGO 2mo (`285`). Metagame snapshots SHALL be keyed by `(format_code, meta_window, archetype_id)`. The schema SHALL also store, per format AND window, the timestamp of the most recent successful data update.
 
 #### Scenario: Schema supports the five formats
 - **WHEN** the schema is applied to the database
@@ -9,7 +9,7 @@ The system SHALL define a Supabase (PostgreSQL) schema that stores, per supporte
 
 #### Scenario: Schema supports the five windows per format
 - **WHEN** the schema is applied to the database
-- **THEN** each format can independently hold a breakdown and a last-updated timestamp for each of the five windows (`50`, `326`, `52`, `46`, `285`), keyed by `(format_code, window, archetype_id)`
+- **THEN** each format can independently hold a breakdown and a last-updated timestamp for each of the five windows (`50`, `326`, `52`, `46`, `285`), keyed by `(format_code, meta_window, archetype_id)`
 
 #### Scenario: Archetype row carries share, rank, and color identity
 - **WHEN** an archetype belongs to a format+window's stored breakdown

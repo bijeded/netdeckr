@@ -1,16 +1,16 @@
 ## 1. Schema: window-aware snapshots + freshness
 
-- [ ] 1.1 Update `supabase/schema.sql` (idempotent): add `window text not null default '50'` to `metagame_snapshots`, backfill existing rows, drop the `archetype_id` PK and add composite PK `(format_code, window, archetype_id)`, add a CHECK constraint restricting `window` to `'50','326','52','46','285'`
-- [ ] 1.2 Replace the read index with `metagame_snapshots (format_code, window, rank)`
-- [ ] 1.3 Add `format_window_freshness(format_code, window, last_updated_at, PK(format_code, window))` with the anon SELECT RLS policy + grant, and backfill it from `formats.last_updated_at` at window `50`
-- [ ] 1.4 Document the migration/backfill order in `supabase/schema.sql` comments; verify the script parses (no local apply — service-role is a human step)
+- [x] 1.1 Update `supabase/schema.sql` (idempotent): add `window text not null default '50'` to `metagame_snapshots`, backfill existing rows, drop the `archetype_id` PK and add composite PK `(format_code, window, archetype_id)`, add a CHECK constraint restricting `window` to `'50','326','52','46','285'`
+- [x] 1.2 Replace the read index with `metagame_snapshots (format_code, window, rank)`
+- [x] 1.3 Add `format_window_freshness(format_code, window, last_updated_at, PK(format_code, window))` with the anon SELECT RLS policy + grant, and backfill it from `formats.last_updated_at` at window `50`
+- [x] 1.4 Document the migration/backfill order in `supabase/schema.sql` comments; verify the script parses (no local apply — service-role is a human step)
 
 ## 2. Scraper: fetch and store all five windows
 
 - [ ] 2.1 Add a saved MTGTop8 fixture for at least one non-`50` window under `scraper/tests/fixtures`
 - [ ] 2.2 Write failing tests: parser returns expected archetypes for the new-window fixture; the run orchestration fetches all five `meta` params per format and writes window-keyed slices; a single-window fetch failure leaves other windows intact (replace-on-run scoped to `(format, window)`)
 - [ ] 2.3 Define the five windows as a constant in the scraper and loop the fetch over `meta` params per format, building `http://mtgtop8.com/format?f=<code>&meta=<window>`
-- [ ] 2.4 Make the Supabase write replace-on-run per `(format_code, window)` and upsert the `format_window_freshness` row on success; leave prior slice + timestamp intact on fetch/parse failure
+- [ ] 2.4 Make the Supabase write replace-on-run per `(format_code, meta_window)` and upsert the `format_window_freshness` row on success; leave prior slice + timestamp intact on fetch/parse failure
 - [ ] 2.5 Run `cd scraper && ./venv/bin/pytest` — all green, no live network
 
 ## 3. Frontend: window model + data layer

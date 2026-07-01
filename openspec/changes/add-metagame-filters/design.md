@@ -21,10 +21,10 @@ Constraints (unchanged): browser is strictly read-only via RLS (anon SELECT only
 ## Decisions
 
 ### D1 — Window as a column with a fixed enum-like set, not a table
-Add a `window` text column to `metagame_snapshots` and make the PK composite `(format_code, window, archetype_id)`. The five allowed values are validated by a CHECK constraint (`'50','326','52','46','285'`). Alternative — a `windows` lookup table — was rejected: the set is tiny, fixed, and defined by MTGTop8, so a lookup table adds joins with no benefit. Keeping `format_code` on the row (already present) preserves the fast `(format_code, window, rank)` read path.
+Add a `meta_window` text column to `metagame_snapshots` and make the PK composite `(format_code, meta_window, archetype_id)`. The column is named `meta_window` (not `window`) because `window` is a reserved SQL keyword and fails as an unquoted column name; `meta_window` also reads cleanly as a PostgREST filter (`meta_window=eq.50`) for both the scraper writes and the frontend reads. The five allowed values are validated by a CHECK constraint (`'50','326','52','46','285'`). Alternative — a `windows` lookup table — was rejected: the set is tiny, fixed, and defined by MTGTop8, so a lookup table adds joins with no benefit. Keeping `format_code` on the row (already present) preserves the fast `(format_code, meta_window, rank)` read path.
 
 ### D2 — Freshness in a dedicated `format_window_freshness` table
-Introduce `format_window_freshness(format_code, window, last_updated_at, PK(format_code, window))`. `formats.last_updated_at` is retained but no longer the source of truth for the indicator (kept to avoid a destructive column drop; the frontend reads the new table). Alternative — a per-window timestamp column array on `formats` — rejected as un-normalized and awkward to upsert per window.
+Introduce `format_window_freshness(format_code, meta_window, last_updated_at, PK(format_code, meta_window))`. `formats.last_updated_at` is retained but no longer the source of truth for the indicator (kept to avoid a destructive column drop; the frontend reads the new table). Alternative — a per-window timestamp column array on `formats` — rejected as un-normalized and awkward to upsert per window.
 
 ### D3 — Snapshot rank/replace stays per (format, window)
 The scraper's replace-on-run becomes scoped to `(format_code, window)`: delete that slice, re-insert ranked rows, then upsert the freshness row. A failure fetching one window leaves that window's prior slice and timestamp intact — other windows are independent. `archetypes` remains keyed by `(format_code, name)` and is shared across windows (an archetype can appear in several windows).
@@ -44,7 +44,7 @@ The parser (`color_identity_for`, breakdown parsing) is window-agnostic and unch
 
 ## Migration Plan
 
-1. Update `supabase/schema.sql` (idempotent): add `window` column (default `'50'` for backfill), backfill existing rows, drop old PK, add composite PK `(format_code, window, archetype_id)` + CHECK on window, add `(format_code, window, rank)` index; create `format_window_freshness` with RLS read policy + grant; backfill it from `formats.last_updated_at` at window `50`.
+1. Update `supabase/schema.sql` (idempotent): add `meta_window` column (default `'50'` for backfill), backfill existing rows, drop old PK, add composite PK `(format_code, meta_window, archetype_id)` + CHECK on meta_window, add `(format_code, meta_window, rank)` index; create `format_window_freshness` with RLS read policy + grant; backfill it from `formats.last_updated_at` at window `50`.
 2. Human applies the updated schema with the service-role key (assistant has anon only).
 3. Ship scraper change; run `gh workflow run scrape.yml --ref main` (or wait for daily cron) to populate all windows.
 4. Ship frontend behind the same PR flow; default view is unchanged until other windows are picked.
