@@ -110,17 +110,3 @@ code {
   background: var(--code-bg);
 }
 
-/* Dashboard: filter sidebar + content. Sidebar stacks above content on narrow
-   viewports (the filter panel collapses on mobile). */
-.dashboard-layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: var(--sp-7);
-  align-items: start;
-}
-@media (max-width: 860px) {
-  .dashboard-layout {
-    grid-template-columns: 1fr;
-    gap: var(--sp-5);
-  }
-}

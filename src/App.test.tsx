@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, render, screen, fireEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent, within } from '@testing-library/react'
 import i18n from './i18n'
 import App from './App'
 
@@ -85,6 +85,27 @@ describe('App dashboard', () => {
   it('defaults to the Last 5 Days window and shows it in the header pill', () => {
     render(<App />)
     expect(screen.getByTestId('window-pill').textContent).toBe('Last 5 days')
+  })
+
+  it('renders the Time Frame filter inside the sidebar', () => {
+    render(<App />)
+    const sidebar = screen.getByTestId('sidebar')
+    expect(sidebar).toBeInTheDocument()
+    // The window selector (Time Frame group) lives in the sidebar.
+    expect(within(sidebar).getByText('Time Frame')).toBeInTheDocument()
+  })
+
+  it('toggles the sidebar open/closed via the topbar toggle button', () => {
+    render(<App />)
+    const toggle = screen.getByRole('button', { name: 'Toggle filters' })
+    const sidebar = screen.getByTestId('sidebar')
+    // Desktop default: sidebar open.
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(sidebar).toHaveAttribute('data-open', 'true')
+
+    act(() => fireEvent.click(toggle))
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(sidebar).toHaveAttribute('data-open', 'false')
   })
 
   it('updates the header window pill when a window is selected', () => {
