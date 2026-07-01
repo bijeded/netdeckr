@@ -18,7 +18,7 @@
 - [x] 3.2 Implement per-format fetch → parse → replace-on-run upsert (delete format's snapshot rows, upsert archetypes, insert ranked snapshots) inside a per-format transaction
 - [x] 3.3 Stamp `formats.last_updated_at` only after a successful insert; on fetch/parse failure leave prior data and timestamp unchanged
 - [x] 3.4 Add a test/mocked check that a source failure for one format does not wipe its stored data
-- [ ] 3.5 Run `run.py` manually against Supabase to seed all 5 formats and confirm rows land
+- [x] 3.5 Run `run.py` manually against Supabase to seed all 5 formats and confirm rows land
 
 ## 4. Daily pipeline wiring
 
