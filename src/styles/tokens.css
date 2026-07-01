@@ -1,0 +1,24 @@
+/* MetaStack theme — single source of truth is design/tokens/*, imported here so
+   the app and the exported design system never drift. */
+@import '../../design/tokens/fonts.css';
+@import '../../design/tokens/colors.css';
+@import '../../design/tokens/typography.css';
+@import '../../design/tokens/spacing.css';
+
+@keyframes mtg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
