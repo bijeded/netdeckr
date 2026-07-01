@@ -90,8 +90,16 @@ web (responsive)
 
 ## Design
 - Claude Design project: https://claude.ai/design/p/ada1f717-bbb1-4011-8f5a-e5b010ca9f60?file=MetaStack.dc.html
-- Design system: see Claude Design project (to be transcribed during project-init)
-- Key screens: format dashboard with filter sidebar + main deck/metagame panel; decklist pop-up with Arena export; top/trending cards view
+- Reference in repo: `design/` — exported design system (tokens, components, guidelines, dashboard UI kit). Source of truth is `design/MetaStack.dc.html` (interactive prototype, all states). Read `design/readme.md` first.
+- **Vibe:** dark-mode competitive-gaming telemetry. Near-black canvas, a single electric violet accent glowing against it. Restrained, dense, data-first. No emoji; iconography is a few unicode glyphs (`≡ ✕ ⬇ ▲ ▼ – ✓ →`).
+- **Copy:** Spanish UI labels, English MTG proper nouns (card names, archetypes). Terse noun labels, no marketing voice.
+- **Design tokens** (see `design/tokens/`):
+  - Color: canvas `--bg-app #0a0b10`, cards `--surface-card #11121b`, modal `#101119`. Primary accent violet neon `--neon-500 #b14bff → --neon-600 #7a2bff` (active state, primary CTA, focus rings). Mana WUBRG (`--mana-w/u/b/r/g`) are secondary accents, only for color-identity pips. Semantic: up `#2fe6a0`, down `#ff5470`, flat `#ffcb45`. Tiers: T1 violet, T2 cyan, T3 neutral.
+  - Type: `--font-display` Sora (titles/labels, hero 46px/800/-.03em), `--font-body` IBM Plex Sans (body/filters), `--font-mono` JetBrains Mono (ALL data — %, deltas, dates, ranks). Fonts via Google Fonts CDN import.
+  - Spacing: 8/11/14/18/22px rhythm. Radii 6 chips · 9 buttons · 11 deck cards · 15 archetype cards · 16 panels · 18 modal · 999 pills. Sidebar 280px, topbar 62px, content max 1240px.
+  - Numbers: mono, one decimal for % (`14.2%`), signed deltas (`+2.1`/`-1.7`), zero-padded ranks (`01`), abbreviated dates (`24 — 28 Jun 2026`).
+- **Components** (in `design/components/` as `.jsx` + `.d.ts` + `.prompt.md`): `core/` Button, IconButton, Pill · `mana/` ManaPip, ManaPips · `data/` TierBadge (+`tierFor`), ChangeIndicator, StatCard · `archetype/` ArchetypeCard (signature card). Reference implementations mount from `window.MetaStack`; port them into `src/components/` as real React+TS when building.
+- **Key screens** (`design/ui_kits/dashboard/` + prototype): dashboard = topbar (diamond logo + format Pills) + 280px filter sidebar (Fecha, Tamaño de eventos, Arquetipo) + header (format title + neon date pill + StatCard strip) + archetype grid `repeat(auto-fill,minmax(248px,1fr))` + "En Tendencia" trending table. Plus expanded-archetype deck-card state and the deck modal (main/sideboard + "Exportar a MTG Arena").
 
 ## Framework-specific review rules
 - No secrets in the client bundle; only VITE_ anon key is exposed client-side

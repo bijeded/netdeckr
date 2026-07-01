@@ -1,0 +1,38 @@
+<!-- @dsCard group="Components" viewport="700x130" name="Buttons & Pills" subtitle="CTAs, ghost, icon, format pills" -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { margin:0; background:var(--bg-app); font-family:var(--font-body);
+         display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:26px 30px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="../../_ds_bundle.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { Button, IconButton, Pill } = window.MetaStack;
+    function Demo() {
+      return (
+        <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+          <Button variant="neon" icon="⬇">Exportar a MTG Arena</Button>
+          <Button variant="ghost">Cancelar</Button>
+          <IconButton>≡</IconButton>
+          <IconButton>✕</IconButton>
+          <span style={{ width:1, height:30, background:'var(--border-line)' }} />
+          <Pill active>Standard</Pill>
+          <Pill>Pioneer</Pill>
+          <Pill>Modern</Pill>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  </script>
+  <script>if(!window.__mtgTransformed){window.__mtgTransformed=1;window.Babel&&Babel.transformScriptTags();}</script>
+</body>
+</html>

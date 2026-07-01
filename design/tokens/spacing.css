@@ -1,0 +1,39 @@
+/* MetaStack — Spacing, radius, shadow, layout tokens */
+:root {
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 11px;
+  --sp-4: 14px;
+  --sp-5: 18px;
+  --sp-6: 22px;
+  --sp-7: 26px;
+  --sp-8: 30px;
+
+  /* Radius */
+  --r-sm: 6px;    /* pills/badges, tier chips */
+  --r-md: 9px;    /* buttons, filter rows */
+  --r-lg: 11px;   /* deck cards */
+  --r-xl: 15px;   /* archetype cards */
+  --r-2xl: 16px;  /* panels */
+  --r-3xl: 18px;  /* modal */
+  --r-pill: 999px;
+
+  /* Shadows / glows */
+  --shadow-card: 0 14px 40px rgba(0,0,0,.4);
+  --shadow-modal: 0 30px 80px rgba(0,0,0,.6);
+  --shadow-float: 0 18px 50px rgba(0,0,0,.7);
+  --glow-neon: 0 0 18px rgba(177,75,255,.25);
+  --glow-neon-strong: 0 0 30px rgba(177,75,255,.35);
+
+  /* Layout */
+  --sidebar-w: 280px;
+  --topbar-h: 62px;
+  --content-max: 1240px;
+
+  /* Motion */
+  --ease: cubic-bezier(.4,0,.2,1);
+  --dur-fast: .13s;
+  --dur: .15s;
+  --dur-slow: .25s;
+}

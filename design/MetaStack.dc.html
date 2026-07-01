@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0b10;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:rgba(177,75,255,.28);border-radius:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes pulseGlow{0%,100%{opacity:.55}50%{opacity:1}}
+  @keyframes popIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+<div style="position:fixed;inset:0;display:flex;flex-direction:column;background:radial-gradient(1200px 600px at 80% -10%, rgba(177,75,255,.10), transparent 60%),#0a0b10;color:#e8e9f0;overflow:hidden">
+
+  <!-- TOP BAR -->
+  <header style="flex:0 0 auto;display:flex;align-items:center;gap:22px;height:62px;padding:0 20px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(14,15,22,.72);backdrop-filter:blur(10px);z-index:30">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0">
+      <button onClick="{{ toggleSidebar }}" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:9px;color:#cfd0db;cursor:pointer;font-size:15px;flex:0 0 auto">≡</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(140deg,#b14bff,#7a2bff);box-shadow:0 0 14px rgba(177,75,255,.6);transform:rotate(45deg)"></div>
+        <div style="line-height:1.05">
+          <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em">MetaStack</div>
+          <div style="font-size:10.5px;color:#8b8d9e;letter-spacing:.14em;text-transform:uppercase;font-weight:500">MTG Metagame Breakdown</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;overflow-x:auto;padding:4px 2px">
+      <sc-for list="{{ formats }}" as="f" hint-placeholder-count="5">
+        <button onClick="{{ f.onClick }}" style="{{ f.style }}">{{ f.name }}</button>
+      </sc-for>
+    </div>
+  </header>
+
+  <div style="flex:1 1 auto;display:flex;min-height:0;position:relative">
+
+    <!-- SIDEBAR -->
+    <aside style="{{ sidebarStyle }}">
+      <div style="padding:18px 18px 28px">
+        <sc-for list="{{ filterGroups }}" as="g" hint-placeholder-count="4">
+          <div style="margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
+              <span style="font-family:'Sora',sans-serif;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9b9dae">{{ g.label }}</span>
+              <span style="flex:1;height:1px;background:rgba(255,255,255,.06)"></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <sc-for list="{{ g.options }}" as="o" hint-placeholder-count="3">
+                <button onClick="{{ o.onClick }}" style="{{ o.style }}">
+                  <span style="display:flex;align-items:center;gap:9px;min-width:0">
+                    <sc-if value="{{ o.pip }}" hint-placeholder-val="{{ false }}"><span style="{{ o.pipStyle }}"></span></sc-if>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.name }}</span>
+                  </span>
+                  <sc-if value="{{ o.count }}" hint-placeholder-val="{{ false }}"><span style="{{ o.countStyle }}">{{ o.count }}</span></sc-if>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main style="flex:1 1 auto;min-width:0;overflow-y:auto;overflow-x:hidden">
+      <div style="max-width:1240px;margin:0 auto;padding:26px 30px 60px">
+
+        <!-- HEADER -->
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:26px">
+          <div>
+            <div style="display:flex;align-items:baseline;gap:12px">
+              <h1 style="font-family:'Sora',sans-serif;font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1">{{ header.format }}</h1>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:#b14bff;border:1px solid rgba(177,75,255,.4);background:rgba(177,75,255,.08);padding:4px 9px;border-radius:6px;box-shadow:0 0 18px rgba(177,75,255,.18)">Últimos 5 días</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:11px;color:#9b9dae;font-size:13.5px">
+              <span style="font-family:'JetBrains Mono',monospace;color:#e8e9f0;font-weight:500">{{ header.range }}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <sc-for list="{{ summaryStats }}" as="s" hint-placeholder-count="3">
+              <div style="padding:10px 16px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:12px;min-width:96px;text-align:right">
+                <div style="font-family:'Sora',sans-serif;font-size:24px;font-weight:700;color:{{ s.color }};line-height:1">{{ s.value }}</div>
+                <div style="font-size:10.5px;color:#8b8d9e;letter-spacing:.08em;text-transform:uppercase;margin-top:5px">{{ s.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- ARCHETYPE GRID -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:14px;margin-bottom:40px">
+          <sc-for list="{{ archetypes }}" as="a" hint-placeholder-count="8">
+            <div style="{{ a.cardStyle }}">
+              <div onClick="{{ a.onClick }}" style="cursor:pointer">
+                <div style="position:relative;height:118px;overflow:hidden;background:{{ a.imgBg }}">
+                  <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 2px, transparent 2px 11px)"></div>
+                  <div style="position:absolute;left:11px;top:10px;display:flex;gap:4px">
+                    <sc-for list="{{ a.pips }}" as="p" hint-placeholder-count="2"><span style="{{ p }}"></span></sc-for>
+                  </div>
+                  <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.34);text-transform:uppercase">{{ a.imgLabel }}</span>
+                  <span style="{{ a.tierStyle }}">{{ a.tier }}</span>
+                </div>
+                <div style="padding:13px 14px 15px">
+                  <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b6d80">#{{ a.rank }}</span>
+                    <span style="font-family:'Sora',sans-serif;font-weight:600;font-size:15px;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;justify-content:space-between">
+                    <div style="font-family:'Sora',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1">{{ a.pct }}</div>
+                    <div style="{{ a.changeStyle }}"><span style="font-size:11px">{{ a.changeIcon }}</span>{{ a.changeText }}</div>
+                  </div>
+                  <div style="margin-top:11px;height:4px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden">
+                    <div style="{{ a.barStyle }}"></div>
+                  </div>
+                </div>
+              </div>
+              <sc-if value="{{ a.expanded }}" hint-placeholder-val="{{ false }}">
+                <div style="border-top:1px solid rgba(177,75,255,.22);background:rgba(177,75,255,.04);padding:14px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+                    <span style="font-family:'Sora',sans-serif;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#c79bff">Últimos decks · {{ a.name }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b8d9e">{{ a.deckCount }} listas</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">
+                    <sc-for list="{{ a.decks }}" as="d" hint-placeholder-count="4">
+                      <div onClick="{{ d.onClick }}" style="cursor:pointer;border:1px solid rgba(255,255,255,.08);background:#11121b;border-radius:11px;padding:12px;transition:border-color .15s,transform .15s" style-hover="border-color:rgba(177,75,255,.55);transform:translateY(-2px)">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                          <span style="{{ d.posStyle }}">{{ d.position }}</span>
+                          <div style="display:flex;gap:3px"><sc-for list="{{ d.pips }}" as="p" hint-placeholder-count="2"><span style="{{ p }}"></span></sc-for></div>
+                        </div>
+                        <div style="font-family:'Sora',sans-serif;font-weight:600;font-size:13.5px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.player }}</div>
+                        <div style="font-size:11.5px;color:#8b8d9e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.event }}</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6b6d80">
+                          <span>{{ d.date }}</span><span style="margin-left:auto;color:#b14bff">ver deck →</span>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- TRENDING CARDS -->
+        <div style="border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.015);border-radius:16px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:11px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+            <span style="width:8px;height:8px;border-radius:2px;background:#b14bff;box-shadow:0 0 10px #b14bff;transform:rotate(45deg)"></span>
+            <h2 style="font-family:'Sora',sans-serif;font-size:17px;font-weight:700;letter-spacing:-.01em">En Tendencia</h2>
+            <span style="margin-left:auto;font-size:12px;color:#8b8d9e">Top 10 · semana a semana</span>
+          </div>
+          <div style="display:grid;grid-template-columns:34px 1fr 92px 92px 110px;gap:0;padding:10px 20px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#6b6d80;border-bottom:1px solid rgba(255,255,255,.05)">
+            <span>#</span><span>Carta</span><span style="text-align:right">% Actual</span><span style="text-align:right">% Anterior</span><span style="text-align:right">Cambio</span>
+          </div>
+          <sc-for list="{{ trending }}" as="t" hint-placeholder-count="10">
+            <div onMouseEnter="{{ t.onEnter }}" onMouseMove="{{ t.onMove }}" onMouseLeave="{{ onCardLeave }}" onClick="{{ t.onEnter }}" style="display:grid;grid-template-columns:34px 1fr 92px 92px 110px;gap:0;align-items:center;padding:11px 20px;border-bottom:1px solid rgba(255,255,255,.035);cursor:pointer;transition:background .12s" style-hover="background:rgba(177,75,255,.06)">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6b6d80">{{ t.rank }}</span>
+              <span style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:500;border-bottom:1px dashed rgba(177,75,255,.4);width:fit-content">{{ t.name }}</span>
+              <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">{{ t.now }}</span>
+              <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#8b8d9e">{{ t.prev }}</span>
+              <span style="text-align:right"><span style="{{ t.changeStyle }}"><span style="font-size:10px">{{ t.icon }}</span>{{ t.delta }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- HOVER CARD IMAGE -->
+  <sc-if value="{{ hoverCard }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ hoverPanelStyle }}">
+      <div style="width:228px;height:318px;border-radius:14px;border:1px solid rgba(177,75,255,.5);background:linear-gradient(160deg,#1a1426,#0e0b14);box-shadow:0 18px 50px rgba(0,0,0,.7),0 0 30px rgba(177,75,255,.25);overflow:hidden;position:relative">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 2px, transparent 2px 12px)"></div>
+        <div style="position:absolute;left:14px;right:14px;top:14px;font-family:'Sora',sans-serif;font-weight:600;font-size:14px;color:#e8e9f0">{{ hoverCard }}</div>
+        <div style="position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.3);text-transform:uppercase;text-align:center">card art<br>scryfall</div>
+        <div style="position:absolute;left:14px;right:14px;bottom:14px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#7a6b8c;letter-spacing:.06em">api.scryfall.com</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- DECK MODAL -->
+  <sc-if value="{{ modal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(5,5,9,.74);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+      <div onClick="{{ stop }}" style="width:100%;max-width:880px;background:#101119;border:1px solid rgba(255,255,255,.09);border-radius:18px;overflow:hidden;animation:popIn .22s ease;box-shadow:0 30px 80px rgba(0,0,0,.6)">
+        <div style="position:relative;padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.07);background:linear-gradient(120deg,rgba(177,75,255,.12),transparent 70%)">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+            <div style="min-width:0">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">
+                <div style="display:flex;gap:4px"><sc-for list="{{ modal.pips }}" as="p" hint-placeholder-count="2"><span style="{{ p }}"></span></sc-for></div>
+                <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:20px;letter-spacing:-.02em">{{ modal.archetype }}</span>
+                <span style="{{ modal.posStyle }}">{{ modal.position }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;color:#9b9dae;font-size:13px;flex-wrap:wrap">
+                <span style="color:#e8e9f0;font-weight:500">{{ modal.player }}</span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#54566a"></span>
+                <span>{{ modal.event }}</span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#54566a"></span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px">{{ modal.date }}</span>
+              </div>
+            </div>
+            <button onClick="{{ closeModal }}" style="flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#cfd0db;cursor:pointer;font-size:16px">✕</button>
+          </div>
+          <button onClick="{{ exportArena }}" style="margin-top:16px;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:1px solid rgba(177,75,255,.5);background:linear-gradient(140deg,#b14bff,#7a2bff);color:#fff;font-family:'Sora',sans-serif;font-weight:600;font-size:13px;cursor:pointer;box-shadow:0 0 22px rgba(177,75,255,.4)">
+            <span style="font-size:15px">⬇</span> Exportar a MTG Arena
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:0">
+          <div style="padding:20px 22px;border-right:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+              <span style="font-family:'Sora',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#c79bff">Main</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b8d9e;margin-left:auto">{{ modal.mainCount }} cartas</span>
+            </div>
+            <div style="columns:2;column-gap:18px">
+              <sc-for list="{{ modal.main }}" as="c" hint-placeholder-count="20">
+                <div onMouseEnter="{{ c.onEnter }}" onMouseMove="{{ c.onMove }}" onMouseLeave="{{ onCardLeave }}" style="display:flex;align-items:baseline;gap:9px;padding:3.5px 0;break-inside:avoid;cursor:default">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b14bff;font-weight:500;width:16px;flex:0 0 auto">{{ c.count }}</span>
+                  <span style="font-size:13px;color:#dcdde6;border-bottom:1px dashed rgba(177,75,255,.28)">{{ c.name }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:20px 22px;background:rgba(255,255,255,.012)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+              <span style="font-family:'Sora',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9b9dae">Sideboard</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b8d9e;margin-left:auto">{{ modal.sideCount }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ modal.side }}" as="c" hint-placeholder-count="8">
+                <div onMouseEnter="{{ c.onEnter }}" onMouseMove="{{ c.onMove }}" onMouseLeave="{{ onCardLeave }}" style="display:flex;align-items:baseline;gap:9px;padding:3.5px 0;cursor:default">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8b8d9e;font-weight:500;width:16px;flex:0 0 auto">{{ c.count }}</span>
+                  <span style="font-size:13px;color:#c3c4cf;border-bottom:1px dashed rgba(255,255,255,.12)">{{ c.name }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;background:#16121f;border:1px solid rgba(177,75,255,.5);box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 24px rgba(177,75,255,.3);animation:popIn .2s ease">
+      <span style="width:18px;height:18px;border-radius:50%;background:#2fe6a0;display:flex;align-items:center;justify-content:center;color:#06281c;font-size:11px;font-weight:700">✓</span>
+      <span style="font-size:13.5px;font-weight:500">{{ toast }}</span>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { format:'Standard', expanded:null, modal:null, hoverCard:null, hoverPos:{x:0,y:0}, toast:null, sidebarOpen:true, narrow:false, dateF:'5 días', sizeF:'Todos los eventos', eventF:'Todos los eventos', archF:'Todos' };
+
+  componentDidMount(){
+    this._mq = window.matchMedia('(max-width:860px)');
+    const apply = () => this.setState({ narrow:this._mq.matches, sidebarOpen:!this._mq.matches });
+    apply();
+    this._mq.addEventListener('change', apply);
+  }
+  componentWillUnmount(){ if(this._mq) this._mq.removeEventListener('change', this._apply); }
+
+  MANA = { W:['#f3e6bd','rgba(0,0,0,.25)'], U:['#2f76ed','rgba(255,255,255,.25)'], B:['#5b5566','rgba(255,255,255,.18)'], R:['#e0533d','rgba(255,255,255,.2)'], G:['#43a05c','rgba(255,255,255,.2)'] };
+  pip(c, big){ const m=this.MANA[c]; const s=big?16:13; return `display:inline-block;width:${s}px;height:${s}px;border-radius:50%;background:${m[0]};border:1px solid ${m[1]};box-shadow:0 0 6px ${m[0]}55`; }
+  pips(cs, big){ return cs.split('').map(c=>this.pip(c,big)); }
+
+  DATA = {
+    archetypes: [
+      { id:'izzet', name:'Izzet Cauldron', colors:'UR', pct:14.2, delta:2.1, hue:265, list:'izzet' },
+      { id:'dimir', name:'Dimir Midrange', colors:'UB', pct:11.8, delta:-0.9, hue:230, list:'dimir' },
+      { id:'mono-r', name:'Mono-Red Aggro', colors:'R', pct:10.4, delta:1.3, hue:14, list:'monor' },
+      { id:'golgari', name:'Golgari Midrange', colors:'BG', pct:8.1, delta:-1.7, hue:135, list:'golgari' },
+      { id:'azorius', name:'Azorius Control', colors:'WU', pct:6.9, delta:0.4, hue:210, list:'azorius' },
+      { id:'domain', name:'Domain Ramp', colors:'WUBRG', pct:5.5, delta:-0.2, hue:285, list:'domain' },
+      { id:'boros', name:'Boros Convoke', colors:'WR', pct:4.3, delta:0.8, hue:30, list:'boros' },
+      { id:'gruul', name:'Gruul Aggro', colors:'RG', pct:3.6, delta:-0.5, hue:80, list:'gruul' },
+      { id:'selesnya', name:'Selesnya Cage', colors:'WG', pct:2.4, delta:0.3, hue:110, list:'selesnya' },
+      { id:'esper', name:'Esper Pixie', colors:'WUB', pct:1.9, delta:-0.4, hue:250, list:'esper' },
+      { id:'jeskai', name:'Jeskai Control', colors:'WUR', pct:1.1, delta:0.0, hue:200, list:'jeskai' },
+      { id:'mono-w', name:'Mono-White Tokens', colors:'W', pct:0.7, delta:0.2, hue:50, list:'monow' },
+    ],
+    decklists: {
+      izzet:{ main:["4 Cori-Steel Cutter","4 Stormchaser's Talent","3 Spyglass Siren","4 Marauding Mako","2 Abhorrent Oculus","4 Monstrous Rage","4 Torch the Tower","3 Into the Flood Maw","3 Opt","2 Sleight of Hand","3 Proft's Eidetic Memory","4 Spirebluff Canal","4 Riverpyre Verge","4 Restless Spire","7 Island","5 Mountain"], side:["3 Abrade","2 Negate","2 Disdainful Stroke","2 Lithomantic Barrage","2 Brotherhood's End","2 Pawpatch Recruit","2 Smuggler's Surprise"] },
+      dimir:{ main:["4 Spyglass Siren","4 Faerie Mastermind","3 Kaito, Bane of Nightmares","4 Preacher of the Schism","2 Sheoldred, the Apocalypse","4 Cut Down","3 Go for the Throat","2 Deep-Cavern Bat","3 Tinybones Joins Up","2 Phyrexian Fleshgorger","3 Duress","3 Nowhere to Run","4 Underground Mortuary","4 Gloomlake Verge","3 Restless Reef","2 Undercity Sewers","6 Swamp","4 Island"], side:["2 Disdainful Stroke","2 Negate","2 Anoint with Affliction","2 Ghost Vacuum","2 Duress","2 Tishana's Tidebinder","3 Sheoldred, the Apocalypse"] },
+      monor:{ main:["4 Heartfire Hero","4 Emberheart Challenger","4 Monastery Swiftspear","3 Hired Claw","4 Monstrous Rage","4 Torch the Tower","3 Witchstalker Frenzy","2 Screaming Nemesis","4 Burst Lightning","3 Lightning Strike","2 Boltwave","4 Sunbaked Canyon","3 Rockface Village","16 Mountain"], side:["3 Lithomantic Barrage","2 Urabrask's Forge","2 Obliterating Bolt","2 Scorching Shot","3 Pawpatch Recruit","3 Ghost Vacuum"] },
+      golgari:{ main:["4 Llanowar Elves","4 Mosswood Dreadknight","3 Preacher of the Schism","2 Sheoldred, the Apocalypse","4 Cut Down","3 Go for the Throat","2 Glissa Sunslayer","3 Tinybones Joins Up","2 Vraska, Betrayal's Sting","3 Up the Beanstalk","2 Pawpatch Recruit","4 Insidious Roots","4 Blooming Marsh","3 Restless Cottage","3 Hedge Maze","7 Swamp","7 Forest"], side:["2 Duress","2 Tear Asunder","2 Pick Your Poison","2 Gix's Command","2 Ghost Vacuum","2 Disfigure","3 Sheoldred, the Apocalypse"] },
+      azorius:{ main:["4 No More Lies","3 Three Steps Ahead","4 Get Lost","3 Day of Judgment","3 Temporary Lockdown","2 The Wandering Emperor","2 Beza, the Bounding Spring","3 Deduce","2 Lay Down Arms","3 Split Up","2 Sunfall","2 Overlord of the Mistmoors","4 Restless Anchorage","4 Meticulous Archive","3 Floodfarm Verge","8 Plains","8 Island"], side:["2 Negate","2 Disdainful Stroke","3 Lay Down Arms","2 Tishana's Tidebinder","2 Elspeth's Smite","2 Loran of the Third Path","2 Sunfall"] },
+      domain:{ main:["4 Up the Beanstalk","4 Leyline Binding","2 Beza, the Bounding Spring","3 Herd Migration","3 Overlord of the Hauntwoods","2 Overlord of the Mistmoors","2 Atraxa, Grand Unifier","3 Get Lost","2 Sunfall","4 Three Tree Mascot","2 Tranquil Frillback","4 Hedge Maze","3 Lush Portico","3 Gloomlake Verge","3 Sunbaked Canyon","2 Underground Mortuary","2 Plains","2 Island","2 Swamp","2 Mountain","4 Forest"], side:["2 Negate","2 Duress","2 Loran of the Third Path","3 Tranquil Frillback","2 Brotherhood's End","2 Sunfall","2 Pawpatch Recruit"] },
+      boros:{ main:["4 Voldaren Epicure","4 Resolute Reinforcements","4 Knight-Errant of Eos","4 Gleeful Demolition","3 Warden of the Inner Sky","4 Novice Inspector","4 Imodane's Recruiter","4 Case of the Gateway Express","2 Sunspine Lynx","4 Regal Bunnicorn","2 Cacophony Scamp","2 Monstrous Rage","4 Sunbaked Canyon","4 Elegant Parlor","3 Mountain","12 Plains"], side:["3 Lithomantic Barrage","2 Destroy Evil","2 Brotherhood's End","2 Get Lost","3 Pawpatch Recruit","3 Obliterating Bolt"] },
+      gruul:{ main:["4 Heartfire Hero","4 Emberheart Challenger","4 Hired Claw","3 Innkeeper's Talent","4 Manifold Mouse","3 Questing Druid","4 Monstrous Rage","3 Torch the Tower","4 Burst Lightning","3 Screaming Nemesis","4 Copperline Gorge","4 Karplusan Forest","3 Thornspire Verge","7 Mountain","6 Forest"], side:["2 Lithomantic Barrage","3 Pawpatch Recruit","2 Urabrask's Forge","2 Obliterating Bolt","2 Pick Your Poison","2 Boltwave","2 Tear Asunder"] },
+      selesnya:{ main:["4 Llanowar Elves","4 Voice of Victory","3 Beza, the Bounding Spring","4 Caretaker's Talent","3 Overlord of the Hauntwoods","2 Overlord of the Mistmoors","3 Get Lost","3 The Wandering Emperor","4 Springheart Nantuko","4 Hugs, Grisly Guardian","4 Lush Portico","4 Hedge Maze","3 Fountainport","7 Forest","7 Plains"], side:["2 Destroy Evil","3 Tranquil Frillback","2 Tear Asunder","2 Loran of the Third Path","2 High Noon","2 Pawpatch Recruit","2 Sunfall"] },
+      esper:{ main:["4 Enduring Curiosity","4 Floodpits Drowner","4 Nowhere to Run","4 Stormchaser's Talent","3 Optimistic Scavenger","4 Mockingbird","2 Kaito, Bane of Nightmares","3 Get Lost","3 Cut Down","2 Anoint with Affliction","4 Spyglass Siren","4 Gloomlake Verge","3 Meticulous Archive","3 Underground Mortuary","3 Floodfarm Verge","4 Island","3 Swamp","3 Plains"], side:["2 Duress","2 Negate","2 Disdainful Stroke","2 Ghost Vacuum","2 Tishana's Tidebinder","2 Sheoldred, the Apocalypse","3 Disfigure"] },
+      jeskai:{ main:["4 Get Lost","3 Three Steps Ahead","4 No More Lies","3 Torch the Tower","2 The Wandering Emperor","3 Temporary Lockdown","3 Day of Judgment","2 Sunfall","3 Deduce","3 Lightning Helix","4 Cori-Steel Cutter","4 Restless Anchorage","3 Meticulous Archive","3 Spirebluff Canal","3 Elegant Parlor","4 Island","5 Plains","4 Mountain"], side:["2 Negate","2 Disdainful Stroke","2 Lithomantic Barrage","2 Brotherhood's End","2 Loran of the Third Path","2 Elspeth's Smite","3 Sunfall"] },
+      monow:{ main:["4 Novice Inspector","4 Caretaker's Talent","4 Resolute Reinforcements","4 Warden of the Inner Sky","3 The Wandering Emperor","4 Regal Bunnicorn","3 Get Lost","4 Case of the Gateway Express","4 Overlord of the Mistmoors","2 Beza, the Bounding Spring","4 Demolition Field","3 Fountainport","17 Plains"], side:["2 Destroy Evil","2 Loran of the Third Path","2 High Noon","2 Elspeth's Smite","2 Lay Down Arms","2 Sunfall","3 Phyrexian Censor"] },
+    },
+    events: ["Standard Challenge 32 (MTGO)","Standard RCQ — Hareruya","SCG CON Standard Open","Standard Preliminary (MTGO)","Standard Showcase Challenge","NRG Series Standard"],
+    players: ["Yuuki Ichikawa","Simon Nielsen","_GoblinLackey","mtg_ftw99","Eli Kassis","Reid Duke","jjjjun","Karl Sarap","Soul_Spike","Nathan Steuer","aspiringspike","Brad Nelson"],
+    dates: ["28 Jun","27 Jun","26 Jun","25 Jun","24 Jun"],
+    trending: [
+      ["Cori-Steel Cutter",38.4,31.2],["Monstrous Rage",26.1,27.0],["Torch the Tower",24.8,22.5],["Get Lost",22.3,22.3],["Sheoldred, the Apocalypse",19.7,21.4],["Spyglass Siren",18.9,15.6],["Up the Beanstalk",14.2,14.8],["Stormchaser's Talent",13.5,9.8],["Cut Down",12.7,12.7],["Abhorrent Oculus",11.4,13.9],
+    ],
+  };
+
+  tier(p){ if(p>=10) return ['T1','#b14bff','rgba(177,75,255,.16)','rgba(177,75,255,.55)']; if(p>=5) return ['T2','#7fd8ff','rgba(127,216,255,.12)','rgba(127,216,255,.4)']; if(p>=1) return ['T3','#9b9dae','rgba(255,255,255,.06)','rgba(255,255,255,.18)']; return ['Otros','#6b6d80','rgba(255,255,255,.04)','rgba(255,255,255,.12)']; }
+  change(d){ if(d>0.05) return ['#2fe6a0','▲','+'+d.toFixed(1),'rgba(47,230,160,.12)','rgba(47,230,160,.4)']; if(d<-0.05) return ['#ff5470','▼',d.toFixed(1),'rgba(255,84,112,.12)','rgba(255,84,112,.4)']; return ['#ffcb45','–','0.0','rgba(255,203,69,.1)','rgba(255,203,69,.35)']; }
+  parse(s){ const i=s.indexOf(' '); return { count:s.slice(0,i), name:s.slice(i+1) }; }
+  sum(arr){ return arr.reduce((a,s)=>a+ +s.split(' ')[0],0); }
+
+  setHover(name, e){ this.setState({ hoverCard:name, hoverPos:{x:e.clientX, y:e.clientY} }); }
+  clearHover(){ this.setState({ hoverCard:null }); }
+
+  buildDecks(a){
+    const D=this.DATA; const dl=D.decklists[a.list];
+    const n = a.pct>=8?4:(a.pct>=2?4:3);
+    const positions = [['1st','#06281c','#2fe6a0'],['2nd','#06281c','#7fd8ff'],['Top 4','rgba(177,75,255,.16)','#c79bff'],['Top 8','rgba(255,255,255,.06)','#9b9dae'],['9th','rgba(255,255,255,.05)','#8b8d9e']];
+    const decks=[];
+    for(let i=0;i<n;i++){
+      const pos=positions[i%positions.length];
+      const player=D.players[(a.name.length+i*3)%D.players.length];
+      const ev=D.events[(i+a.list.length)%D.events.length];
+      const date=D.dates[i%D.dates.length];
+      const posStyle=`display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;background:${pos[1]};color:${pos[2]}`;
+      decks.push({ id:a.id+'-'+i, position:pos[0], posStyle, player, event:ev, date, pips:this.pips(a.colors,false),
+        onClick:(e)=>{ e.stopPropagation(); this.openModal(a, {position:pos[0], posStyle, player, event:ev, date, dl}); } });
+    }
+    return decks;
+  }
+
+  openModal(a, d){
+    const main=d.dl.main.map(s=>{const c=this.parse(s);return {count:c.count,name:c.name,onEnter:(e)=>this.setHover(c.name,e),onMove:(e)=>this.setHover(c.name,e)};});
+    const side=d.dl.side.map(s=>{const c=this.parse(s);return {count:c.count,name:c.name,onEnter:(e)=>this.setHover(c.name,e),onMove:(e)=>this.setHover(c.name,e)};});
+    this.setState({ modal:{ archetype:a.name, pips:this.pips(a.colors,false), position:d.position, posStyle:d.posStyle, player:d.player, event:d.event, date:d.date, main, side, mainCount:this.sum(d.dl.main), sideCount:this.sum(d.dl.side) }, hoverCard:null });
+  }
+  exportArena(){ this.setState({ toast:'Lista copiada para MTG Arena' }); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:null}),2200); }
+
+  renderVals(){
+    const S=this.state, D=this.DATA;
+    const fmts=['Standard','Pioneer','Modern','Pauper','Pre-Modern'];
+    const formats=fmts.map(f=>{ const on=f===S.format; return { name:f, style:`flex:0 0 auto;padding:8px 15px;border-radius:999px;font-family:'Sora',sans-serif;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;transition:all .15s;border:1px solid ${on?'rgba(177,75,255,.6)':'rgba(255,255,255,.08)'};background:${on?'linear-gradient(140deg,rgba(177,75,255,.22),rgba(122,43,255,.16))':'rgba(255,255,255,.02)'};color:${on?'#e8c9ff':'#9b9dae'};box-shadow:${on?'0 0 18px rgba(177,75,255,.25)':'none'}`, onClick:()=>this.setState({format:f, expanded:null}) }; });
+
+    const mkOpt=(name,group,sel,opts={})=>{ const on=name===sel; return { name, count:opts.count, pip:opts.pip, pipStyle:opts.pip?this.pip(opts.pip,false):'', countStyle:`font-family:'JetBrains Mono',monospace;font-size:11px;color:${on?'#c79bff':'#6b6d80'};flex:0 0 auto`, style:`display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:8px 11px;border-radius:9px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-size:13px;transition:all .13s;border:1px solid ${on?'rgba(177,75,255,.35)':'transparent'};background:${on?'rgba(177,75,255,.1)':'transparent'};color:${on?'#e8e9f0':'#9b9dae'}`, onClick:()=>this.setState(group==='archF'?{archF:name,expanded:null}:{[group]:name}) }; };
+
+    const archOpts=[{n:'Todos'}].concat(D.archetypes.map(a=>({n:a.name,c:a.colors,ct:a.pct.toFixed(1)+'%'})));
+    const filterGroups=[
+      { label:'Fecha', options:['5 días','2 semanas','2 meses'].map(o=>mkOpt(o,'dateF',S.dateF)) },
+      { label:'Tamaño de eventos', options:['Todos los eventos','Eventos grandes (2 meses)','MTGO (2 meses)'].map(o=>mkOpt(o,'sizeF',S.sizeF)) },
+      { label:'Evento', options:['Todos los eventos'].concat(D.events).map((o,i)=>mkOpt(o,'eventF',S.eventF,i>0?{count:[18,24,32,40,28,22][i-1]||20}:{})) },
+      { label:'Arquetipo', options:archOpts.map(o=>mkOpt(o.n,'archF',S.archF,o.c?{pip:o.c[0],count:o.ct}:{})) },
+    ];
+
+    const archetypes=D.archetypes.map((a,i)=>{
+      const t=this.tier(a.pct), c=this.change(a.delta), exp=S.expanded===a.id;
+      const decks=this.buildDecks(a);
+      return { id:a.id, name:a.name, rank:i+1, pct:a.pct.toFixed(1)+'%', tier:t[0], imgLabel:'arte · '+a.colors,
+        imgBg:`linear-gradient(150deg, oklch(0.32 0.09 ${a.hue}), oklch(0.16 0.05 ${a.hue}))`,
+        pips:this.pips(a.colors,true),
+        tierStyle:`position:absolute;right:10px;top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;color:${t[1]};background:${t[2]};border:1px solid ${t[3]};backdrop-filter:blur(4px)`,
+        changeText:c[2], changeIcon:c[1],
+        changeStyle:`display:inline-flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;padding:4px 9px;border-radius:7px;color:${c[0]};background:${c[3]};border:1px solid ${c[4]}`,
+        barStyle:`height:100%;width:${Math.min(100,a.pct/14.2*100)}%;background:linear-gradient(90deg,${t[1]},${c[0]});border-radius:3px`,
+        cardStyle:`grid-column:${exp?'1 / -1':'auto'};border:1px solid ${exp?'rgba(177,75,255,.55)':'rgba(255,255,255,.07)'};background:#11121b;border-radius:15px;overflow:hidden;transition:border-color .18s,box-shadow .18s;box-shadow:${exp?'0 0 0 1px rgba(177,75,255,.25),0 14px 40px rgba(0,0,0,.4)':'none'}`,
+        expanded:exp, deckCount:decks.length, decks,
+        onClick:()=>this.setState({expanded:exp?null:a.id}) };
+    });
+
+    const trending=D.trending.map((r,i)=>{ const d=+(r[1]-r[2]).toFixed(1); const c=this.change(d);
+      return { rank:String(i+1).padStart(2,'0'), name:r[0], now:r[1].toFixed(1)+'%', prev:r[2].toFixed(1)+'%', delta:c[2], icon:c[1],
+        changeStyle:`display:inline-flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;color:${c[0]};background:${c[3]};border:1px solid ${c[4]}`,
+        onEnter:(e)=>this.setHover(r[0],e), onMove:(e)=>this.setHover(r[0],e) }; });
+
+    const total = D.archetypes.reduce((a,x)=>a+x.pct,0);
+    const summaryStats=[ {value:'34', label:'Eventos', color:'#e8e9f0'}, {value:String(D.archetypes.length), label:'Arquetipos', color:'#c79bff'}, {value:'1,284', label:'Decks', color:'#2fe6a0'} ];
+
+    const sbBase = "flex:0 0 280px;width:280px;border-right:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.012);overflow-y:auto;transition:margin .25s ease;z-index:20;";
+    const sidebarStyle = S.narrow
+      ? sbBase + `position:absolute;top:0;bottom:0;left:0;background:#0d0e16;box-shadow:8px 0 40px rgba(0,0,0,.5);margin-left:${S.sidebarOpen?'0':'-292px'}`
+      : sbBase + `margin-left:${S.sidebarOpen?'0':'-292px'}`;
+
+    const hp=S.hoverPos; const px=Math.min(hp.x+22, window.innerWidth-250); const py=Math.min(Math.max(hp.y-160,14), window.innerHeight-340);
+    const hoverPanelStyle=`position:fixed;left:${px}px;top:${py}px;z-index:70;pointer-events:none`;
+
+    return { formats, filterGroups, archetypes, trending, summaryStats,
+      header:{ format:S.format, events:'34 eventos analizados', range:'24 — 28 Jun 2026' },
+      sidebarStyle, toggleSidebar:()=>this.setState(s=>({sidebarOpen:!s.sidebarOpen})),
+      hoverCard:S.hoverCard, hoverPanelStyle, onCardLeave:()=>this.clearHover(),
+      modal:S.modal, closeModal:()=>this.setState({modal:null,hoverCard:null}), stop:(e)=>e.stopPropagation(),
+      exportArena:(e)=>{ e.stopPropagation(); this.exportArena(); }, toast:S.toast };
+  }
+}
+</script>
+</body>
+</html>

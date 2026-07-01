@@ -1,0 +1,34 @@
+/* MetaStack — Typography tokens
+   Sora = display/headings & UI labels. IBM Plex Sans = body/UI text. JetBrains Mono = data/numbers. */
+:root {
+  --font-display: 'Sora', system-ui, sans-serif;   /* titles, card names, buttons */
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif; /* body, filters, card text */
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace; /* %, deltas, dates, ranks */
+
+  /* Type scale (px) */
+  --fs-hero: 46px;    /* page title (format name) */
+  --fs-stat: 30px;    /* archetype % */
+  --fs-stat-sm: 24px; /* summary stat value */
+  --fs-h2: 17px;      /* section heading */
+  --fs-lg: 18px;      /* logo */
+  --fs-md: 15px;      /* card name */
+  --fs-base: 14px;    /* body */
+  --fs-sm: 13px;      /* filters, secondary */
+  --fs-xs: 12px;      /* mono data */
+  --fs-2xs: 11px;     /* micro labels */
+  --fs-3xs: 10.5px;   /* eyebrow / uppercase */
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-heavy: 800;   /* display titles + logo */
+
+  /* Tracking */
+  --track-tight: -.03em;  /* hero display */
+  --track-snug: -.01em;   /* headings */
+  --track-eyebrow: .14em; /* uppercase section labels */
+  --track-caps: .1em;     /* mono uppercase */
+  --track-wide: .16em;    /* sidebar group labels */
+}
