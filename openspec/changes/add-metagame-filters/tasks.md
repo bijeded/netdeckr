@@ -15,10 +15,10 @@
 
 ## 3. Frontend: window model + data layer
 
-- [ ] 3.1 Add a typed `windows` constant (code, `meta` value, i18n label key, `isDefault`) and ES/EN label strings in `src/locales`
-- [ ] 3.2 Write failing tests for the breakdown hook/selector: query keyed on `(format, window)`, reads freshness from `format_window_freshness`, and returns loading/empty/error states per `(format, window)`
-- [ ] 3.3 Update the breakdown hook + Supabase query to filter by the selected window and read per-(format, window) freshness; make tests pass
-- [ ] 3.4 Add URL handling for `w`: validate against the known set, fall back to default `50`, and keep it independent from `?f=` (preserved across format switches)
+- [x] 3.1 Add a typed `windows` constant (code, `meta` value, i18n label key, `isDefault`) and ES/EN label strings in `src/locales`
+- [x] 3.2 Write failing tests for the breakdown hook/selector: query keyed on `(format, window)`, reads freshness from `format_window_freshness`, and returns loading/empty/error states per `(format, window)`
+- [x] 3.3 Update the breakdown hook + Supabase query to filter by the selected window and read per-(format, window) freshness; make tests pass
+- [x] 3.4 Add URL handling for `w`: validate against the known set, fall back to default `50`, and keep it independent from `?f=` (preserved across format switches)
 
 ## 4. Frontend: window selector UI
 

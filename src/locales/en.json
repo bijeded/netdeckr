@@ -10,6 +10,9 @@
     "pauper": "Pauper",
     "premodern": "Pre-Modern"
   },
+  "filters": {
+    "window": "Window"
+  },
   "windows": {
     "last2Weeks": "Last 2 weeks",
     "last5Days": "Last 5 days",
