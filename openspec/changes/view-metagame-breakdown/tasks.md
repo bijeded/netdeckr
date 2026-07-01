@@ -14,16 +14,16 @@
 
 ## 3. Scraper — pipeline & upsert
 
-- [ ] 3.1 Add the Supabase write client to the scraper (service-role key from env) in `scraper/run.py`
-- [ ] 3.2 Implement per-format fetch → parse → replace-on-run upsert (delete format's snapshot rows, upsert archetypes, insert ranked snapshots) inside a per-format transaction
-- [ ] 3.3 Stamp `formats.last_updated_at` only after a successful insert; on fetch/parse failure leave prior data and timestamp unchanged
-- [ ] 3.4 Add a test/mocked check that a source failure for one format does not wipe its stored data
+- [x] 3.1 Add the Supabase write client to the scraper (service-role key from env) in `scraper/run.py`
+- [x] 3.2 Implement per-format fetch → parse → replace-on-run upsert (delete format's snapshot rows, upsert archetypes, insert ranked snapshots) inside a per-format transaction
+- [x] 3.3 Stamp `formats.last_updated_at` only after a successful insert; on fetch/parse failure leave prior data and timestamp unchanged
+- [x] 3.4 Add a test/mocked check that a source failure for one format does not wipe its stored data
 - [ ] 3.5 Run `run.py` manually against Supabase to seed all 5 formats and confirm rows land
 
 ## 4. Daily pipeline wiring
 
-- [ ] 4.1 Add/confirm the GitHub Actions daily cron workflow invokes `scraper/run.py` with `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` secrets
-- [ ] 4.2 Ensure scraper deps are installed in the workflow and its pytest suite runs in CI
+- [x] 4.1 Add/confirm the GitHub Actions daily cron workflow invokes `scraper/run.py` with `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` secrets
+- [x] 4.2 Ensure scraper deps are installed in the workflow and its pytest suite runs in CI
 
 ## 5. Frontend — data & format state
 
