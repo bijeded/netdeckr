@@ -38,10 +38,10 @@ def test_rejects_non_https_url():
         SupabaseWriter("http://example.supabase.co", KEY, session=MagicMock())
 
 
-def test_replace_breakdown_deletes_then_inserts_archetypes_and_snapshots():
+def test_replace_breakdown_clears_only_the_window_slice_then_upserts():
     session = MagicMock()
     session.delete.return_value = _response(status=204)
-    # First POST (archetypes) returns rows with ids; second POST (snapshots) returns 201.
+    # First POST upserts archetypes (returns rows with ids); second inserts snapshots.
     session.post.side_effect = [
         _response([{"id": 10, "name": "Izzet Control"}, {"id": 11, "name": "Selesnya Aggro"}]),
         _response(status=201),
@@ -51,42 +51,58 @@ def test_replace_breakdown_deletes_then_inserts_archetypes_and_snapshots():
         Archetype(name="Izzet Control", share_pct=24.0, color_identity="UR", rank=1),
         Archetype(name="Selesnya Aggro", share_pct=21.0, color_identity="WG", rank=2),
     ]
-    _writer(session).replace_breakdown("ST", archetypes)
+    _writer(session).replace_breakdown("ST", "52", archetypes)
 
-    # DELETE targets archetypes filtered by format (cascades snapshots).
+    # DELETE clears ONLY this (format, window) snapshot slice — never the shared
+    # archetypes (which are referenced by other windows).
     delete_url = session.delete.call_args[0][0]
-    assert "/rest/v1/archetypes" in delete_url
+    assert "/rest/v1/metagame_snapshots" in delete_url
     assert "format_code=eq.ST" in delete_url
+    assert "meta_window=eq.52" in delete_url
+    assert "/archetypes" not in delete_url
 
-    # First POST inserts archetypes; second inserts snapshots with mapped ids.
+    # First POST upserts archetypes on the (format_code, name) unique key.
     first_post_url = session.post.call_args_list[0][0][0]
-    second_post_url = session.post.call_args_list[1][0][0]
     assert "/rest/v1/archetypes" in first_post_url
-    assert "/rest/v1/metagame_snapshots" in second_post_url
+    assert "on_conflict=format_code,name" in first_post_url
+    assert "merge-duplicates" in session.post.call_args_list[0][1]["headers"]["Prefer"]
 
+    # Second POST inserts this window's snapshots with mapped ids and meta_window.
+    second_post_url = session.post.call_args_list[1][0][0]
+    assert "/rest/v1/metagame_snapshots" in second_post_url
     snapshots = session.post.call_args_list[1][1]["json"]
     by_id = {s["archetype_id"]: s for s in snapshots}
     assert by_id[10]["rank"] == 1 and by_id[10]["format_code"] == "ST"
+    assert all(s["meta_window"] == "52" for s in snapshots)
     assert by_id[11]["share_pct"] == 21.0
 
 
-def test_replace_breakdown_with_no_archetypes_only_deletes():
+def test_replace_breakdown_with_no_archetypes_only_clears_the_slice():
     session = MagicMock()
     session.delete.return_value = _response(status=204)
-    _writer(session).replace_breakdown("ST", [])
-    session.delete.assert_called_once()
-    session.post.assert_not_called()
+    _writer(session).replace_breakdown("ST", "50", [])
+
+    delete_url = session.delete.call_args[0][0]
+    assert "/rest/v1/metagame_snapshots" in delete_url
+    assert "meta_window=eq.50" in delete_url
+    session.post.assert_not_called()  # nothing to upsert/insert
 
 
-def test_stamp_updated_patches_format_row():
+def test_stamp_updated_upserts_the_window_freshness_row():
     session = MagicMock()
-    session.patch.return_value = _response(status=204)
-    _writer(session).stamp_updated("ST", "2026-07-01T00:00:00Z")
+    session.post.return_value = _response(status=201)
+    _writer(session).stamp_updated("ST", "52", "2026-07-01T00:00:00Z")
 
-    patch_url = session.patch.call_args[0][0]
-    assert "/rest/v1/formats" in patch_url
-    assert "code=eq.ST" in patch_url
-    assert session.patch.call_args[1]["json"]["last_updated_at"] == "2026-07-01T00:00:00Z"
+    post_url = session.post.call_args[0][0]
+    assert "/rest/v1/format_window_freshness" in post_url
+    assert "on_conflict=format_code,meta_window" in post_url
+    assert "merge-duplicates" in session.post.call_args[1]["headers"]["Prefer"]
+    body = session.post.call_args[1]["json"]
+    # PostgREST accepts either a dict or a single-item list for upsert.
+    row = body[0] if isinstance(body, list) else body
+    assert row["format_code"] == "ST"
+    assert row["meta_window"] == "52"
+    assert row["last_updated_at"] == "2026-07-01T00:00:00Z"
 
 
 def test_http_error_propagates():
@@ -95,4 +111,4 @@ def test_http_error_propagates():
     failing.raise_for_status.side_effect = RuntimeError("500")
     session.delete.return_value = failing
     with pytest.raises(RuntimeError):
-        _writer(session).replace_breakdown("ST", [])
+        _writer(session).replace_breakdown("ST", "50", [])

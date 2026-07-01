@@ -12,10 +12,18 @@ from mtgtop8 import (  # noqa: E402
 FIXTURE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "fixtures", "format_ST_meta50.html"
 )
+FIXTURE_META52 = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "fixtures", "format_ST_meta52.html"
+)
 
 
 def _load():
     with open(FIXTURE, encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _load_meta52():
+    with open(FIXTURE_META52, encoding="utf-8") as fh:
         return fh.read()
 
 
@@ -79,6 +87,17 @@ def test_parse_clamps_share_and_caps_name_length():
 def test_parse_attaches_color_identity():
     archetypes = parse_meta_breakdown(_load())
     assert _by_name(archetypes, "Selesnya Aggro").color_identity == "WG"
+
+
+def test_parses_a_second_window_fixture():
+    # The parser is window-agnostic: a different meta window (52 = Last 2 Months)
+    # parses independently, with its own archetypes/shares distinct from meta=50.
+    archetypes = parse_meta_breakdown(_load_meta52())
+    names = {a.name for a in archetypes}
+    assert names == {"Dimir Midrange", "Mono Red Aggro", "Azorius Control"}
+    assert _by_name(archetypes, "Dimir Midrange").share_pct == 18.0
+    assert _by_name(archetypes, "Azorius Control").share_pct == 9.5  # decimal tail
+    assert _by_name(archetypes, "Dimir Midrange").color_identity == "UB"
 
 
 # --- color_identity_for -----------------------------------------------------
