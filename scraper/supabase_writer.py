@@ -14,7 +14,7 @@ from mtgtop8 import Archetype
 
 
 class SupabaseWriter:
-    """Replace-on-run writer for a format's metagame breakdown."""
+    """Replace-on-run writer, scoped per (format, meta_window) snapshot slice."""
 
     def __init__(self, url: str, service_role_key: str, session: requests.Session | None = None):
         if not url.startswith("https://"):
@@ -28,11 +28,16 @@ class SupabaseWriter:
             "Content-Type": "application/json",
         }
 
-    def replace_breakdown(self, fmt: str, archetypes: list[Archetype]) -> None:
-        """Delete the format's archetypes (cascading snapshots), then insert fresh
-        archetypes and their ranked snapshots. Leaves no stale rows behind."""
+    def replace_breakdown(self, fmt: str, meta_window: str, archetypes: list[Archetype]) -> None:
+        """Replace one (format, meta_window) snapshot slice.
+
+        Deletes only that window's snapshots — archetypes are shared across
+        windows, so they are upserted (get-or-create) rather than deleted. Then
+        inserts this window's ranked snapshots. Leaves other windows untouched.
+        """
         delete = self._session.delete(
-            f"{self._rest}/archetypes?format_code=eq.{quote(fmt)}",
+            f"{self._rest}/metagame_snapshots"
+            f"?format_code=eq.{quote(fmt)}&meta_window=eq.{quote(meta_window)}",
             headers=self._headers,
         )
         delete.raise_for_status()
@@ -40,21 +45,27 @@ class SupabaseWriter:
         if not archetypes:
             return
 
-        insert_archetypes = self._session.post(
-            f"{self._rest}/archetypes",
-            headers={**self._headers, "Prefer": "return=representation"},
+        # Upsert archetypes on their (format_code, name) unique key so ids are
+        # stable across windows; return the rows to map name -> id.
+        upsert_archetypes = self._session.post(
+            f"{self._rest}/archetypes?on_conflict=format_code,name",
+            headers={
+                **self._headers,
+                "Prefer": "resolution=merge-duplicates,return=representation",
+            },
             json=[
                 {"format_code": fmt, "name": a.name, "color_identity": a.color_identity}
                 for a in archetypes
             ],
         )
-        insert_archetypes.raise_for_status()
+        upsert_archetypes.raise_for_status()
 
-        id_by_name = {row["name"]: row["id"] for row in insert_archetypes.json()}
+        id_by_name = {row["name"]: row["id"] for row in upsert_archetypes.json()}
         snapshots = [
             {
                 "archetype_id": id_by_name[a.name],
                 "format_code": fmt,
+                "meta_window": meta_window,
                 "share_pct": a.share_pct,
                 "rank": a.rank,
             }
@@ -68,11 +79,11 @@ class SupabaseWriter:
         )
         insert_snapshots.raise_for_status()
 
-    def stamp_updated(self, fmt: str, now_iso: str) -> None:
-        """Set the format's last_updated_at timestamp."""
-        patch = self._session.patch(
-            f"{self._rest}/formats?code=eq.{quote(fmt)}",
-            headers=self._headers,
-            json={"last_updated_at": now_iso},
+    def stamp_updated(self, fmt: str, meta_window: str, now_iso: str) -> None:
+        """Upsert the (format, meta_window) freshness timestamp."""
+        upsert = self._session.post(
+            f"{self._rest}/format_window_freshness?on_conflict=format_code,meta_window",
+            headers={**self._headers, "Prefer": "resolution=merge-duplicates"},
+            json={"format_code": fmt, "meta_window": meta_window, "last_updated_at": now_iso},
         )
-        patch.raise_for_status()
+        upsert.raise_for_status()
