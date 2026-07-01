@@ -7,11 +7,11 @@
 
 ## 2. Scraper: fetch and store all five windows
 
-- [ ] 2.1 Add a saved MTGTop8 fixture for at least one non-`50` window under `scraper/tests/fixtures`
-- [ ] 2.2 Write failing tests: parser returns expected archetypes for the new-window fixture; the run orchestration fetches all five `meta` params per format and writes window-keyed slices; a single-window fetch failure leaves other windows intact (replace-on-run scoped to `(format, window)`)
-- [ ] 2.3 Define the five windows as a constant in the scraper and loop the fetch over `meta` params per format, building `http://mtgtop8.com/format?f=<code>&meta=<window>`
-- [ ] 2.4 Make the Supabase write replace-on-run per `(format_code, meta_window)` and upsert the `format_window_freshness` row on success; leave prior slice + timestamp intact on fetch/parse failure
-- [ ] 2.5 Run `cd scraper && ./venv/bin/pytest` — all green, no live network
+- [x] 2.1 Add a saved MTGTop8 fixture for at least one non-`50` window under `scraper/tests/fixtures`
+- [x] 2.2 Write failing tests: parser returns expected archetypes for the new-window fixture; the run orchestration fetches all five `meta` params per format and writes window-keyed slices; a single-window fetch failure leaves other windows intact (replace-on-run scoped to `(format, window)`)
+- [x] 2.3 Define the five windows as a constant in the scraper and loop the fetch over `meta` params per format, building `http://mtgtop8.com/format?f=<code>&meta=<window>`
+- [x] 2.4 Make the Supabase write replace-on-run per `(format_code, meta_window)` and upsert the `format_window_freshness` row on success; leave prior slice + timestamp intact on fetch/parse failure
+- [x] 2.5 Run `cd scraper && ./venv/bin/pytest` — all green, no live network
 
 ## 3. Frontend: window model + data layer
 

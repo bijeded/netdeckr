@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
+import type { WindowCode } from '../lib/windows'
 
-/** Read the selected format's `last_updated_at` timestamp (or null). */
-export function useLastUpdated(formatCode: FormatCode): string | null {
+/** Read the selected format + window's `last_updated_at` timestamp (or null). */
+export function useLastUpdated(formatCode: FormatCode, metaWindow: WindowCode): string | null {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
 
     supabase
-      .from('formats')
+      .from('format_window_freshness')
       .select('last_updated_at')
-      .eq('code', formatCode)
+      .eq('format_code', formatCode)
+      .eq('meta_window', metaWindow)
       .single()
       .then(({ data, error }) => {
         if (!active) return
@@ -22,7 +24,7 @@ export function useLastUpdated(formatCode: FormatCode): string | null {
     return () => {
       active = false
     }
-  }, [formatCode])
+  }, [formatCode, metaWindow])
 
   return lastUpdated
 }

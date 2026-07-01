@@ -10,8 +10,14 @@
     "pauper": "Pauper",
     "premodern": "Pre-Modern"
   },
+  "windows": {
+    "last2Weeks": "Últimas 2 semanas",
+    "last5Days": "Últimos 5 días",
+    "last2Months": "Últimos 2 meses",
+    "largeEvents2Months": "Eventos grandes (2 meses)",
+    "mtgo2Months": "MTGO (2 meses)"
+  },
   "dashboard": {
-    "windowLabel": "Últimas 2 semanas",
     "loading": "Cargando el metajuego…",
     "empty": "Aún no hay datos del metajuego — vuelve pronto.",
     "updated": "Actualizado {{time}}"
