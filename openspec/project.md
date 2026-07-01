@@ -19,7 +19,7 @@ MetaStack tracks Magic: The Gathering metagames across Standard, Pioneer, Modern
 ## Architecture
 - Data pipeline (Python, GitHub Actions cron): scrapes MTGTop8 formats/events/decklists/top-cards, syncs Scryfall bulk data, writes to Supabase using the service-role key, and prunes any data older than 6 months at the end of each run.
 - Database (Supabase/Postgres): normalized tables for formats, events, decks, cards, archetypes, and metagame snapshots per time window; RLS grants public read-only.
-- Frontend (React SPA on Vercel): reads directly from Supabase, applies format/date/event-size/event/archetype filters, renders metagame + trending charts, shows decklist pop-ups with MTG Arena export.
+- Frontend (React SPA on Vercel): reads directly from Supabase, applies format and time-frame filters (event/archetype filters planned), renders metagame + trending charts, shows decklist pop-ups with MTG Arena export. `meta_window` is a format-independent logical key (`5days`/`2weeks`/`2months`); the scraper maps it to each format's per-format MTGTop8 meta ID.
 - Boundary: browser is strictly read-only; all writes happen in CI. No secrets beyond the Supabase anon key reach the client.
 
 ## Conventions

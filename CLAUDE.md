@@ -1,7 +1,9 @@
 # MetaStack
 
 ## Project overview
-MetaStack is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and explore the metagame through date, event-size, event, and archetype filters, view archetype decklists, see trending/top cards, and export any decklist to MTG Arena. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
+MetaStack is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and a time frame (Last 5 Days / 2 Weeks / 2 Months) to explore the metagame; planned filters (event, archetype) and features (archetype decklists, trending/top cards, MTG Arena export) extend from there. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
+
+Shipped so far: format switcher, the metagame archetype breakdown, and the time-frame filter (in a filter sidebar). See `openspec/specs/` for living specs and `openspec/changes/archive/` for completed changes.
 
 ## Platform
 web (responsive)
@@ -80,7 +82,7 @@ web (responsive)
 ## Data pipeline
 - Schedule: GitHub Actions daily cron (12:00 UTC)
 - Source: MTGTop8 (requests + BeautifulSoup4), base `http://mtgtop8.com`
-- Filter mapping (meta param): 50=Last 2 Weeks, 326=Last 5 Days, 52=Last 2 Months, 46=Large Events (2mo), 285=MTGO (2mo)
+- Time windows: stored as format-independent logical keys `5days`, `2weeks`, `2months` (the three windows MTGTop8 offers with the same meaning for every format). **MTGTop8's numeric `meta` param is per-format** — the same window has a different ID per format — so the scraper maps each logical window to that format's ID via `WINDOW_META`/`meta_id_for` in `scraper/mtgtop8.py`. The non-universal "Large Events" / "MTGO/Live" windows were intentionally dropped (Pre-Modern lacks Large Events; MTGO is "Live Tournaments"/3mo elsewhere).
 - Fair use: respectful rate limiting, cache aggressively, no redistribution beyond derived metagame stats
 - Card data: Scryfall bulk download once/day; hotlink `image_uris`; Arena export uses current/latest non-foil set printing, no special art
 - Retention: data older than 6 months is not kept — the daily job prunes events (and their decks/snapshots) older than 6 months from Supabase after each run
