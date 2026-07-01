@@ -1,9 +1,9 @@
 ## 1. Database schema & RLS
 
-- [ ] 1.1 Write `supabase/schema.sql` defining `formats` (code PK, name, last_updated_at), `archetypes` (id, format_code FK, name, color_identity, unique(format_code,name)), and `metagame_snapshots` (archetype_id FK, format_code, share_pct, rank)
-- [ ] 1.2 Seed the 5 `formats` rows (ST/PI/MO/PAU/PREM) with display names in the schema (or a seed script)
-- [ ] 1.3 Add RLS policies: enable RLS on all three tables, grant `select` to the anon role, no insert/update/delete for anon
-- [ ] 1.4 Apply the schema to the Supabase project and verify anon can read and cannot write (manual + note in PR)
+- [x] 1.1 Write `supabase/schema.sql` defining `formats` (code PK, name, last_updated_at), `archetypes` (id, format_code FK, name, color_identity, unique(format_code,name)), and `metagame_snapshots` (archetype_id FK, format_code, share_pct, rank)
+- [x] 1.2 Seed the 5 `formats` rows (ST/PI/MO/PAU/PREM) with display names in the schema (or a seed script)
+- [x] 1.3 Add RLS policies: enable RLS on all three tables, grant `select` to the anon role, no insert/update/delete for anon
+- [x] 1.4 Apply the schema to the Supabase project and verify anon can read and cannot write (manual + note in PR)
 
 ## 2. Scraper — parsing (TDD, fixtures only)
 
