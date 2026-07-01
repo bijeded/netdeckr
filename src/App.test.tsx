@@ -74,9 +74,12 @@ describe('App dashboard', () => {
     expect(setFormat).toHaveBeenCalledWith('MO')
   })
 
-  it('renders localized copy in Spanish', () => {
+  it('localizes UI copy in Spanish but keeps MTG format names in English', () => {
     i18n.changeLanguage('es')
     render(<App />)
-    expect(screen.getByRole('heading', { name: 'Estándar' })).toBeInTheDocument()
+    // Format name is an MTG proper noun — English in both locales.
+    expect(screen.getByRole('heading', { name: 'Standard' })).toBeInTheDocument()
+    // Surrounding UI copy is localized.
+    expect(screen.getByText('Últimas 2 semanas')).toBeInTheDocument()
   })
 })
