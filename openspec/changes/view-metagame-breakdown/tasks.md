@@ -27,10 +27,10 @@
 
 ## 5. Frontend — data & format state
 
-- [ ] 5.1 Add a typed `useMetagameBreakdown(formatCode)` hook that reads `metagame_snapshots` joined to `archetypes`, ordered by rank, limited to 20, returning `{ data, loading, error }`
-- [ ] 5.2 Add a `useFormatSelection` hook backing the active format on the `?f=` URL param, defaulting to Standard and validating the code
-- [ ] 5.3 Add a read for the selected format's `last_updated_at` and a localizable "Updated X ago" helper (Intl.RelativeTimeFormat)
-- [ ] 5.4 Unit-test the hooks' selection/limit/default/validation logic
+- [x] 5.1 Add a typed `useMetagameBreakdown(formatCode)` hook that reads `metagame_snapshots` joined to `archetypes`, ordered by rank, limited to 20, returning `{ data, loading, error }`
+- [x] 5.2 Add a `useFormatSelection` hook backing the active format on the `?f=` URL param, defaulting to Standard and validating the code
+- [x] 5.3 Add a read for the selected format's `last_updated_at` and a localizable "Updated X ago" helper (Intl.RelativeTimeFormat)
+- [x] 5.4 Unit-test the hooks' selection/limit/default/validation logic
 
 ## 6. Frontend — components (ported from design/)
 
