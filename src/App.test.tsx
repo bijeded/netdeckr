@@ -82,9 +82,9 @@ describe('App dashboard', () => {
     expect(setFormat).toHaveBeenCalledWith('MO')
   })
 
-  it('defaults to the Last 2 Weeks window and shows it in the header pill', () => {
+  it('defaults to the Last 5 Days window and shows it in the header pill', () => {
     render(<App />)
-    expect(screen.getByTestId('window-pill').textContent).toBe('Last 2 weeks')
+    expect(screen.getByTestId('window-pill').textContent).toBe('Last 5 days')
   })
 
   it('updates the header window pill when a window is selected', () => {
@@ -102,7 +102,7 @@ describe('App dashboard', () => {
     // Format name is an MTG proper noun — English in both locales.
     expect(screen.getByRole('heading', { name: 'Standard' })).toBeInTheDocument()
     // Surrounding UI copy is localized: the filter heading and the window pill.
-    expect(screen.getByText('Ventana')).toBeInTheDocument()
-    expect(screen.getByTestId('window-pill').textContent).toBe('Últimas 2 semanas')
+    expect(screen.getByText('Periodo')).toBeInTheDocument()
+    expect(screen.getByTestId('window-pill').textContent).toBe('Últimos 5 días')
   })
 })

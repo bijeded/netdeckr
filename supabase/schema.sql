@@ -24,45 +24,32 @@ create table if not exists public.archetypes (
   unique (format_code, name)
 );
 
--- The metagame share per archetype, per format AND time window / scope.
+-- The metagame share per archetype, per format AND time window.
 -- The scraper clears a slice and re-inserts, so no stale archetypes linger.
--- One snapshot row per (format, meta_window, archetype). `meta_window` is the
--- MTGTop8 `meta` param (see the CHECK below); replace-on-run is scoped to
--- (format, meta_window). Named `meta_window` because `window` is a reserved
--- SQL keyword and cannot be an unquoted column name.
+-- One snapshot row per (format, meta_window, archetype). `meta_window` is a
+-- format-independent LOGICAL window key (5days/2weeks/2months); the scraper maps
+-- it to each format's per-format MTGTop8 `meta` ID. Named `meta_window` because
+-- `window` is a reserved SQL keyword and cannot be an unquoted column name.
 create table if not exists public.metagame_snapshots (
   format_code  text   not null references public.formats(code) on delete cascade,
-  meta_window  text   not null default '50', -- MTGTop8 meta param: 50/326/52/46/285
+  meta_window  text   not null default '2weeks', -- logical window: 5days/2weeks/2months
   archetype_id bigint not null references public.archetypes(id) on delete cascade,
   share_pct    numeric(5,2) not null,        -- metagame share %, e.g. 14.20
   rank         integer not null,             -- 1-based, by descending share
   primary key (format_code, meta_window, archetype_id),
   constraint metagame_snapshots_window_check
-    check (meta_window in ('50', '326', '52', '46', '285'))
+    check (meta_window in ('5days', '2weeks', '2months'))
 );
 
 -- ---------------------------------------------------------------------------
 -- Migration for a pre-existing metagame_snapshots table (feature 1 shape:
 -- PK archetype_id, no meta_window column). Idempotent; no-ops on a fresh DB
 -- where the create above already produced the window-aware shape.
---   Order: add `meta_window` (backfills existing rows to '50' via the default) →
---   ensure the CHECK → rebuild the PK as composite if it lacks `meta_window`.
+--   Add `meta_window` (backfills existing rows to '2weeks' via the default) →
+--   rebuild the PK as composite if it lacks `meta_window`.
 -- ---------------------------------------------------------------------------
 alter table public.metagame_snapshots
-  add column if not exists meta_window text not null default '50';
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'metagame_snapshots_window_check'
-      and conrelid = 'public.metagame_snapshots'::regclass
-  ) then
-    alter table public.metagame_snapshots
-      add constraint metagame_snapshots_window_check
-        check (meta_window in ('50', '326', '52', '46', '285'));
-  end if;
-end $$;
+  add column if not exists meta_window text not null default '2weeks';
 
 do $$
 begin
@@ -96,12 +83,48 @@ create table if not exists public.format_window_freshness (
   last_updated_at timestamptz,                -- null until first successful scrape
   primary key (format_code, meta_window),
   constraint format_window_freshness_window_check
-    check (meta_window in ('50', '326', '52', '46', '285'))
+    check (meta_window in ('5days', '2weeks', '2months'))
 );
 
--- Backfill freshness for window '50' from the legacy per-format timestamp.
+-- ---------------------------------------------------------------------------
+-- One-time remap: earlier ship keyed rows by MTGTop8 meta IDs (50/326/52/46/285,
+-- all Standard's), which are per-format and thus wrong for other formats. Move to
+-- the format-independent logical keys and drop the two windows we no longer keep
+-- (Large Events, MTGO). Idempotent: after the remap the WHERE clauses match nothing.
+-- Order: drop the value CHECK → remap/delete → set the new default → re-add the
+-- logical CHECK. Non-Standard data becomes correct on the next scrape (which
+-- overwrites each (format, meta_window) slice).
+-- ---------------------------------------------------------------------------
+alter table public.metagame_snapshots      drop constraint if exists metagame_snapshots_window_check;
+alter table public.format_window_freshness drop constraint if exists format_window_freshness_window_check;
+
+delete from public.metagame_snapshots      where meta_window in ('46', '285');
+delete from public.format_window_freshness where meta_window in ('46', '285');
+
+update public.metagame_snapshots set meta_window =
+  case meta_window when '50' then '2weeks' when '326' then '5days' when '52' then '2months'
+                   else meta_window end
+  where meta_window in ('50', '326', '52');
+update public.format_window_freshness set meta_window =
+  case meta_window when '50' then '2weeks' when '326' then '5days' when '52' then '2months'
+                   else meta_window end
+  where meta_window in ('50', '326', '52');
+
+alter table public.metagame_snapshots      alter column meta_window set default '2weeks';
+
+-- Safe to use bare `add constraint`: both are unconditionally dropped above on
+-- every run, so re-running never hits a duplicate-constraint error. Keep the
+-- drops paired with these adds if this block is ever reordered.
+alter table public.metagame_snapshots
+  add constraint metagame_snapshots_window_check
+    check (meta_window in ('5days', '2weeks', '2months'));
+alter table public.format_window_freshness
+  add constraint format_window_freshness_window_check
+    check (meta_window in ('5days', '2weeks', '2months'));
+
+-- Backfill freshness for the default window from the legacy per-format timestamp.
 insert into public.format_window_freshness (format_code, meta_window, last_updated_at)
-select code, '50', last_updated_at
+select code, '2weeks', last_updated_at
 from public.formats
 where last_updated_at is not null
 on conflict (format_code, meta_window) do nothing;

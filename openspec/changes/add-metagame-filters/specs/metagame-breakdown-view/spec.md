@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
-### Requirement: Window/scope filter
-The dashboard SHALL provide a sidebar selector that lets the user choose the metagame time window / event scope from exactly five options mapping 1:1 to MTGTop8 `meta` params: Last 2 Weeks (`50`), Last 5 Days (`326`), Last 2 Months (`52`), Large Events 2mo (`46`), and MTGO 2mo (`285`). Selecting a window SHALL update the displayed breakdown to that format + window's stored snapshot. The selected window SHALL be preserved when the active format is switched. All selector labels SHALL be localized in Spanish and English via react-i18next.
+### Requirement: Time-frame filter
+The dashboard SHALL provide a sidebar selector, headed "Time Frame" (localized), that lets the user choose the metagame time window from exactly three options — Last 5 Days, Last 2 Weeks, Last 2 Months — the three windows MTGTop8 offers with the same meaning for every format. These are stored and referenced by format-independent logical keys (`5days`, `2weeks`, `2months`). Selecting a window SHALL update the displayed breakdown to that format + window's stored snapshot. The selected window SHALL be preserved when the active format is switched. All selector labels SHALL be localized in Spanish and English via react-i18next.
 
 #### Scenario: Selecting a different window updates the breakdown
 - **WHEN** the user selects a window different from the current one for a format that has data for it
@@ -13,17 +13,17 @@ The dashboard SHALL provide a sidebar selector that lets the user choose the met
 
 #### Scenario: Selector labels are localized
 - **WHEN** the active locale is Spanish or English
-- **THEN** the five window options render their labels in that language
+- **THEN** the three window options and the "Time Frame" heading render their labels in that language
 
 ### Requirement: Default window selection
-The dashboard SHALL default to the Last 2 Weeks (`50`) window when no window is specified.
+The dashboard SHALL default to the Last 5 Days (`5days`) window when no window is specified.
 
-#### Scenario: First visit defaults to Last 2 Weeks
+#### Scenario: First visit defaults to Last 5 Days
 - **WHEN** the dashboard is opened with no window specified in the URL
-- **THEN** the Last 2 Weeks window is selected and its breakdown is shown
+- **THEN** the Last 5 Days window is selected and its breakdown is shown
 
 ### Requirement: Persist the selected window across reloads
-The dashboard SHALL persist the selected window in the URL alongside the format (e.g. `?f=ST&w=50`) so that reloading or sharing the link restores the same window. An absent, invalid, or unknown window param SHALL fall back to the default Last 2 Weeks window without error.
+The dashboard SHALL persist the selected window in the URL alongside the format (e.g. `?f=ST&w=2weeks`) so that reloading or sharing the link restores the same window. An absent, invalid, or unknown window param SHALL fall back to the default Last 5 Days window without error.
 
 #### Scenario: Reload preserves the window
 - **WHEN** the user has selected a non-default window and reloads the page

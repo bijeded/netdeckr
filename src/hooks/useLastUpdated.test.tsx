@@ -24,18 +24,18 @@ describe('useLastUpdated', () => {
 
   it('reads the (format, window) freshness row and returns its last_updated_at', async () => {
     queryResult.data = { last_updated_at: '2026-07-01T12:00:00Z' }
-    const { result } = renderHook(() => useLastUpdated('ST', '52'))
+    const { result } = renderHook(() => useLastUpdated('ST', '2months'))
 
     await waitFor(() => expect(result.current).toBe('2026-07-01T12:00:00Z'))
     expect(from).toHaveBeenCalledWith('format_window_freshness')
     expect(eq).toHaveBeenCalledWith('format_code', 'ST')
-    expect(eq).toHaveBeenCalledWith('meta_window', '52')
+    expect(eq).toHaveBeenCalledWith('meta_window', '2months')
     expect(single).toHaveBeenCalled()
   })
 
   it('returns null when there is no timestamp or an error', async () => {
     queryResult.error = { message: 'boom' }
-    const { result } = renderHook(() => useLastUpdated('ST', '50'))
+    const { result } = renderHook(() => useLastUpdated('ST', '5days'))
     await waitFor(() => expect(single).toHaveBeenCalled())
     expect(result.current).toBeNull()
   })

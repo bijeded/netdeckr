@@ -7,8 +7,8 @@ interface WindowSelectorProps {
 }
 
 /**
- * Sidebar filter: the combined time-window / event-scope selector. One
- * full-width option per MTGTop8 meta window, the active one glowing violet.
+ * Sidebar filter: the time-frame selector. One full-width option per universal
+ * window (5 days / 2 weeks / 2 months), the active one glowing violet.
  */
 export function WindowSelector({ value, onChange }: WindowSelectorProps) {
   const { t } = useTranslation()
@@ -25,7 +25,7 @@ export function WindowSelector({ value, onChange }: WindowSelectorProps) {
           marginBottom: 'var(--sp-3)',
         }}
       >
-        {t('filters.window')}
+        {t('filters.timeFrame')}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
         {WINDOWS.map((window) => {

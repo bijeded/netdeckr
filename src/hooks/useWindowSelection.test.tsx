@@ -11,53 +11,53 @@ describe('useWindowSelection', () => {
   beforeEach(() => setUrl('/'))
   afterEach(() => setUrl('/'))
 
-  it('defaults to Last 2 Weeks when the URL has no window', () => {
+  it('defaults to Last 5 Days when the URL has no window', () => {
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('50')
+    expect(result.current.window).toBe('5days')
   })
 
   it('reads a valid window from the ?w= param', () => {
-    setUrl('?w=52')
+    setUrl('?w=2months')
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('52')
+    expect(result.current.window).toBe('2months')
   })
 
   it('falls back to the default for an invalid ?w= param', () => {
     setUrl('?w=999')
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('50')
+    expect(result.current.window).toBe('5days')
   })
 
   it('updates state and persists the selection to the URL', () => {
     const { result } = renderHook(() => useWindowSelection())
-    act(() => result.current.setWindow('285'))
-    expect(result.current.window).toBe('285')
-    expect(new URLSearchParams(window.location.search).get('w')).toBe('285')
+    act(() => result.current.setWindow('2weeks'))
+    expect(result.current.window).toBe('2weeks')
+    expect(new URLSearchParams(window.location.search).get('w')).toBe('2weeks')
   })
 
   it('keeps the window independent of the ?f= format param', () => {
     setUrl('?f=MO')
     const { result } = renderHook(() => useWindowSelection())
-    act(() => result.current.setWindow('326'))
+    act(() => result.current.setWindow('2months'))
     const params = new URLSearchParams(window.location.search)
-    expect(params.get('w')).toBe('326')
+    expect(params.get('w')).toBe('2months')
     expect(params.get('f')).toBe('MO') // format param is preserved
   })
 
   it('normalizes an invalid value passed to setWindow', () => {
     const { result } = renderHook(() => useWindowSelection())
     act(() => result.current.setWindow('BAD' as WindowCode))
-    expect(result.current.window).toBe('50')
-    expect(new URLSearchParams(window.location.search).get('w')).toBe('50')
+    expect(result.current.window).toBe('5days')
+    expect(new URLSearchParams(window.location.search).get('w')).toBe('5days')
   })
 
   it('syncs the window when the URL changes via back/forward navigation', () => {
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('50')
+    expect(result.current.window).toBe('5days')
     act(() => {
-      window.history.replaceState({}, '', '?w=52')
+      window.history.replaceState({}, '', '?w=2months')
       window.dispatchEvent(new PopStateEvent('popstate'))
     })
-    expect(result.current.window).toBe('52')
+    expect(result.current.window).toBe('2months')
   })
 })

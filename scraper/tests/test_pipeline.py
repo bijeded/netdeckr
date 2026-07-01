@@ -81,14 +81,14 @@ def test_sync_all_iterates_every_format_window_pair():
 
     results = sync_all(
         ["ST", "PI"],
-        ["50", "52"],
+        ["5days", "2weeks"],
         fetch=lambda fmt, w: _fixture_html(),
         writer=writer,
         now="NOW",
     )
 
     # A result per (format, window) pair.
-    assert set(results) == {("ST", "50"), ("ST", "52"), ("PI", "50"), ("PI", "52")}
+    assert set(results) == {("ST", "5days"), ("ST", "2weeks"), ("PI", "5days"), ("PI", "2weeks")}
     assert all(count == 3 for count in results.values())
     written = {(fmt, w) for fmt, w, _ in writer.replace_calls}
     assert written == set(results)
@@ -99,21 +99,21 @@ def test_sync_all_isolates_a_single_pair_failure():
     errors = []
 
     def fetch(fmt, meta_window):
-        if fmt == "ST" and meta_window == "52":
-            raise RuntimeError("ST/52 down")
+        if fmt == "ST" and meta_window == "2weeks":
+            raise RuntimeError("ST/2weeks down")
         return _fixture_html()
 
     results = sync_all(
         ["ST", "PI"],
-        ["50", "52"],
+        ["5days", "2weeks"],
         fetch=fetch,
         writer=writer,
         now="NOW",
         on_error=lambda fmt, w, exc: errors.append((fmt, w)),
     )
 
-    assert results[("ST", "52")] is None  # the one failing pair
-    assert results[("ST", "50")] == 3  # other windows of the same format still run
-    assert results[("PI", "52")] == 3  # other formats unaffected
-    assert ("ST", "52") not in {(fmt, w) for fmt, w, _ in writer.replace_calls}
-    assert errors == [("ST", "52")]
+    assert results[("ST", "2weeks")] is None  # the one failing pair
+    assert results[("ST", "5days")] == 3  # other windows of the same format still run
+    assert results[("PI", "2weeks")] == 3  # other formats unaffected
+    assert ("ST", "2weeks") not in {(fmt, w) for fmt, w, _ in writer.replace_calls}
+    assert errors == [("ST", "2weeks")]
