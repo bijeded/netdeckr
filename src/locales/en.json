@@ -11,14 +11,12 @@
     "premodern": "Pre-Modern"
   },
   "filters": {
-    "window": "Window"
+    "timeFrame": "Time Frame"
   },
   "windows": {
-    "last2Weeks": "Last 2 weeks",
     "last5Days": "Last 5 days",
-    "last2Months": "Last 2 months",
-    "largeEvents2Months": "Large events (2 months)",
-    "mtgo2Months": "MTGO (2 months)"
+    "last2Weeks": "Last 2 weeks",
+    "last2Months": "Last 2 months"
   },
   "dashboard": {
     "loading": "Loading the metagame…",

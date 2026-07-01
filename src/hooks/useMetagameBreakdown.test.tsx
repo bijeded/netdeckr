@@ -28,13 +28,13 @@ describe('useMetagameBreakdown', () => {
     queryResult.data = [
       { rank: 1, share_pct: 23, archetypes: { name: 'Izzet Control', color_identity: 'UR' } },
     ]
-    const { result } = renderHook(() => useMetagameBreakdown('ST', '52'))
+    const { result } = renderHook(() => useMetagameBreakdown('ST', '2months'))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(from).toHaveBeenCalledWith('metagame_snapshots')
     expect(eq).toHaveBeenCalledWith('format_code', 'ST')
-    expect(eq).toHaveBeenCalledWith('meta_window', '52')
+    expect(eq).toHaveBeenCalledWith('meta_window', '2months')
     expect(order).toHaveBeenCalledWith('rank')
     expect(limit).toHaveBeenCalledWith(20)
     expect(result.current.data).toEqual([
@@ -44,14 +44,14 @@ describe('useMetagameBreakdown', () => {
   })
 
   it('starts in a loading state', () => {
-    const { result } = renderHook(() => useMetagameBreakdown('ST', '50'))
+    const { result } = renderHook(() => useMetagameBreakdown('ST', '5days'))
     expect(result.current.loading).toBe(true)
     expect(result.current.data).toEqual([])
   })
 
   it('exposes an error and empty data when the query fails', async () => {
     queryResult.error = { message: 'boom' }
-    const { result } = renderHook(() => useMetagameBreakdown('ST', '50'))
+    const { result } = renderHook(() => useMetagameBreakdown('ST', '5days'))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.error).toEqual({ message: 'boom' })

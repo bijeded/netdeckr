@@ -1,17 +1,16 @@
-// The five MTGTop8 time-window / event-scope options, exposed as one combined
-// selector. `code` is the MTGTop8 `meta` param (also the DB `meta_window` value);
-// `i18nKey` resolves the localized label via react-i18next.
+// The three time windows that exist, with the same meaning, for every format.
+// `code` is a format-independent logical key (also the DB `meta_window` value and
+// the `?w=` param); `i18nKey` resolves the localized label via react-i18next. The
+// scraper maps each logical window to that format's per-format MTGTop8 meta ID.
 export const WINDOWS = [
-  { code: '50', i18nKey: 'windows.last2Weeks', isDefault: true },
-  { code: '326', i18nKey: 'windows.last5Days', isDefault: false },
-  { code: '52', i18nKey: 'windows.last2Months', isDefault: false },
-  { code: '46', i18nKey: 'windows.largeEvents2Months', isDefault: false },
-  { code: '285', i18nKey: 'windows.mtgo2Months', isDefault: false },
+  { code: '5days', i18nKey: 'windows.last5Days', isDefault: true },
+  { code: '2weeks', i18nKey: 'windows.last2Weeks', isDefault: false },
+  { code: '2months', i18nKey: 'windows.last2Months', isDefault: false },
 ] as const
 
 export type WindowCode = (typeof WINDOWS)[number]['code']
 
-export const DEFAULT_WINDOW: WindowCode = '50'
+export const DEFAULT_WINDOW: WindowCode = '5days'
 
 const CODES = WINDOWS.map((w) => w.code) as readonly string[]
 

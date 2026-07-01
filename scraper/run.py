@@ -1,8 +1,10 @@
 """MetaStack scraper entry point.
 
-Fetches the metagame breakdown for every format and every time window / scope
-(the five MTGTop8 `meta` params) and writes each slice to Supabase. Run daily by
-GitHub Actions; can also be run locally with SUPABASE_URL and
+Fetches the metagame breakdown for every format and every logical time window
+(the three universal windows: 5 days / 2 weeks / 2 months) and writes each slice
+to Supabase. The window is a format-independent logical key; MTGTop8's numeric
+`meta` param is per-format, so it's resolved via `meta_id_for` at fetch time. Run
+daily by GitHub Actions; can also be run locally with SUPABASE_URL and
 SUPABASE_SERVICE_ROLE_KEY set.
 
     python scraper/run.py
@@ -16,7 +18,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from mtgtop8 import FORMATS, META_WINDOWS, format_url
+from mtgtop8 import FORMATS, WINDOWS, format_url, meta_id_for
 from pipeline import sync_all
 from supabase_writer import SupabaseWriter
 
@@ -25,10 +27,13 @@ REQUEST_DELAY_SECONDS = 2  # respectful rate limiting between requests (fair use
 REQUEST_TIMEOUT_SECONDS = 30
 
 
-def fetch(fmt: str, meta_window: str) -> str:
-    """Fetch a format's page for one meta window, then pause to be polite."""
+def fetch(fmt: str, window: str) -> str:
+    """Fetch a format's page for one logical window, then pause to be polite.
+
+    Resolves the logical window to that format's MTGTop8 `meta` ID.
+    """
     response = requests.get(
-        format_url(fmt, meta_window),
+        format_url(fmt, meta_id_for(fmt, window)),
         headers={"User-Agent": USER_AGENT},
         timeout=REQUEST_TIMEOUT_SECONDS,
     )
@@ -48,21 +53,21 @@ def main() -> int:
     writer = SupabaseWriter(url, key)
     now = datetime.now(timezone.utc).isoformat()
 
-    def on_error(fmt: str, meta_window: str, exc: Exception) -> None:
-        print(f"[error] {fmt}/{meta_window}: {exc}", file=sys.stderr)
+    def on_error(fmt: str, window: str, exc: Exception) -> None:
+        print(f"[error] {fmt}/{window}: {exc}", file=sys.stderr)
 
     results = sync_all(
         list(FORMATS),
-        list(META_WINDOWS),
+        WINDOWS,
         fetch=fetch,
         writer=writer,
         now=now,
         on_error=on_error,
     )
 
-    for (fmt, meta_window), count in results.items():
+    for (fmt, window), count in results.items():
         status = "FAILED" if count is None else f"{count} archetypes"
-        print(f"{fmt}/{meta_window}: {status}")
+        print(f"{fmt}/{window}: {status}")
 
     # Fail the run only if every (format, window) pair failed (a single flaky
     # slice is tolerated).

@@ -12,15 +12,6 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "http://mtgtop8.com"
 
-# meta parameter -> human-readable time/size window (see CLAUDE.md "Data pipeline").
-META_WINDOWS = {
-    "50": "last_2_weeks",
-    "326": "last_5_days",
-    "52": "last_2_months",
-    "46": "large_events_2_months",
-    "285": "mtgo_2_months",
-}
-
 # MTGTop8 format codes.
 FORMATS = {
     "ST": "standard",
@@ -29,6 +20,30 @@ FORMATS = {
     "PAU": "pauper",
     "PREM": "premodern",
 }
+
+# The three time windows that exist, with the same meaning, for EVERY format.
+# Stored as format-independent logical keys (also the DB `meta_window` values and
+# the frontend `?w=` codes). MTGTop8's numeric `meta` param is per-format, so we
+# map (format, window) -> that format's meta ID below. Other windows MTGTop8
+# offers ("Large Events", "MTGO/Live Tournaments") are not uniform across formats
+# (Pre-Modern lacks Large Events; MTGO is "Live Tournaments"/3mo elsewhere), so
+# they are intentionally excluded.
+WINDOWS = ["5days", "2weeks", "2months"]
+
+# (format, logical window) -> MTGTop8 `meta` param ID. Verified against the live
+# per-format window dropdowns; regenerate deliberately if MTGTop8 renumbers them.
+WINDOW_META = {
+    "ST":   {"5days": "326", "2weeks": "50",  "2months": "52"},
+    "PI":   {"5days": "305", "2weeks": "194", "2months": "193"},
+    "MO":   {"5days": "304", "2weeks": "54",  "2months": "51"},
+    "PAU":  {"5days": "348", "2weeks": "299", "2months": "145"},
+    "PREM": {"5days": "347", "2weeks": "301", "2months": "261"},
+}
+
+
+def meta_id_for(fmt: str, window: str) -> str:
+    """Return the MTGTop8 `meta` param ID for a format's logical window."""
+    return WINDOW_META[fmt][window]
 
 
 def format_url(fmt: str, meta: str | None = None) -> str:
