@@ -34,10 +34,10 @@
 
 ## 6. Frontend — components (ported from design/)
 
-- [ ] 6.1 Port `ManaPip`/`ManaPips` to React + TS (WUBRG order, up to 5; colorless → one gray pip) with tests
-- [ ] 6.2 Port `ArchetypeCard` (rank zero-padded, English name, mana pips, placeholder gradient art, one-decimal mono share %) with tests
-- [ ] 6.3 Port the format switcher (`Pill`s for the 5 formats) wired to `useFormatSelection`
-- [ ] 6.4 Add `Spinner` and `EmptyState` (centered frowny-face message) components
+- [x] 6.1 Port `ManaPip`/`ManaPips` to React + TS (WUBRG order, up to 5; colorless → one gray pip) with tests
+- [x] 6.2 Port `ArchetypeCard` (rank zero-padded, English name, mana pips, placeholder gradient art, one-decimal mono share %) with tests
+- [x] 6.3 Port the format switcher (`Pill`s for the 5 formats) wired to `useFormatSelection`
+- [x] 6.4 Add `Spinner` and `EmptyState` (centered frowny-face message) components
 
 ## 7. Frontend — dashboard assembly & i18n
 

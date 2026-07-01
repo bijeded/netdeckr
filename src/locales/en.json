@@ -9,5 +9,16 @@
     "modern": "Modern",
     "pauper": "Pauper",
     "premodern": "Pre-Modern"
+  },
+  "dashboard": {
+    "windowLabel": "Last 2 weeks",
+    "loading": "Loading the metagame…",
+    "empty": "No metagame data yet — check back soon.",
+    "updated": "Updated {{time}}"
+  },
+  "language": {
+    "label": "Language",
+    "en": "EN",
+    "es": "ES"
   }
 }
