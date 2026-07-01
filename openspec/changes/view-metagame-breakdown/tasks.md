@@ -7,10 +7,10 @@
 
 ## 2. Scraper — parsing (TDD, fixtures only)
 
-- [ ] 2.1 Save a real MTGTop8 `meta=50` breakdown HTML fixture per representative format under `scraper/tests/fixtures/`
-- [ ] 2.2 Write failing tests for `parse_meta_breakdown(html)` asserting archetype name, share %, and color identity from the fixtures
-- [ ] 2.3 Implement `parse_meta_breakdown` in `scraper/mtgtop8.py` (pure function, no network) until tests pass
-- [ ] 2.4 Add a helper to assign `rank` by descending share and normalize color identity (missing/unknown → colorless `''`), with tests
+- [x] 2.1 Save a real MTGTop8 `meta=50` breakdown HTML fixture per representative format under `scraper/tests/fixtures/`
+- [x] 2.2 Write failing tests for `parse_meta_breakdown(html)` asserting archetype name, share %, and color identity from the fixtures
+- [x] 2.3 Implement `parse_meta_breakdown` in `scraper/mtgtop8.py` (pure function, no network) until tests pass
+- [x] 2.4 Add a helper to assign `rank` by descending share and normalize color identity (missing/unknown → colorless `''`), with tests
 
 ## 3. Scraper — pipeline & upsert
 
