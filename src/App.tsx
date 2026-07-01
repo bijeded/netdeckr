@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
+import { useWindowSelection } from './hooks/useWindowSelection'
 import { useMetagameBreakdown } from './hooks/useMetagameBreakdown'
 import { useLastUpdated } from './hooks/useLastUpdated'
 import { FORMATS } from './lib/formats'
+import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
 import { FormatSwitcher } from './components/FormatSwitcher'
 import { ArchetypeCard } from './components/ArchetypeCard'
@@ -49,10 +51,12 @@ function LanguageToggle() {
 function App() {
   const { t, i18n } = useTranslation()
   const { format, setFormat } = useFormatSelection()
-  const { data, loading, error } = useMetagameBreakdown(format)
-  const lastUpdated = useLastUpdated(format)
+  const { window: metaWindow } = useWindowSelection()
+  const { data, loading, error } = useMetagameBreakdown(format, metaWindow)
+  const lastUpdated = useLastUpdated(format, metaWindow)
 
   const formatName = t(FORMATS.find((f) => f.code === format)!.i18nKey)
+  const windowLabel = t(WINDOWS.find((w) => w.code === metaWindow)!.i18nKey)
   const maxPct = data.length > 0 ? data[0].sharePct : 100
   const freshness = lastUpdated ? relativeTimeFromNow(lastUpdated, new Date(), i18n.language) : ''
 
@@ -132,7 +136,7 @@ function App() {
               border: '1px solid var(--neon-border)',
             }}
           >
-            {t('dashboard.windowLabel')}
+            {windowLabel}
           </span>
         </div>
         {freshness && (

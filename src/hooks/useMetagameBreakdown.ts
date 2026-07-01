@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
+import type { WindowCode } from '../lib/windows'
 
 export interface ArchetypeShare {
   rank: number
@@ -18,10 +19,11 @@ interface BreakdownRow {
 const TOP_N = 20
 
 /**
- * Read the selected format's stored breakdown (top 20 archetypes by rank) from
- * Supabase. Returns loading/error/data; data is empty until loaded or on error.
+ * Read the selected format + window's stored breakdown (top 20 archetypes by
+ * rank) from Supabase. Returns loading/error/data; data is empty until loaded or
+ * on error.
  */
-export function useMetagameBreakdown(formatCode: FormatCode) {
+export function useMetagameBreakdown(formatCode: FormatCode, metaWindow: WindowCode) {
   const [data, setData] = useState<ArchetypeShare[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
@@ -34,6 +36,7 @@ export function useMetagameBreakdown(formatCode: FormatCode) {
       .from('metagame_snapshots')
       .select('rank, share_pct, archetypes(name, color_identity)')
       .eq('format_code', formatCode)
+      .eq('meta_window', metaWindow)
       .order('rank')
       .limit(TOP_N)
       .then(({ data: rows, error: queryError }) => {
@@ -60,7 +63,7 @@ export function useMetagameBreakdown(formatCode: FormatCode) {
     return () => {
       active = false
     }
-  }, [formatCode])
+  }, [formatCode, metaWindow])
 
   return { data, loading, error }
 }
