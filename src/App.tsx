@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
@@ -12,11 +13,7 @@ import { ArchetypeCard } from './components/ArchetypeCard'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 
-const CONTENT_STYLE = {
-  maxWidth: 'var(--content-max)',
-  margin: '0 auto',
-  padding: '0 var(--sp-6)',
-} as const
+const SIDEBAR_MQ = '(max-width: 860px)'
 
 function LanguageToggle() {
   const { i18n, t } = useTranslation()
@@ -56,70 +53,82 @@ function App() {
   const { data, loading, error } = useMetagameBreakdown(format, metaWindow)
   const lastUpdated = useLastUpdated(format, metaWindow)
 
+  // Sidebar state: open by default on desktop, a collapsible overlay drawer on
+  // narrow viewports (the filter panel collapses on mobile). Initialized lazily
+  // from the media query so there's no mount-time state flip.
+  const [narrow, setNarrow] = useState(() => window.matchMedia(SIDEBAR_MQ).matches)
+  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia(SIDEBAR_MQ).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(SIDEBAR_MQ)
+    const apply = () => {
+      setNarrow(mq.matches)
+      setSidebarOpen(!mq.matches)
+    }
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+
   const formatName = t(FORMATS.find((f) => f.code === format)!.i18nKey)
   const windowLabel = t(WINDOWS.find((w) => w.code === metaWindow)!.i18nKey)
   const maxPct = data.length > 0 ? data[0].sharePct : 100
   const freshness = lastUpdated ? relativeTimeFromNow(lastUpdated, new Date(), i18n.language) : ''
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div className="app-shell">
       {/* Topbar */}
-      <header
-        style={{
-          height: 'var(--topbar-h)',
-          borderBottom: '1px solid var(--border-hair)',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <div
-          style={{
-            ...CONTENT_STYLE,
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--sp-5)',
-            flexWrap: 'wrap',
-          }}
+      <header className="topbar">
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-label={t('filters.toggle')}
+          aria-expanded={sidebarOpen}
+          onClick={() => setSidebarOpen((open) => !open)}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
-            <span
-              aria-hidden="true"
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 6,
-                background: 'var(--neon-gradient)',
-                boxShadow: 'var(--glow-neon)',
-                transform: 'rotate(45deg)',
-                display: 'inline-block',
-              }}
-            />
-            <span
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 'var(--fw-heavy)',
-                fontSize: 'var(--fs-lg)',
-              }}
-            >
-              {t('app.title')}
-            </span>
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--sp-4)', alignItems: 'center' }}>
-            <FormatSwitcher value={format} onChange={setFormat} />
-            <LanguageToggle />
-          </div>
+          ≡
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              background: 'var(--neon-gradient)',
+              boxShadow: 'var(--glow-neon)',
+              transform: 'rotate(45deg)',
+              display: 'inline-block',
+            }}
+          />
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 'var(--fw-heavy)',
+              fontSize: 'var(--fs-lg)',
+            }}
+          >
+            {t('app.title')}
+          </span>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--sp-4)', alignItems: 'center' }}>
+          <FormatSwitcher value={format} onChange={setFormat} />
+          <LanguageToggle />
         </div>
       </header>
 
-      {/* Dashboard: filter sidebar + content */}
-      <div style={{ ...CONTENT_STYLE, paddingTop: 'var(--sp-8)', paddingBottom: 'var(--sp-8)' }}>
-        <div className="dashboard-layout">
-          <aside>
+      {/* Body: sidebar + scrolling content */}
+      <div className="app-body">
+        <aside
+          data-testid="sidebar"
+          data-open={sidebarOpen}
+          className={`sidebar${narrow ? ' sidebar--drawer' : ''}`}
+        >
+          <div className="sidebar-inner">
             <WindowSelector value={metaWindow} onChange={setWindow} />
-          </aside>
+          </div>
+        </aside>
 
-          <div>
+        <main className="app-main">
+          <div className="app-content">
             {/* Format header */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
               <h1
@@ -163,7 +172,7 @@ function App() {
             )}
 
             {/* Main */}
-            <main style={{ marginTop: 'var(--sp-6)' }}>
+            <div style={{ marginTop: 'var(--sp-6)' }}>
               {loading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
                   <Spinner label={t('dashboard.loading')} />
@@ -190,9 +199,9 @@ function App() {
                   ))}
                 </div>
               )}
-            </main>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   )

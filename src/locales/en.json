@@ -11,7 +11,8 @@
     "premodern": "Pre-Modern"
   },
   "filters": {
-    "timeFrame": "Time Frame"
+    "timeFrame": "Time Frame",
+    "toggle": "Toggle filters"
   },
   "windows": {
     "last5Days": "Last 5 days",

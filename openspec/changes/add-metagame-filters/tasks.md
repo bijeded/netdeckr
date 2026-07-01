@@ -32,14 +32,14 @@
 
 ## 6. Data model → 3 universal logical windows (schema + scraper together)
 
-- [ ] 6.1 Schema migration: change `metagame_snapshots`/`format_window_freshness` CHECK to logical keys (`5days`,`2weeks`,`2months`); set the column default to `2weeks`; one-time remap existing rows (`50→2weeks`, `326→5days`, `52→2months`) and delete the removed windows (`46`,`285`)
-- [ ] 6.2 Scraper: define the 3 logical windows + a per-format `(logical window → MTGTop8 meta ID)` map; `run.py` resolves the format-specific meta ID when fetching and stores the logical key; update fixtures/tests; `pytest` green
-- [ ] 6.3 Re-scrape (`gh workflow run scrape.yml`) and confirm each format now shows distinct data per window
+- [x] 6.1 Schema migration: change `metagame_snapshots`/`format_window_freshness` CHECK to logical keys (`5days`,`2weeks`,`2months`); set the column default to `2weeks`; one-time remap existing rows (`50→2weeks`, `326→5days`, `52→2months`) and delete the removed windows (`46`,`285`)
+- [x] 6.2 Scraper: define the 3 logical windows + a per-format `(logical window → MTGTop8 meta ID)` map; `run.py` resolves the format-specific meta ID when fetching and stores the logical key; update fixtures/tests; `pytest` green
+- [x] 6.3 Re-scrape (`gh workflow run scrape.yml`) and confirm each format now shows distinct data per window — verified via anon API: MO/PAU show distinct top-N per window; no leftover numeric keys
 
-## 7. Frontend: 3-window logical model + copy
+## 7. Frontend: 3-window logical model + copy (shipped with group 6 in PR #19)
 
-- [ ] 7.1 Update `WINDOWS` to the 3 logical windows in order [`5days`,`2weeks`,`2months`], default `5days`; drop Large/MTGO; rename the filter heading to `filters.timeFrame` = "Time Frame"/"Periodo"; update ES/EN and remove dead keys
-- [ ] 7.2 Update `useWindowSelection` default and the model/selector tests; `?w=` uses logical keys; App header pill/tests reflect default `5days`
+- [x] 7.1 Update `WINDOWS` to the 3 logical windows in order [`5days`,`2weeks`,`2months`], default `5days`; drop Large/MTGO; rename the filter heading to `filters.timeFrame` = "Time Frame"/"Periodo"; update ES/EN and remove dead keys
+- [x] 7.2 Update `useWindowSelection` default and the model/selector tests; `?w=` uses logical keys; App header pill/tests reflect default `5days`
 
 ## 8. Real filter sidebar (per design)
 
