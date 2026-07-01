@@ -1,0 +1,13 @@
+{
+  "app": {
+    "title": "MetaStack",
+    "tagline": "Sigue los metajuegos de Magic: The Gathering desde torneos reales"
+  },
+  "formats": {
+    "standard": "Estándar",
+    "pioneer": "Pioneer",
+    "modern": "Modern",
+    "pauper": "Pauper",
+    "premodern": "Pre-Modern"
+  }
+}
