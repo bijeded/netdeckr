@@ -7,7 +7,9 @@ to Supabase. The window is a format-independent logical key; MTGTop8's numeric
 daily by GitHub Actions; can also be run locally with SUPABASE_URL and
 SUPABASE_SERVICE_ROLE_KEY set.
 
-    python scraper/run.py
+    python scraper/run.py                    # scrape all formats
+    python scraper/run.py ST                 # scrape one format
+    python scraper/run.py --backfill-scryfall  # one-time: map existing deck_cards
 """
 from __future__ import annotations
 
@@ -93,6 +95,18 @@ def main(argv: list[str] | None = None) -> int:
     except KeyError as missing:
         print(f"Missing required environment variable: {missing}", file=sys.stderr)
         return 2
+
+    if "--backfill-scryfall" in argv:
+        # One-time mode: enrich existing deck_cards rows that predate Scryfall
+        # mapping. A standalone pass — it does not scrape.
+        resolver = build_card_resolver()
+        if resolver is None:
+            print("Scryfall bulk sync unavailable; cannot backfill", file=sys.stderr)
+            return 1
+        writer = SupabaseWriter(url, key, card_resolver=resolver)
+        updated = writer.backfill_scryfall()
+        print(f"backfill: enriched {updated} deck_cards rows")
+        return 0
 
     formats = formats_to_scrape(argv, FORMATS)
     writer = SupabaseWriter(url, key, card_resolver=build_card_resolver())

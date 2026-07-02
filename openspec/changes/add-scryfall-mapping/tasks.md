@@ -8,8 +8,8 @@
 
 ## 2. Enrich deck_cards at scrape time
 
-- [ ] 2.1 RED: extend `scraper/tests/test_decklist_writer.py` — `replace_deck_cards` with a resolver populates `scryfall_name`/`set_code`/`collector_number` for resolvable cards and leaves them null on a miss.
-- [ ] 2.2 GREEN: add an optional resolver to `SupabaseWriter.replace_deck_cards` (fill the three columns per card when it resolves); thread the built `CardIndex` through the pipeline/`run.py` so the daily scrape enriches new cards.
+- [x] 2.1 RED: extend `scraper/tests/test_decklist_writer.py` — `replace_deck_cards` with a resolver populates `scryfall_name`/`set_code`/`collector_number` for resolvable cards and leaves them null on a miss.
+- [x] 2.2 GREEN: add an optional resolver to `SupabaseWriter.replace_deck_cards` (fill the three columns per card when it resolves); thread the built `CardIndex` through the pipeline/`run.py` so the daily scrape enriches new cards.
 
 ## 3. One-time backfill of existing rows
 
