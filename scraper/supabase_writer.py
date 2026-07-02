@@ -255,11 +255,13 @@ class SupabaseWriter:
             printing = self._card_resolver.resolve(name)
             if printing is None:
                 continue
-            # Quote the value so names with commas/spaces (e.g. "Borrowing
-            # 100,000 Arrows") don't break PostgREST's filter parsing.
+            # Percent-encode the whole value (safe="" so commas and slashes are
+            # escaped too) so names like "Ral, Crackling Wit" or "Fire // Ice"
+            # match. Do NOT wrap in double quotes — PostgREST compares a
+            # double-quoted value literally, which matches zero rows.
             patch = self._session.patch(
                 f"{self._rest}/deck_cards"
-                f"?card_name=eq.{quote(chr(34) + name + chr(34))}&scryfall_name=is.null",
+                f"?card_name=eq.{quote(name, safe='')}&scryfall_name=is.null",
                 headers={**self._headers, "Prefer": "return=representation"},
                 json={
                     "scryfall_name": printing.name,
