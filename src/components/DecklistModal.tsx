@@ -73,9 +73,11 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
   const badge = placementBadge(deck.placement)
   const badgeColors = BADGE[badge.kind]
 
+  const delivery = arenaDelivery(format)
+
   async function handleExport() {
-    const text = buildArenaDeck(main, side)
-    if (arenaDelivery(format) === 'clipboard') {
+    const text = buildArenaDeck(main, side, deck.archetypeName)
+    if (delivery === 'clipboard') {
       try {
         await navigator.clipboard.writeText(text)
         setNotice({ tone: 'ok', message: t('modal.export.copied') })
@@ -224,7 +226,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
               }}
             >
               <span aria-hidden="true">⬇</span>
-              {t('modal.export.action')}
+              {t(delivery === 'clipboard' ? 'modal.export.action' : 'modal.export.download')}
             </button>
             <button
               ref={closeRef}

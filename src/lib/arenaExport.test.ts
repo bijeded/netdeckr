@@ -35,6 +35,16 @@ describe('buildArenaDeck', () => {
   it('returns just the Deck header when the mainboard is empty', () => {
     expect(buildArenaDeck([], [])).toBe('Deck')
   })
+
+  it('prepends an About/Name block when a deck name is given', () => {
+    expect(buildArenaDeck(main, side, 'Izzet Control')).toBe(
+      'About\nName Izzet Control\n\nDeck\n4 Lightning Bolt\n2 Opt\n\nSideboard\n3 Negate',
+    )
+  })
+
+  it('omits the About block for a blank deck name', () => {
+    expect(buildArenaDeck(main, [], '   ')).toBe('Deck\n4 Lightning Bolt\n2 Opt')
+  })
 })
 
 describe('arenaDelivery', () => {

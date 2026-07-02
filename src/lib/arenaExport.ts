@@ -29,9 +29,15 @@ function cardLine(card: ArenaCard): string {
   return `${card.quantity} ${card.name}${printing}`
 }
 
-/** Render a deck as MTG Arena import text. */
-export function buildArenaDeck(main: ArenaCard[], side: ArenaCard[]): string {
-  const sections = [['Deck', ...main.map(cardLine)].join('\n')]
+/** Render a deck as MTG Arena import text. When `name` is given, an `About` block
+ * names the deck (Arena reads `About` / `Name <deck name>` at the top of the list). */
+export function buildArenaDeck(main: ArenaCard[], side: ArenaCard[], name?: string): string {
+  const sections: string[] = []
+  const deckName = name?.trim()
+  if (deckName) {
+    sections.push(`About\nName ${deckName}`)
+  }
+  sections.push(['Deck', ...main.map(cardLine)].join('\n'))
   if (side.length > 0) {
     sections.push(['Sideboard', ...side.map(cardLine)].join('\n'))
   }

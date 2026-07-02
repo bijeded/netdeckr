@@ -51,10 +51,10 @@
 
 ## 4. Frontend: MTG Arena export (one PR)
 
-- [ ] 4.1 Add `arenaExport.ts` util building Arena text (`Deck`/`Sideboard`, `"<qty> <name>"`) from deck cards, preferring Scryfall canonical name + non-foil printing when present and falling back to the scraped name otherwise (Scryfall columns may be null until the separate Scryfall change lands) — unit-tested
-- [ ] 4.2 Standard/Pioneer: copy to clipboard with a localized confirmation; handle clipboard failure gracefully — tested
-- [ ] 4.3 Modern/Pauper/Pre-Modern: generate a `.txt` Blob download instead of clipboard — tested
-- [ ] 4.4 Wire the export action into `DecklistModal`, choosing delivery by format; add ES/EN strings for the action + confirmation
+- [x] 4.1 Add `arenaExport.ts` util building Arena text (`Deck`/`Sideboard`, `"<qty> <name>"`) from deck cards, preferring Scryfall canonical name + non-foil printing when present and falling back to the scraped name otherwise (Scryfall columns may be null until the separate Scryfall change lands) — unit-tested
+- [x] 4.2 Standard/Pioneer: copy to clipboard with a localized confirmation; handle clipboard failure gracefully — tested
+- [x] 4.3 Modern/Pauper/Pre-Modern: generate a `.txt` Blob download instead of clipboard — tested
+- [x] 4.4 Wire the export action into `DecklistModal`, choosing delivery by format; add ES/EN strings for the action + confirmation
 
 ## 5. Verify + wrap up
 

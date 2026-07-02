@@ -45,7 +45,8 @@
       "action": "Exportar a MTG Arena",
       "copied": "Lista copiada al portapapeles",
       "downloaded": "Lista descargada",
-      "error": "No se pudo copiar la lista"
+      "error": "No se pudo copiar la lista",
+      "download": "Descargar lista"
     }
   },
   "language": {
