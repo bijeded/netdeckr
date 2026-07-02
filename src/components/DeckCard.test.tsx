@@ -15,15 +15,15 @@ const deck: DeckRow = {
 }
 
 describe('DeckCard', () => {
-  it('shows the placement badge label, player, event, and color pips', () => {
+  it('shows the placement badge label, player, and event (no color pips)', () => {
     render(<DeckCard deck={deck} />)
     expect(screen.getByText('Top 4')).toBeInTheDocument()
     expect(screen.getByText('Norbspro')).toBeInTheDocument()
     expect(screen.getByText('RCQ')).toBeInTheDocument()
-    expect(screen.getAllByTestId('mana-pip')).toHaveLength(2)
+    expect(screen.queryAllByTestId('mana-pip')).toHaveLength(0)
   })
 
-  it('is a button with the view-deck CTA that calls onSelect', () => {
+  it('is always a button; clicking calls onSelect when provided', () => {
     const onSelect = vi.fn()
     render(<DeckCard deck={deck} onSelect={onSelect} />)
     expect(screen.getByText(/go to deck/)).toBeInTheDocument()
@@ -31,9 +31,11 @@ describe('DeckCard', () => {
     expect(onSelect).toHaveBeenCalledWith(deck)
   })
 
-  it('is not a button (and shows no CTA) when no onSelect is given', () => {
+  it('is still a button without onSelect (CTA hidden, click is a no-op)', () => {
     render(<DeckCard deck={deck} />)
-    expect(screen.queryByRole('button')).toBeNull()
+    const button = screen.getByRole('button')
+    expect(button).toBeInTheDocument()
     expect(screen.queryByText(/go to deck/)).toBeNull()
+    fireEvent.click(button) // does not throw
   })
 })

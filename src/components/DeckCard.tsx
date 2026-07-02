@@ -1,12 +1,11 @@
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ManaPips } from './ManaPips'
 import { placementBadge, type PlacementKind } from '../lib/placement'
 import type { DeckRow } from '../lib/deckSelection'
 
 interface DeckCardProps {
   deck: DeckRow
-  /** When provided, the card becomes a button that opens the decklist (task group 3). */
+  /** Opens the decklist modal (wired in task group 3). */
   onSelect?: (deck: DeckRow) => void
 }
 
@@ -37,22 +36,22 @@ export function DeckCard({ deck, onSelect }: DeckCardProps) {
     date: dateLabel,
   })
 
+  // border/background/radius + hover live in the `.deck-card` class (dashboard.css)
+  // so the hover border-color isn't overridden by an inline border.
   const cardStyle: CSSProperties = {
     display: 'block',
     width: '100%',
+    minWidth: 0,
     textAlign: 'left',
     font: 'inherit',
     color: 'inherit',
-    border: '1px solid var(--border-soft)',
-    background: 'var(--surface-card)',
-    borderRadius: 'var(--r-lg)',
     padding: 12,
-    cursor: onSelect ? 'pointer' : 'default',
+    cursor: 'pointer',
   }
 
-  const content = (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+  return (
+    <button type="button" className="deck-card" aria-label={label} onClick={() => onSelect?.(deck)} style={cardStyle}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
         <span
           style={{
             display: 'inline-flex',
@@ -68,7 +67,6 @@ export function DeckCard({ deck, onSelect }: DeckCardProps) {
         >
           {badge.label}
         </span>
-        <ManaPips colors={deck.colorIdentity} size={12} />
       </div>
       <div
         style={{
@@ -108,15 +106,6 @@ export function DeckCard({ deck, onSelect }: DeckCardProps) {
         <span>{dateLabel}</span>
         {onSelect && <span style={{ marginLeft: 'auto', color: 'var(--neon-text-soft)' }}>{t('decks.viewDeck')} →</span>}
       </div>
-    </>
+    </button>
   )
-
-  if (onSelect) {
-    return (
-      <button type="button" aria-label={label} onClick={() => onSelect(deck)} style={cardStyle}>
-        {content}
-      </button>
-    )
-  }
-  return <div style={cardStyle}>{content}</div>
 }
