@@ -13,8 +13,8 @@
 
 ## 3. One-time backfill of existing rows
 
-- [ ] 3.1 RED: write tests for the backfill routine — pages `deck_cards` where `scryfall_name is null`, resolves, PATCHes resolvable rows, leaves misses null, and is idempotent (re-run is a no-op).
-- [ ] 3.2 GREEN: implement a `--backfill-scryfall` entry point in `scraper/run.py` (batch by PostgREST page, PATCH by id) reusing the resolver + index.
+- [x] 3.1 RED: write tests for the backfill routine — pages `deck_cards` where `scryfall_name is null`, resolves, PATCHes resolvable rows, leaves misses null, and is idempotent (re-run is a no-op).
+- [x] 3.2 GREEN: implement a `--backfill-scryfall` entry point in `scraper/run.py` (batch by PostgREST page, PATCH by id) reusing the resolver + index.
 
 ## 4. Pipeline wiring
 
