@@ -212,3 +212,56 @@ def test_upsert_archetype_caches_within_a_format_run():
     assert first == second == 200
     assert session.post.call_count == 1  # inserted exactly once
     assert session.get.call_count == 1  # format archetypes loaded once
+
+
+# -- Scryfall backfill -----------------------------------------------------
+
+def test_backfill_scryfall_requires_a_resolver():
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        _writer(MagicMock()).backfill_scryfall()
+
+
+def test_backfill_scryfall_patches_resolvable_names_and_skips_misses():
+    session = MagicMock()
+    # One page of still-null rows (two Lightning Bolt lines + one unmappable),
+    # then an empty page to end the cursor loop.
+    session.get.side_effect = [
+        _response(
+            [
+                {"id": 1, "card_name": "Lightning Bolt"},
+                {"id": 2, "card_name": "Lightning Bolt"},
+                {"id": 3, "card_name": "Homebrew Nonsense"},
+            ]
+        ),
+        _response([]),
+    ]
+    # PATCH returns the representation of the rows it updated (2 Bolt lines).
+    session.patch.return_value = _response([{"id": 1}, {"id": 2}])
+    resolver = _StubResolver(
+        {"Lightning Bolt": Printing(name="Lightning Bolt", set_code="CLU", collector_number="141")}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    updated = writer.backfill_scryfall()
+
+    assert updated == 2  # only the resolvable rows counted
+    # Exactly one PATCH — for the single resolvable distinct name.
+    assert session.patch.call_count == 1
+    patch_url = session.patch.call_args[0][0]
+    assert "/rest/v1/deck_cards" in patch_url
+    assert "card_name=eq." in patch_url
+    assert "scryfall_name=is.null" in patch_url  # only touch still-null rows
+    body = session.patch.call_args[1]["json"]
+    assert body == {"scryfall_name": "Lightning Bolt", "set_code": "CLU", "collector_number": "141"}
+
+
+def test_backfill_scryfall_no_null_rows_is_a_noop():
+    session = MagicMock()
+    session.get.return_value = _response([])  # nothing left to map
+    resolver = _StubResolver({})
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    assert writer.backfill_scryfall() == 0
+    session.patch.assert_not_called()

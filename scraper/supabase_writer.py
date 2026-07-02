@@ -220,6 +220,57 @@ class SupabaseWriter:
             row["collector_number"] = printing.collector_number if printing else None
         return row
 
+    def backfill_scryfall(self, *, page_size: int = 1000) -> int:
+        """Populate the Scryfall columns on existing deck_cards rows still null.
+
+        A one-time pass over rows written before Scryfall mapping existed. Pages
+        the still-null rows by ascending id (a cursor, so unresolvable rows don't
+        loop forever), collects the distinct scraped card names, and PATCHes each
+        resolvable name's still-null rows in a single request. Requires a
+        card_resolver. Idempotent: the `scryfall_name=is.null` filter excludes
+        already-mapped rows, and a re-run only revisits rows that still miss.
+        Returns the number of rows updated.
+        """
+        if self._card_resolver is None:
+            raise RuntimeError("backfill_scryfall requires a card_resolver")
+
+        names: set[str] = set()
+        cursor = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/deck_cards"
+                f"?scryfall_name=is.null&id=gt.{cursor}"
+                f"&select=id,card_name&order=id.asc&limit={page_size}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
+                break
+            names.update(row["card_name"] for row in rows)
+            cursor = rows[-1]["id"]
+
+        updated = 0
+        for name in names:
+            printing = self._card_resolver.resolve(name)
+            if printing is None:
+                continue
+            # Quote the value so names with commas/spaces (e.g. "Borrowing
+            # 100,000 Arrows") don't break PostgREST's filter parsing.
+            patch = self._session.patch(
+                f"{self._rest}/deck_cards"
+                f"?card_name=eq.{quote(chr(34) + name + chr(34))}&scryfall_name=is.null",
+                headers={**self._headers, "Prefer": "return=representation"},
+                json={
+                    "scryfall_name": printing.name,
+                    "set_code": printing.set_code,
+                    "collector_number": printing.collector_number,
+                },
+            )
+            patch.raise_for_status()
+            updated += len(patch.json())
+        return updated
+
     def existing_event_ids(self, fmt: str) -> set[str]:
         """Return the set of source event ids already stored for a format.
 
