@@ -21,12 +21,29 @@ import requests
 from decklist_pipeline import sync_decklists
 from mtgtop8 import FORMATS, WINDOWS, event_url, format_url, meta_id_for
 from pipeline import sync_all
+from scryfall import sync_bulk
 from supabase_writer import SupabaseWriter
 
 USER_AGENT = "MetaStack/0.1 (metagame dashboard; +https://github.com/bijeded/metastack)"
 REQUEST_DELAY_SECONDS = 2  # respectful rate limiting between requests (fair use)
 REQUEST_TIMEOUT_SECONDS = 30
 RETENTION_DAYS = 182  # ~6 months; data older than this is pruned each run
+SCRYFALL_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "scryfall")
+
+
+def build_card_resolver():
+    """Sync Scryfall bulk data and return a card resolver, or None on failure.
+
+    Best-effort: card enrichment is optional, so a Scryfall outage must not fail
+    the scrape — the writer simply leaves the Scryfall columns null in that case.
+    The bulk file is cached per day, so repeated runs the same day don't re-download.
+    """
+    try:
+        today = datetime.now(timezone.utc).date().isoformat()
+        return sync_bulk(SCRYFALL_CACHE_DIR, today=today)
+    except Exception as exc:  # noqa: BLE001 — enrichment is optional
+        print(f"[error] scryfall bulk sync: {exc} (deck cards will be unenriched)", file=sys.stderr)
+        return None
 
 
 def _get(url: str) -> str:
@@ -78,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     formats = formats_to_scrape(argv, FORMATS)
-    writer = SupabaseWriter(url, key)
+    writer = SupabaseWriter(url, key, card_resolver=build_card_resolver())
     now = datetime.now(timezone.utc).isoformat()
 
     def on_error(fmt: str, window: str, exc: Exception) -> None:

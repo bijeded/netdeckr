@@ -16,12 +16,22 @@ from mtgtop8 import Archetype, DeckCard, DeckResult, Event, color_identity_for
 class SupabaseWriter:
     """Replace-on-run writer, scoped per (format, meta_window) snapshot slice."""
 
-    def __init__(self, url: str, service_role_key: str, session: requests.Session | None = None):
+    def __init__(
+        self,
+        url: str,
+        service_role_key: str,
+        session: requests.Session | None = None,
+        card_resolver=None,
+    ):
         if not url.startswith("https://"):
             # The service-role key must never travel over cleartext http.
             raise ValueError("Supabase URL must use https")
         self._rest = f"{url.rstrip('/')}/rest/v1"
         self._session = session or requests.Session()
+        # Optional Scryfall card resolver (anything exposing `resolve(name)`);
+        # when set, deck cards are enriched with the canonical printing. Left
+        # None means the Scryfall columns are omitted (kept null by the DB).
+        self._card_resolver = card_resolver
         # Per-format {lower(name): id} cache for case-insensitive archetype
         # get-or-create (loaded lazily on first decklist upsert for a format).
         self._archetype_ids_by_format: dict[str, dict[str, int]] = {}
@@ -94,8 +104,9 @@ class SupabaseWriter:
     # -- Decklists ----------------------------------------------------------
     # events/decks/deck_cards are upserted on their unique keys so daily re-runs
     # are idempotent (no duplicate events or decks). deck_cards are replaced per
-    # deck. The Scryfall columns are left unset here — a later Scryfall-mapping
-    # change populates them; the export falls back to `card_name` until then.
+    # deck, and enriched with the resolved Scryfall printing when a `card_resolver`
+    # is configured (a miss or no resolver leaves the Scryfall columns null; the
+    # export falls back to `card_name`).
 
     def upsert_event(self, fmt: str, event: Event) -> int:
         """Upsert an event on (source_event_id, format_code); return its id."""
@@ -188,17 +199,26 @@ class SupabaseWriter:
         insert = self._session.post(
             f"{self._rest}/deck_cards",
             headers=self._headers,
-            json=[
-                {
-                    "deck_id": deck_id,
-                    "board": c.board,
-                    "quantity": c.quantity,
-                    "card_name": c.card_name,
-                }
-                for c in cards
-            ],
+            json=[self._deck_card_row(deck_id, c) for c in cards],
         )
         insert.raise_for_status()
+
+    def _deck_card_row(self, deck_id: int, card: DeckCard) -> dict:
+        """Build a deck_cards insert row, enriched with the Scryfall printing when
+        a resolver is configured and the card name resolves. A miss (or no
+        resolver) leaves the Scryfall columns null; the scraped name is kept."""
+        row = {
+            "deck_id": deck_id,
+            "board": card.board,
+            "quantity": card.quantity,
+            "card_name": card.card_name,
+        }
+        if self._card_resolver is not None:
+            printing = self._card_resolver.resolve(card.card_name)
+            row["scryfall_name"] = printing.name if printing else None
+            row["set_code"] = printing.set_code if printing else None
+            row["collector_number"] = printing.collector_number if printing else None
+        return row
 
     def existing_event_ids(self, fmt: str) -> set[str]:
         """Return the set of source event ids already stored for a format.

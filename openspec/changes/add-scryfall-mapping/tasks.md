@@ -1,10 +1,10 @@
 ## 1. Scryfall bulk sync + card resolver
 
-- [ ] 1.1 Add a trimmed `default_cards` bulk JSON fixture under `scraper/tests/fixtures` (a handful of cards incl. a split/DFC card, a digital-only printing, and a card with multiple paper printings) for offline tests.
-- [ ] 1.2 RED: write `scraper/tests/test_scryfall.py` covering (a) `CardIndex` build from bulk rows, (b) `resolve(name)` returns canonical name + non-foil `set_code` + `collector_number` for a known card, (c) split/DFC front-face name resolves to the full card, (d) unknown name returns `None`, (e) printing selection prefers most-recent non-foil paper printing and skips digital.
-- [ ] 1.3 GREEN: implement `scraper/scryfall.py` — `CardIndex.from_bulk_rows(rows)`, name normalization (lowercase, split/DFC/adventure front-face forms), `resolve(name) -> Printing | None`, and printing selection (most-recent non-foil, non-digital).
-- [ ] 1.4 RED: write tests for the bulk-sync/cache function (download-once-per-day; reuse today's cached file; download function is injected/mocked — never hits live Scryfall).
-- [ ] 1.5 GREEN: implement the bulk-sync/cache function (resolve `download_uri` from `/bulk-data`, stream to a date-keyed cache file, load + build index; reuse cache when fresh).
+- [x] 1.1 Add a trimmed `default_cards` bulk JSON fixture under `scraper/tests/fixtures` (a handful of cards incl. a split/DFC card, a digital-only printing, and a card with multiple paper printings) for offline tests.
+- [x] 1.2 RED: write `scraper/tests/test_scryfall.py` covering (a) `CardIndex` build from bulk rows, (b) `resolve(name)` returns canonical name + non-foil `set_code` + `collector_number` for a known card, (c) split/DFC front-face name resolves to the full card, (d) unknown name returns `None`, (e) printing selection prefers most-recent non-foil paper printing and skips digital.
+- [x] 1.3 GREEN: implement `scraper/scryfall.py` — `CardIndex.from_bulk_rows(rows)`, name normalization (lowercase, split/DFC/adventure front-face forms), `resolve(name) -> Printing | None`, and printing selection (most-recent non-foil, non-digital).
+- [x] 1.4 RED: write tests for the bulk-sync/cache function (download-once-per-day; reuse today's cached file; download function is injected/mocked — never hits live Scryfall).
+- [x] 1.5 GREEN: implement the bulk-sync/cache function (resolve `download_uri` from `/bulk-data`, stream to a date-keyed cache file, load + build index; reuse cache when fresh).
 
 ## 2. Enrich deck_cards at scrape time
 

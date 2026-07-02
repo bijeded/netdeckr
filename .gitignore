@@ -8,5 +8,6 @@ __pycache__/
 *.pyc
 .venv/
 scraper/venv/
+scraper/.cache/
 .vercel
 coverage/

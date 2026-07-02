@@ -5,7 +5,18 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mtgtop8 import DeckCard, DeckResult, Event  # noqa: E402
+from scryfall import Printing  # noqa: E402
 from supabase_writer import SupabaseWriter  # noqa: E402
+
+
+class _StubResolver:
+    """Minimal card resolver: resolves the given names, misses everything else."""
+
+    def __init__(self, printings: dict):
+        self._printings = printings
+
+    def resolve(self, name):
+        return self._printings.get(name)
 
 URL = "https://example.supabase.co"
 KEY = "service-role-key"
@@ -77,6 +88,47 @@ def test_replace_deck_cards_clears_then_inserts_with_null_scryfall():
     rows = session.post.call_args[1]["json"]
     assert rows[0] == {"deck_id": 7, "board": "main", "quantity": 6, "card_name": "Island"}
     # Scryfall columns are left out entirely (populated by a later change).
+    assert "scryfall_name" not in rows[0]
+
+
+def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
+    session = MagicMock()
+    session.delete.return_value = _response(status=204)
+    session.post.return_value = _response(status=201)
+    resolver = _StubResolver(
+        {"Lightning Bolt": Printing(name="Lightning Bolt", set_code="CLU", collector_number="141")}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+    cards = [
+        DeckCard(board="main", quantity=4, card_name="Lightning Bolt"),
+        DeckCard(board="main", quantity=2, card_name="Homebrew Nonsense"),
+    ]
+
+    writer.replace_deck_cards(9, cards)
+
+    rows = session.post.call_args[1]["json"]
+    # Resolvable card carries the canonical Scryfall identity.
+    assert rows[0]["scryfall_name"] == "Lightning Bolt"
+    assert rows[0]["set_code"] == "CLU"
+    assert rows[0]["collector_number"] == "141"
+    assert rows[0]["card_name"] == "Lightning Bolt"
+    # A miss leaves the Scryfall columns null (scraped name retained).
+    assert rows[1]["card_name"] == "Homebrew Nonsense"
+    assert rows[1]["scryfall_name"] is None
+    assert rows[1]["set_code"] is None
+    assert rows[1]["collector_number"] is None
+
+
+def test_replace_deck_cards_without_resolver_omits_scryfall_columns():
+    # No resolver configured → columns are omitted entirely (unchanged behavior).
+    session = MagicMock()
+    session.delete.return_value = _response(status=204)
+    session.post.return_value = _response(status=201)
+    cards = [DeckCard(board="main", quantity=4, card_name="Lightning Bolt")]
+
+    _writer(session).replace_deck_cards(9, cards)
+
+    rows = session.post.call_args[1]["json"]
     assert "scryfall_name" not in rows[0]
 
 
