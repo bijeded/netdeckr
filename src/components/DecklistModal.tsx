@@ -1,14 +1,18 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ManaPips } from './ManaPips'
 import { Spinner } from './Spinner'
 import { EmptyState } from './EmptyState'
 import { useDeckCards, type DeckCardLine } from '../hooks/useDeckCards'
 import { placementBadge, type PlacementKind } from '../lib/placement'
+import { arenaDelivery, buildArenaDeck, arenaFilename } from '../lib/arenaExport'
+import type { FormatCode } from '../lib/formats'
 import type { DeckRow } from '../lib/deckSelection'
 
 interface DecklistModalProps {
   deck: DeckRow
+  /** Current format — decides clipboard (Arena formats) vs .txt download. */
+  format: FormatCode
   onClose: () => void
 }
 
@@ -61,12 +65,39 @@ function SectionHeading({ label, count }: { label: string; count: string }) {
 
 /** Full decklist modal: mainboard + sideboard for one deck. Dismissible; returns
  * focus to the element that opened it. */
-export function DecklistModal({ deck, onClose }: DecklistModalProps) {
+export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
   const { t, i18n } = useTranslation()
   const { main, side, mainCount, sideCount, loading, error } = useDeckCards(deck.id)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; message: string } | null>(null)
   const badge = placementBadge(deck.placement)
   const badgeColors = BADGE[badge.kind]
+
+  async function handleExport() {
+    const text = buildArenaDeck(main, side)
+    if (arenaDelivery(format) === 'clipboard') {
+      try {
+        await navigator.clipboard.writeText(text)
+        setNotice({ tone: 'ok', message: t('modal.export.copied') })
+      } catch {
+        setNotice({ tone: 'error', message: t('modal.export.error') })
+      }
+      return
+    }
+    let url: string | null = null
+    try {
+      url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = arenaFilename(deck.archetypeName)
+      anchor.click()
+      setNotice({ tone: 'ok', message: t('modal.export.downloaded') })
+    } catch {
+      setNotice({ tone: 'error', message: t('modal.export.error') })
+    } finally {
+      if (url) URL.revokeObjectURL(url)
+    }
+  }
 
   // Escape to close.
   useEffect(() => {
@@ -155,26 +186,65 @@ export function DecklistModal({ deck, onClose }: DecklistModalProps) {
               <span>·</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)' }}>{formatDate(deck.eventDate, i18n.language)}</span>
             </div>
+            {notice && (
+              <div
+                role="alert"
+                aria-live="polite"
+                style={{
+                  marginTop: 10,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--fs-xs)',
+                  color: notice.tone === 'error' ? 'var(--down)' : 'var(--up)',
+                }}
+              >
+                {notice.message}
+              </div>
+            )}
           </div>
-          <button
-            ref={closeRef}
-            type="button"
-            aria-label={t('modal.close')}
-            onClick={onClose}
-            style={{
-              flex: '0 0 auto',
-              width: 34,
-              height: 34,
-              borderRadius: 'var(--r-md)',
-              border: '1px solid var(--border-line)',
-              background: 'var(--surface-subtle)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontSize: 'var(--fs-md)',
-            }}
-          >
-            ✕
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '0 0 auto' }}>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={loading || !!error}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '8px 13px',
+                borderRadius: 'var(--r-lg)',
+                border: '1px solid var(--neon-border)',
+                background: 'var(--neon-tint-16)',
+                color: 'var(--neon-text)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--fs-sm)',
+                fontWeight: 'var(--fw-semibold)',
+                cursor: loading || error ? 'not-allowed' : 'pointer',
+                opacity: loading || error ? 0.5 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span aria-hidden="true">⬇</span>
+              {t('modal.export.action')}
+            </button>
+            <button
+              ref={closeRef}
+              type="button"
+              aria-label={t('modal.close')}
+              onClick={onClose}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 'var(--r-md)',
+                border: '1px solid var(--border-line)',
+                background: 'var(--surface-subtle)',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontSize: 'var(--fs-md)',
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Body */}

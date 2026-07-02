@@ -42,10 +42,10 @@ describe('useDeckCards', () => {
     expect(from).toHaveBeenCalledWith('deck_cards')
     expect(eq).toHaveBeenCalledWith('deck_id', 7)
     expect(result.current.main).toEqual([
-      { quantity: 4, name: 'Llanowar Elves' },
-      { quantity: 6, name: 'Forest' },
+      { quantity: 4, name: 'Llanowar Elves', setCode: null, collectorNumber: null },
+      { quantity: 6, name: 'Forest', setCode: null, collectorNumber: null },
     ])
-    expect(result.current.side).toEqual([{ quantity: 2, name: 'Duress' }])
+    expect(result.current.side).toEqual([{ quantity: 2, name: 'Duress', setCode: null, collectorNumber: null }])
     expect(result.current.mainCount).toBe(10)
     expect(result.current.sideCount).toBe(2)
   })
@@ -57,6 +57,15 @@ describe('useDeckCards', () => {
     const { result } = renderHook(() => useDeckCards(7))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.main[0].name).toBe('Lightning Bolt (canonical)')
+  })
+
+  it('exposes the non-foil printing (set + collector) when present', async () => {
+    queryResult.data = [
+      { board: 'main', quantity: 1, card_name: 'Lightning Bolt', set_code: 'MH2', collector_number: '401' },
+    ]
+    const { result } = renderHook(() => useDeckCards(7))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.main[0]).toMatchObject({ setCode: 'MH2', collectorNumber: '401' })
   })
 
   it('exposes an error and empty lists on failure', async () => {

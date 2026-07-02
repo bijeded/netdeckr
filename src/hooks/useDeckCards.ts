@@ -4,6 +4,9 @@ import { supabase } from '../lib/supabase'
 export interface DeckCardLine {
   quantity: number
   name: string
+  /** Canonical non-foil printing, when Scryfall mapping has populated it. */
+  setCode?: string | null
+  collectorNumber?: string | null
 }
 
 interface DeckCardQueryRow {
@@ -11,6 +14,8 @@ interface DeckCardQueryRow {
   quantity: number
   card_name: string
   scryfall_name?: string | null
+  set_code?: string | null
+  collector_number?: string | null
 }
 
 interface DeckCardsState {
@@ -45,7 +50,7 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
 
     supabase
       .from('deck_cards')
-      .select('board, quantity, card_name, scryfall_name')
+      .select('board, quantity, card_name, scryfall_name, set_code, collector_number')
       .eq('deck_id', deckId)
       .order('id')
       .then(({ data, error }) => {
@@ -57,7 +62,12 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
         const main: DeckCardLine[] = []
         const side: DeckCardLine[] = []
         for (const row of (data as unknown as DeckCardQueryRow[] | null) ?? []) {
-          const line: DeckCardLine = { quantity: row.quantity, name: row.scryfall_name ?? row.card_name }
+          const line: DeckCardLine = {
+            quantity: row.quantity,
+            name: row.scryfall_name ?? row.card_name,
+            setCode: row.set_code ?? null,
+            collectorNumber: row.collector_number ?? null,
+          }
           ;(row.board === 'side' ? side : main).push(line)
         }
         setState({ main, side, mainCount: sum(main), sideCount: sum(side), loading: false, error: null })

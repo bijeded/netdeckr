@@ -40,7 +40,13 @@
     "cards_other": "{{count}} cards",
     "close": "Close",
     "loading": "Loading the decklist…",
-    "error": "Could not load this decklist."
+    "error": "Could not load this decklist.",
+    "export": {
+      "action": "Export to MTG Arena",
+      "copied": "Decklist copied to clipboard",
+      "downloaded": "Decklist downloaded",
+      "error": "Could not copy the decklist"
+    }
   },
   "language": {
     "label": "Language",
