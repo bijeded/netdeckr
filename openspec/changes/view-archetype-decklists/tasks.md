@@ -44,10 +44,10 @@
 
 ## 3. Frontend: decklist modal (one PR)
 
-- [ ] 3.1 Create `DecklistModal` component (port modal styling from `design/`) rendering mainboard + sideboard sections with quantities and names, opened from a deck row — tests first
-- [ ] 3.2 Dismiss on Escape / close control / backdrop; return focus to the triggering deck row (matchMedia already stubbed in tests) — tested
-- [ ] 3.3 Ensure main/sideboard remain legible and scrollable on narrow viewports (responsive CSS in `src/styles/`)
-- [ ] 3.4 Add ES/EN strings for modal headings and controls
+- [x] 3.1 Create `DecklistModal` component (port modal styling from `design/`) rendering mainboard + sideboard sections with quantities and names, opened from a deck row — tests first
+- [x] 3.2 Dismiss on Escape / close control / backdrop; return focus to the triggering deck row (matchMedia already stubbed in tests) — tested
+- [x] 3.3 Ensure main/sideboard remain legible and scrollable on narrow viewports (responsive CSS in `src/styles/`)
+- [x] 3.4 Add ES/EN strings for modal headings and controls
 
 ## 4. Frontend: MTG Arena export (one PR)
 
