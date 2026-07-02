@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ManaPips } from './ManaPips'
+import { CardArtPreview } from './CardArtPreview'
 import { Spinner } from './Spinner'
 import { EmptyState } from './EmptyState'
 import { useDeckCards, type DeckCardLine } from '../hooks/useDeckCards'
@@ -36,7 +37,9 @@ function CardLine({ line }: { line: DeckCardLine }) {
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--neon-text-soft)', width: 18, flex: '0 0 auto' }}>
         {line.quantity}
       </span>
-      <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>{line.name}</span>
+      <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
+        <CardArtPreview name={line.name} imageUrl={line.imageUrl} />
+      </span>
     </div>
   )
 }

@@ -42,10 +42,12 @@ describe('useDeckCards', () => {
     expect(from).toHaveBeenCalledWith('deck_cards')
     expect(eq).toHaveBeenCalledWith('deck_id', 7)
     expect(result.current.main).toEqual([
-      { quantity: 4, name: 'Llanowar Elves', setCode: null, collectorNumber: null },
-      { quantity: 6, name: 'Forest', setCode: null, collectorNumber: null },
+      { quantity: 4, name: 'Llanowar Elves', setCode: null, collectorNumber: null, imageUrl: null },
+      { quantity: 6, name: 'Forest', setCode: null, collectorNumber: null, imageUrl: null },
     ])
-    expect(result.current.side).toEqual([{ quantity: 2, name: 'Duress', setCode: null, collectorNumber: null }])
+    expect(result.current.side).toEqual([
+      { quantity: 2, name: 'Duress', setCode: null, collectorNumber: null, imageUrl: null },
+    ])
     expect(result.current.mainCount).toBe(10)
     expect(result.current.sideCount).toBe(2)
   })
@@ -66,6 +68,15 @@ describe('useDeckCards', () => {
     const { result } = renderHook(() => useDeckCards(7))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.main[0]).toMatchObject({ setCode: 'MH2', collectorNumber: '401' })
+  })
+
+  it('exposes the hotlinked card image URL when present', async () => {
+    queryResult.data = [
+      { board: 'main', quantity: 1, card_name: 'Lightning Bolt', image_url: 'https://cards.scryfall.io/normal/bolt.jpg' },
+    ]
+    const { result } = renderHook(() => useDeckCards(7))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.main[0].imageUrl).toBe('https://cards.scryfall.io/normal/bolt.jpg')
   })
 
   it('exposes an error and empty lists on failure', async () => {

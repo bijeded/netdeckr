@@ -7,6 +7,8 @@ export interface DeckCardLine {
   /** Canonical non-foil printing, when Scryfall mapping has populated it. */
   setCode?: string | null
   collectorNumber?: string | null
+  /** Hotlinked Scryfall card image (normal size), when resolved; else null. */
+  imageUrl?: string | null
 }
 
 interface DeckCardQueryRow {
@@ -16,6 +18,7 @@ interface DeckCardQueryRow {
   scryfall_name?: string | null
   set_code?: string | null
   collector_number?: string | null
+  image_url?: string | null
 }
 
 interface DeckCardsState {
@@ -50,7 +53,7 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
 
     supabase
       .from('deck_cards')
-      .select('board, quantity, card_name, scryfall_name, set_code, collector_number')
+      .select('board, quantity, card_name, scryfall_name, set_code, collector_number, image_url')
       .eq('deck_id', deckId)
       .order('id')
       .then(({ data, error }) => {
@@ -67,6 +70,7 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
             name: row.scryfall_name ?? row.card_name,
             setCode: row.set_code ?? null,
             collectorNumber: row.collector_number ?? null,
+            imageUrl: row.image_url ?? null,
           }
           ;(row.board === 'side' ? side : main).push(line)
         }

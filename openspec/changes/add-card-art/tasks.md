@@ -8,8 +8,8 @@
 
 ## 2. Archetype signature-card art (scraper)
 
-- [ ] 2.1 RED: tests for choosing an archetype's signature card — most-played non-land mainboard card across its decks (ties: count desc, name asc), resolved to a printing, stored as `signature_card_name` + `art_image_url`; archetypes with no resolvable card stay null.
-- [ ] 2.2 GREEN: add a signature-card pass (writer method + `run.py` wiring) that runs after the decklist pass and is included in `--backfill-scryfall`; land exclusion via a maintained land-name set.
+- [x] 2.1 RED: tests for choosing an archetype's signature card — most-played non-land mainboard card across its decks (ties: count desc, name asc), resolved to a printing, stored as `signature_card_name` + `art_image_url`; archetypes with no resolvable card stay null.
+- [x] 2.2 GREEN: add a signature-card pass (writer method + `run.py` wiring) that runs after the decklist pass and is included in `--backfill-scryfall`; land exclusion via a maintained land-name set.
 
 ## 3. Decklist modal card-art preview (frontend)
 
