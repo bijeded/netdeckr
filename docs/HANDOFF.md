@@ -9,11 +9,12 @@ Paste-ready context to continue MetaStack in a new chat. Discovery and project-i
 - **Living specs:** `openspec/specs/metagame-breakdown-view/` and `openspec/specs/metagame-data-pipeline/`
 - **Design system:** `design/` (tokens in `design/tokens/`, reference components, `design/MetaStack.dc.html` prototype). Theme wired via `src/styles/tokens.css`; dashboard layout in `src/styles/dashboard.css`.
 
-## What's shipped (both changes archived under `openspec/changes/archive/`)
+## What's shipped (all changes archived under `openspec/changes/archive/`)
 1. **`view-metagame-breakdown`** — pick a format → top-20 archetype breakdown, format persisted in `?f=`, "Updated X ago" freshness, loading/empty/error states, ES/EN.
 2. **`add-metagame-filters`** (2026-07-01) — a **time-frame filter** in a real full-height filter sidebar: pick one of three windows (Last 5 Days / 2 Weeks / 2 Months), persisted in `?w=`, default Last 5 Days, heading "Time Frame"/"Periodo", with a `≡` toggle + mobile drawer. Breakdown + freshness are per (format, window). Backed by a window-aware schema and a scraper that fetches all three windows per format.
+3. **`view-archetype-decklists`** (2026-07-02) — expand an archetype card into its recent decklists (4 most-recent Top-4 finishes, else latest 4), a decklist modal (main/sideboard, dismissible, focus return), and **MTG Arena export** from the modal: Standard/Pioneer copy Arena text to the clipboard (localized confirmation, graceful failure); Modern/Pauper/Pre-Modern download a `.txt` (button reads "Download Decklist" for those). Export text leads with an `About`/`Name <archetype>` block and prefers Scryfall canonical name + non-foil printing when present, else the scraped name. Backed by new `events`/`decks`/`deck_cards` tables (RLS read-only), MTGTop8 event + decklist parsers, incremental + staggered per-format scraping, and a 6-month prune. Specs: `archetype-decklists-view` (new) + `metagame-data-pipeline` (extended).
 
-Backed by a daily MTGTop8 scraper → Supabase (RLS read-only). ~100 frontend + scraper tests.
+Backed by a daily MTGTop8 scraper → Supabase (RLS read-only). 120 frontend + 62 scraper tests.
 
 ## Stack & commands (see CLAUDE.md for full detail)
 - Frontend: React 19 + Vite 8 + TS 5.8, Vitest (config in **separate `vitest.config.ts`**), oxlint, react-i18next, @supabase/supabase-js, Recharts (still unused).
@@ -26,7 +27,10 @@ Backed by a daily MTGTop8 scraper → Supabase (RLS read-only). ~100 frontend + 
 - `archetypes(id, format_code FK, name, color_identity, unique(format_code,name))` — shared across windows; the scraper upserts (get-or-create), never deletes per-run.
 - `metagame_snapshots(format_code, meta_window, archetype_id) PK` — `share_pct`, `rank`. **Replace-on-run scoped to (format_code, meta_window)**. `meta_window` is a **logical key** (`5days`/`2weeks`/`2months`), CHECK-constrained.
 - `format_window_freshness(format_code, meta_window) PK, last_updated_at` — per-(format, window) freshness; drives "Updated X ago".
-- RLS: anon SELECT only; writes only via service-role key.
+- `events(id, source_event_id, format_code FK, name, event_date, unique(source_event_id, format_code))` — a MTGTop8 event.
+- `decks(id, event_id FK, archetype_id FK, source_deck_id, player, placement, unique(event_id, source_deck_id))` — one deck at an event. `placement` is raw text ("1", "3-4", "5-8") because `placing` is a reserved SQL word.
+- `deck_cards(id, deck_id FK, board 'main'|'side', quantity, card_name, scryfall_name, set_code, collector_number)` — one card line; `scryfall_*` are nullable and **currently null** (no Scryfall sync yet → export falls back to `card_name`).
+- RLS: anon SELECT only on all tables; writes only via service-role key.
 
 ## Workflow to follow (Implementation mode: disciplined)
 1. New session in the repo → optionally **user-stories** skill → **`/opsx:propose <change-id>`** (pass the stories as context).
@@ -46,14 +50,15 @@ Backed by a daily MTGTop8 scraper → Supabase (RLS read-only). ~100 frontend + 
 - `.env.local` holds `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (set locally and in Vercel) — useful for read-only anon verification via `curl` against the PostgREST API.
 
 ## Deferred work → candidate next changes
-1. **Week-over-week delta (▲/▼)** — needs storing/comparing two snapshots over time (schema is current-only; requires a history table or a "previous share" column). Design has `ChangeIndicator`.
-2. **Real Scryfall card art** — replace the placeholder gradient; store a representative card per archetype; current non-foil printing, no special art; hotlink `image_uris`.
-3. **Decklist modal + MTG Arena export** — event top-16 + individual decklists (MTGTop8 `/event?e={id}&d={did}&f=ST`), deck modal (main/sideboard), "Exportar a MTG Arena". New scraper pages + schema (events, decks, deck_cards) + `ArchetypeCard` click → expand → modal.
-4. **More filters: event + archetype** — the design sidebar has "Evento" and "Arquetipo" groups. The real filter sidebar already exists (`src/components/WindowSelector.tsx` pattern + `src/App.tsx` `.sidebar`), so new filter groups slot in beside the time-frame group. (Event-size was evaluated and dropped — MTGTop8's size/scope windows aren't uniform across formats.)
-5. **StatCard strip + "En Tendencia" trending table** — design has both (topbar/header StatCards, trending table with `ChangeIndicator`); trending needs top-cards scraping + history.
+1. **`fix-archetype-name-casing`** (already PROPOSED, not implemented — `openspec/changes/fix-archetype-name-casing/`). MTGTop8 capitalizes archetype names inconsistently across pages (breakdown `UW Control` vs decklist table `Uw Control`); the case-sensitive `unique(format_code, name)` + exact-name get-or-create spawn duplicate archetype rows with no snapshot, stranding ~30 decks (7 collision groups). Fix = case-insensitive canonical resolution in the scraper + a `lower(name)` functional unique index (validate with **pglast**) + a one-time merge migration re-pointing decks/snapshots, reproduce-first via a saved event fixture. Found by the `view-archetype-decklists` backfill audit; carved out because it needs a schema migration + data merge (service-role step). Ready to implement through the disciplined workflow.
+2. **Scryfall card mapping** (prereq to a *better* Arena export) — there is **no Scryfall sync in the repo** yet, so `deck_cards.scryfall_name/set_code/collector_number` are null and export falls back to scraped names. Draft e.g. `add-scryfall-mapping`: a Scryfall bulk-sync + scrape-time card mapping that populates those columns (current non-foil printing, no special art; hotlink `image_uris`). Also unblocks real card art.
+3. **Week-over-week delta (▲/▼)** — needs storing/comparing two snapshots over time (schema is current-only; requires a history table or a "previous share" column). Design has `ChangeIndicator`.
+4. **Real Scryfall card art** — replace the placeholder gradient; store a representative card per archetype; current non-foil printing, no special art; hotlink `image_uris`. (Depends on #2.)
+5. **More filters: event + archetype** — the design sidebar has "Evento" and "Arquetipo" groups. The real filter sidebar already exists (`src/components/WindowSelector.tsx` pattern + `src/App.tsx` `.sidebar`), so new filter groups slot in beside the time-frame group. The `events`/`decks` tables now store the complete set of events (not just top finishes), so the data for these filters is already there. (Event-size was evaluated and dropped — MTGTop8's size/scope windows aren't uniform across formats.)
+6. **StatCard strip + "En Tendencia" trending table** — design has both (topbar/header StatCards, trending table with `ChangeIndicator`); trending needs top-cards scraping + history.
 
 ## To start the next change
 Open a new chat here and say, e.g.:
-> *"Read docs/HANDOFF.md. Let's build the week-over-week delta indicators. Run user-stories, then /opsx:propose add-wow-deltas."*
+> *"Read docs/HANDOFF.md. Let's implement the already-proposed `fix-archetype-name-casing` change (disciplined mode). Don't re-run propose."*
 
-— or pick any deferred item above. Discovery/project-init are done; don't re-run them.
+— or pick any deferred item above (for a brand-new change: run **user-stories** then **`/opsx:propose <id>`**). Discovery/project-init are done; don't re-run them.

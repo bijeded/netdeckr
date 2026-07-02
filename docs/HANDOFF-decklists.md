@@ -1,5 +1,7 @@
 # Continuation prompt — MetaStack `view-archetype-decklists`
 
+> **STATUS: DONE & ARCHIVED (2026-07-02).** The `view-archetype-decklists` change is fully shipped (tasks 1–5), synced, and archived at `openspec/changes/archive/2026-07-02-view-archetype-decklists/`. See `docs/HANDOFF.md` → "What's shipped" #3 for the summary. The backfill review surfaced a real defect (case-variant duplicate archetype rows) that was carved out into the separate **`fix-archetype-name-casing`** proposal (proposed, not yet implemented). This file is kept for historical context only — start from `docs/HANDOFF.md`.
+
 Paste the block below into a new chat in this repo to continue. It covers the **backfill data review** (do this first) and the **remaining tasks**. Discovery/project-init are done; do not re-run them.
 
 ---
