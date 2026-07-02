@@ -10,7 +10,7 @@ from urllib.parse import quote
 
 import requests
 
-from mtgtop8 import Archetype
+from mtgtop8 import Archetype, DeckCard, DeckResult, Event, color_identity_for
 
 
 class SupabaseWriter:
@@ -87,3 +87,91 @@ class SupabaseWriter:
             json={"format_code": fmt, "meta_window": meta_window, "last_updated_at": now_iso},
         )
         upsert.raise_for_status()
+
+    # -- Decklists ----------------------------------------------------------
+    # events/decks/deck_cards are upserted on their unique keys so daily re-runs
+    # are idempotent (no duplicate events or decks). deck_cards are replaced per
+    # deck. The Scryfall columns are left unset here — a later Scryfall-mapping
+    # change populates them; the export falls back to `card_name` until then.
+
+    def upsert_event(self, fmt: str, event: Event) -> int:
+        """Upsert an event on (source_event_id, format_code); return its id."""
+        upsert = self._session.post(
+            f"{self._rest}/events?on_conflict=source_event_id,format_code",
+            headers={**self._headers, "Prefer": "resolution=merge-duplicates,return=representation"},
+            json={
+                "source_event_id": event.source_event_id,
+                "format_code": fmt,
+                "name": event.name,
+                "event_date": event.event_date,
+            },
+        )
+        upsert.raise_for_status()
+        return upsert.json()[0]["id"]
+
+    def upsert_archetype(self, fmt: str, name: str) -> int:
+        """Get-or-create an archetype on (format_code, name); return its id.
+
+        Colour identity is derived from the name, mirroring the breakdown scraper.
+        """
+        upsert = self._session.post(
+            f"{self._rest}/archetypes?on_conflict=format_code,name",
+            headers={**self._headers, "Prefer": "resolution=merge-duplicates,return=representation"},
+            json={"format_code": fmt, "name": name, "color_identity": color_identity_for(name)},
+        )
+        upsert.raise_for_status()
+        return upsert.json()[0]["id"]
+
+    def upsert_deck(self, event_id: int, archetype_id: int, deck: DeckResult) -> int:
+        """Upsert a deck on (event_id, source_deck_id); return its id."""
+        upsert = self._session.post(
+            f"{self._rest}/decks?on_conflict=event_id,source_deck_id",
+            headers={**self._headers, "Prefer": "resolution=merge-duplicates,return=representation"},
+            json={
+                "event_id": event_id,
+                "archetype_id": archetype_id,
+                "source_deck_id": deck.source_deck_id,
+                "player": deck.player,
+                "placing": deck.placing,
+            },
+        )
+        upsert.raise_for_status()
+        return upsert.json()[0]["id"]
+
+    def replace_deck_cards(self, deck_id: int, cards: list[DeckCard]) -> None:
+        """Replace a deck's cards: clear the deck's rows, then insert the new set."""
+        delete = self._session.delete(
+            f"{self._rest}/deck_cards?deck_id=eq.{deck_id}",
+            headers=self._headers,
+        )
+        delete.raise_for_status()
+
+        if not cards:
+            return
+
+        insert = self._session.post(
+            f"{self._rest}/deck_cards",
+            headers=self._headers,
+            json=[
+                {
+                    "deck_id": deck_id,
+                    "board": c.board,
+                    "quantity": c.quantity,
+                    "card_name": c.card_name,
+                }
+                for c in cards
+            ],
+        )
+        insert.raise_for_status()
+
+    def prune_events_before(self, cutoff_date: str) -> None:
+        """Delete events with an event_date before ``cutoff_date`` (ISO YYYY-MM-DD).
+
+        Decks and deck_cards are removed via ON DELETE CASCADE. Events with a null
+        date are left untouched.
+        """
+        delete = self._session.delete(
+            f"{self._rest}/events?event_date=lt.{quote(cutoff_date)}",
+            headers=self._headers,
+        )
+        delete.raise_for_status()

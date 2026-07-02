@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head><title>Standard events and metagame @ mtgtop8.com</title></head>
+<body>
+<!--
+  Minimal, structurally-faithful MTGTop8 fixture for the events table shown on a
+  format page (f=ST). Trimmed to just the <tr class=hover_tr> rows the event-list
+  parser reads: an event link (event?e=<id>&f=ST), an optional venue link, and the
+  date td (class=S12, DD/MM/YY). Covers a paper event with a venue and NEW badge,
+  an MTGO event with no venue, and a row whose date is missing.
+  Never regenerate casually — see CLAUDE.md "Do not modify".
+-->
+<table>
+  <tr class=hover_tr>
+    <td width=5% align=center><img src=/graph/online/paper.png height=17 title="Paper"></td>
+    <td width=70% class=S14><a href=event?e=87496&f=ST>$uper $unday RCQ 9:30am</a> @ <a class=und href=event?e=87496&f=ST>SCG CON Las Vegas</a> <span class=new>NEW</span></td>
+    <td width=13% align=center><img src=/graph/star.png></td>
+    <td align=right width=12% class=S12>28/06/26</td>
+  </tr>
+  <tr class=hover_tr>
+    <td width=5% align=center><img src=/graph/online/mtgo.png height=14 title="MTG Online"></td>
+    <td width=70% class=S14><a href=event?e=87497&f=ST>MTGO Challenge 32</a> <span class=new>NEW</span></td>
+    <td width=13% align=center><img src=/graph/star.png><img src=/graph/star.png></td>
+    <td align=right width=12% class=S12>27/06/26</td>
+  </tr>
+  <tr class=hover_tr>
+    <td width=5% align=center><img src=/graph/online/paper.png height=17 title="Paper"></td>
+    <td width=70% class=S14><a href=event?e=87444&f=ST>Store Championship</a></td>
+    <td width=13% align=center><img src=/graph/star.png></td>
+    <td align=right width=12% class=S12></td>
+  </tr>
+</table>
+</body>
+</html>

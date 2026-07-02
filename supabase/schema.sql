@@ -130,6 +130,62 @@ where last_updated_at is not null
 on conflict (format_code, meta_window) do nothing;
 
 -- ---------------------------------------------------------------------------
+-- Decklists: events, decks, deck cards.
+-- Populated by the scraper from MTGTop8 event + decklist pages. The frontend
+-- expands an archetype into its recent decklists and exports a deck to MTG Arena.
+-- All read-only from the browser via RLS; writes only via the service-role key.
+-- ---------------------------------------------------------------------------
+
+-- One row per MTGTop8 event. `source_event_id` is MTGTop8's `e` param; the
+-- (source_event_id, format_code) unique key makes the scraper's upsert idempotent
+-- so daily re-runs never duplicate an event. `event_date` drives the frontend's
+-- "latest N lists" ordering and the 6-month retention prune.
+create table if not exists public.events (
+  id              bigint generated always as identity primary key,
+  source_event_id text not null,               -- MTGTop8 `e` param
+  format_code     text not null references public.formats(code) on delete cascade,
+  name            text not null,               -- event name, e.g. "MTGO Challenge 32"
+  event_date      date,                        -- null if MTGTop8 omits it
+  unique (source_event_id, format_code)
+);
+
+-- One row per deck within an event. Links to the shared per-format archetype.
+-- `placing` is the raw MTGTop8 result label (e.g. "1", "2", "3-4", "5-8") kept as
+-- text because finishes are ranges. `source_deck_id` is MTGTop8's `d` param; the
+-- (event_id, source_deck_id) unique key keeps the deck upsert idempotent.
+create table if not exists public.decks (
+  id             bigint generated always as identity primary key,
+  event_id       bigint not null references public.events(id) on delete cascade,
+  archetype_id   bigint not null references public.archetypes(id) on delete cascade,
+  source_deck_id text not null,                -- MTGTop8 `d` param
+  player         text not null default '',     -- pilot name, '' if absent
+  placing        text not null default '',     -- raw finish label: 1, 2, 3-4, 5-8, ...
+  unique (event_id, source_deck_id)
+);
+
+-- One row per card line in a deck, split into main/side boards. `card_name` is the
+-- name scraped from MTGTop8 and is always present. The `scryfall_*` columns are
+-- nullable and left null by this change; a later Scryfall-mapping change populates
+-- them for a more canonical MTG Arena export (export falls back to card_name).
+create table if not exists public.deck_cards (
+  id               bigint generated always as identity primary key,
+  deck_id          bigint not null references public.decks(id) on delete cascade,
+  board            text not null,              -- 'main' or 'side'
+  quantity         integer not null,
+  card_name        text not null,              -- scraped card name (fallback for export)
+  scryfall_name    text,                       -- canonical English name (null until Scryfall change)
+  set_code         text,                       -- current non-foil set (null until Scryfall change)
+  collector_number text,                       -- printing collector number (null until Scryfall change)
+  constraint deck_cards_board_check check (board in ('main', 'side'))
+);
+
+-- Common access paths: an event's decks, and an archetype's decks by recency.
+create index if not exists decks_event_idx on public.decks (event_id);
+create index if not exists decks_archetype_idx on public.decks (archetype_id);
+create index if not exists deck_cards_deck_idx on public.deck_cards (deck_id);
+create index if not exists events_format_date_idx on public.events (format_code, event_date desc);
+
+-- ---------------------------------------------------------------------------
 -- Seed formats (idempotent)
 -- ---------------------------------------------------------------------------
 
@@ -152,11 +208,17 @@ alter table public.formats                 enable row level security;
 alter table public.archetypes              enable row level security;
 alter table public.metagame_snapshots      enable row level security;
 alter table public.format_window_freshness enable row level security;
+alter table public.events                  enable row level security;
+alter table public.decks                   enable row level security;
+alter table public.deck_cards              enable row level security;
 
 drop policy if exists formats_read                 on public.formats;
 drop policy if exists archetypes_read              on public.archetypes;
 drop policy if exists metagame_snapshots_read      on public.metagame_snapshots;
 drop policy if exists format_window_freshness_read on public.format_window_freshness;
+drop policy if exists events_read                  on public.events;
+drop policy if exists decks_read                   on public.decks;
+drop policy if exists deck_cards_read              on public.deck_cards;
 
 create policy formats_read
   on public.formats for select to anon, authenticated using (true);
@@ -170,7 +232,17 @@ create policy metagame_snapshots_read
 create policy format_window_freshness_read
   on public.format_window_freshness for select to anon, authenticated using (true);
 
+create policy events_read
+  on public.events for select to anon, authenticated using (true);
+
+create policy decks_read
+  on public.decks for select to anon, authenticated using (true);
+
+create policy deck_cards_read
+  on public.deck_cards for select to anon, authenticated using (true);
+
 -- Ensure the anon/authenticated roles have table-level SELECT (RLS still gates rows).
 grant select on public.formats, public.archetypes, public.metagame_snapshots,
-                public.format_window_freshness
+                public.format_window_freshness, public.events, public.decks,
+                public.deck_cards
   to anon, authenticated;
