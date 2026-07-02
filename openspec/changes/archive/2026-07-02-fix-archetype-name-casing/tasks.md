@@ -18,10 +18,10 @@
 
 - [x] 4.1 Write an idempotent SQL migration: for each `(format_code, lower(name))` group with >1 row, pick the canonical row (prefer the one with `metagame_snapshots`, else lowest id / breakdown casing), re-point `decks.archetype_id` and `metagame_snapshots.archetype_id` to it, delete the orphan rows.
 - [x] 4.2 Document that applying the migration + the new index needs the **service-role key** (human/CI step; assistant has anon only). Provide the apply order: merge (4.1) → add unique index (3.1).
-- [ ] 4.3 After apply, re-run the read-only anon audit to confirm zero within-format case-collision groups remain and the previously stranded ~30 decks now resolve to a snapshot-bearing archetype.
+- [x] 4.3 After apply, re-run the read-only anon audit to confirm zero within-format case-collision groups remain and the previously stranded ~30 decks now resolve to a snapshot-bearing archetype.
 
 ## 5. Review & wrap-up
 
 - [x] 5.1 Full suite: `npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest` (frontend unaffected but keep it green).
 - [x] 5.2 Clean-context `code-review` subagent on the diff; address findings.
-- [ ] 5.3 `github-pr` → human squash-merge → apply schema/migration with service-role key → tick boxes → `/opsx:sync` + `/opsx:archive` via a `chore:` PR.
+- [x] 5.3 `github-pr` → human squash-merge → apply schema/migration with service-role key → tick boxes → `/opsx:sync` + `/opsx:archive` via a `chore:` PR.
