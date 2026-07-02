@@ -18,11 +18,15 @@ The system SHALL download Scryfall's bulk card data (the `default_cards` dataset
 - **THEN** it uses the cached file and does not download again
 
 ### Requirement: Scraped card names resolve to canonical Scryfall printings
-The system SHALL build an index from the bulk data that maps a card name to its canonical Scryfall identity: the canonical card `name`, a current non-foil printing's `set_code` and `collector_number`, and (for later art use) the printing's image reference. Resolution SHALL match the scraped card name to a Scryfall card name, tolerating the split/double-faced card naming MTGTop8 emits (including its single-slash separator, e.g. resolving `Fire / Ice` or a front-face-only name to the full `Fire // Ice` card). When a scraped name has no confident match, resolution SHALL return no printing (a miss) rather than an incorrect one.
+The system SHALL build an index from the bulk data that maps a card name to its canonical Scryfall identity: the canonical card `name`, a non-foil printing's `set_code` and `collector_number`, and (for later art use) the printing's image reference. When a card has several non-foil paper printings, the system SHALL prefer a standard printing — one that is neither a promo nor a Universes Beyond crossover — over a special one, and among equally-standard printings the most recent, so the exported set/collector reflects a clean printing rather than a promo variant. Resolution SHALL match the scraped card name to a Scryfall card name, tolerating the split/double-faced card naming MTGTop8 emits (including its single-slash separator, e.g. resolving `Fire / Ice` or a front-face-only name to the full `Fire // Ice` card). When a scraped name has no confident match, resolution SHALL return no printing (a miss) rather than an incorrect one.
 
 #### Scenario: Known card resolves to a printing
 - **WHEN** a scraped card name matches a Scryfall card
 - **THEN** resolution returns the canonical name, a non-foil set code, and a collector number for a current printing
+
+#### Scenario: Standard printing preferred over a promo or crossover
+- **WHEN** a card has a standard non-foil printing plus a newer promo or Universes Beyond crossover printing
+- **THEN** resolution returns the standard printing's set code and collector number, not the promo or crossover variant
 
 #### Scenario: Split or double-faced name resolves to the full card
 - **WHEN** a scraped card name is a front-face-only, single-slash, or partial form of a multi-face Scryfall card

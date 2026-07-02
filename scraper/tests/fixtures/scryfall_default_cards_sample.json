@@ -86,5 +86,40 @@
     "games": ["paper"],
     "finishes": ["foil"],
     "set_type": "masters"
+  },
+  {
+    "name": "Prefer Standard",
+    "set": "std",
+    "collector_number": "42",
+    "released_at": "2023-01-01",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil"],
+    "set_type": "expansion",
+    "promo": false
+  },
+  {
+    "name": "Prefer Standard",
+    "set": "pstd",
+    "collector_number": "42p",
+    "released_at": "2026-01-01",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil"],
+    "set_type": "promo",
+    "promo": true,
+    "promo_types": ["promopack"]
+  },
+  {
+    "name": "Prefer Standard",
+    "set": "sld",
+    "collector_number": "777",
+    "released_at": "2025-01-01",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil"],
+    "set_type": "box",
+    "promo": false,
+    "promo_types": ["universesbeyond"]
   }
 ]
