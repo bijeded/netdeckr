@@ -43,3 +43,27 @@ The system SHALL apply the existing six-month retention policy to decklist data,
 #### Scenario: Old decklists are pruned
 - **WHEN** the daily prune step runs and events older than six months exist
 - **THEN** those events and their associated decks and deck cards are removed
+
+### Requirement: Incremental decklist scraping
+The system SHALL scrape decklists incrementally: when gathering a format's events, it SHALL skip events whose source event id is already stored, fetching the results list and per-deck decklist pages only for events not yet in the database. This keeps daily runs cheap after the initial backfill (a past event's decklists do not change) while still storing the complete set of events over time.
+
+#### Scenario: Already-stored events are skipped
+- **WHEN** the scraper gathers a format's events and some of them are already stored
+- **THEN** it does not re-fetch those events' results or decklist pages, and only new events are fetched and stored
+
+#### Scenario: New events are still scraped
+- **WHEN** the scraper encounters an event whose source event id is not yet stored
+- **THEN** it fetches and stores that event, its decks, and their cards
+
+## MODIFIED Requirements
+
+### Requirement: Scheduled daily execution
+The scraper SHALL run daily via GitHub Actions, authenticating to Supabase with the service-role key provided via repository secrets. It SHALL run one job per format on staggered schedules (rather than a single job covering all formats at once) so that load on the source is spread out; each scheduled run SHALL scrape exactly one format. A manual trigger SHALL still be able to run a single format or all formats on demand.
+
+#### Scenario: Staggered per-format schedules
+- **WHEN** the daily pipeline runs on its schedule
+- **THEN** each of the five formats is scraped by its own job at its own staggered time, each authenticating with the `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets
+
+#### Scenario: Manual trigger scrapes a chosen format or all
+- **WHEN** the workflow is triggered manually
+- **THEN** it scrapes the requested single format, or all formats when none is specified

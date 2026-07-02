@@ -80,6 +80,29 @@ def test_deck_pages_fetched_per_deck():
     assert len(deck_fetches) == 12
 
 
+def test_incremental_skips_known_events():
+    writer = _fake_writer()
+    fetch_event_page = MagicMock(return_value=_load("event_ST.html"))
+
+    # Fixture has events 87496, 87497, 87444; skip the first two.
+    count = sync_decklists(
+        "ST",
+        ["5days"],
+        fetch_format_page=MagicMock(return_value=_load("event_list_ST.html")),
+        fetch_event_page=fetch_event_page,
+        writer=writer,
+        skip_event_ids={"87496", "87497"},
+    )
+
+    # Only the one new event (87444, 4 decks) is processed.
+    assert writer.upsert_event.call_count == 1
+    assert count == 4
+    fetched_event_ids = {c[0][1] for c in fetch_event_page.call_args_list}
+    assert "87496" not in fetched_event_ids
+    assert "87497" not in fetched_event_ids
+    assert "87444" in fetched_event_ids
+
+
 def test_event_failure_does_not_abort_the_rest():
     writer = _fake_writer()
     # Second event's page fetch fails; the other two events still process.

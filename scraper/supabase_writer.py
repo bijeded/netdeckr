@@ -164,6 +164,19 @@ class SupabaseWriter:
         )
         insert.raise_for_status()
 
+    def existing_event_ids(self, fmt: str) -> set[str]:
+        """Return the set of source event ids already stored for a format.
+
+        Lets the scraper skip events it has already scraped (a past event's
+        decklists do not change), keeping daily runs cheap after the backfill.
+        """
+        response = self._session.get(
+            f"{self._rest}/events?format_code=eq.{quote(fmt)}&select=source_event_id",
+            headers=self._headers,
+        )
+        response.raise_for_status()
+        return {row["source_event_id"] for row in response.json()}
+
     def prune_events_before(self, cutoff_date: str) -> None:
         """Delete events with an event_date before ``cutoff_date`` (ISO YYYY-MM-DD).
 

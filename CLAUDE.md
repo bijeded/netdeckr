@@ -80,7 +80,7 @@ web (responsive)
 - Seed command: `python scraper/run.py` (populates from MTGTop8 + Scryfall)
 
 ## Data pipeline
-- Schedule: GitHub Actions daily cron (12:00 UTC)
+- Schedule: GitHub Actions daily, one job per format on staggered crons (12:00–13:00 UTC, 15 min apart); `workflow_dispatch` can run a single format or `all`. Decklist scraping is incremental (events already stored are skipped), so only the first backfill is slow.
 - Source: MTGTop8 (requests + BeautifulSoup4), base `http://mtgtop8.com`
 - Time windows: stored as format-independent logical keys `5days`, `2weeks`, `2months` (the three windows MTGTop8 offers with the same meaning for every format). **MTGTop8's numeric `meta` param is per-format** — the same window has a different ID per format — so the scraper maps each logical window to that format's ID via `WINDOW_META`/`meta_id_for` in `scraper/mtgtop8.py`. The non-universal "Large Events" / "MTGO/Live" windows were intentionally dropped (Pre-Modern lacks Large Events; MTGO is "Live Tournaments"/3mo elsewhere).
 - Fair use: respectful rate limiting, cache aggressively, no redistribution beyond derived metagame stats

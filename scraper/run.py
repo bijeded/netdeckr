@@ -54,7 +54,22 @@ def fetch_event(fmt: str, event_id: str, deck_id: str | None = None) -> str:
     return _get(event_url(fmt, event_id, deck_id))
 
 
-def main() -> int:
+def formats_to_scrape(argv: list[str], available) -> list[str]:
+    """Resolve which formats to scrape from the command line.
+
+    With no argument, scrape all formats. With one format code (case-insensitive),
+    scrape only that format. An unknown code exits with an error.
+    """
+    if len(argv) > 1:
+        fmt = argv[1].upper()
+        if fmt not in available:
+            raise SystemExit(f"Unknown format: {argv[1]} (expected one of {', '.join(available)})")
+        return [fmt]
+    return list(available)
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv if argv is None else argv)
     try:
         url = os.environ["SUPABASE_URL"]
         key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -62,6 +77,7 @@ def main() -> int:
         print(f"Missing required environment variable: {missing}", file=sys.stderr)
         return 2
 
+    formats = formats_to_scrape(argv, FORMATS)
     writer = SupabaseWriter(url, key)
     now = datetime.now(timezone.utc).isoformat()
 
@@ -69,7 +85,7 @@ def main() -> int:
         print(f"[error] {fmt}/{window}: {exc}", file=sys.stderr)
 
     results = sync_all(
-        list(FORMATS),
+        formats,
         WINDOWS,
         fetch=fetch,
         writer=writer,
@@ -82,17 +98,25 @@ def main() -> int:
         print(f"{fmt}/{window}: {status}")
 
     # Decklist pass: for each format, gather events across the windows and store
-    # every deck + its cards. Runs after the breakdown so archetypes exist.
-    for fmt in FORMATS:
+    # every NEW deck + its cards. Runs after the breakdown so archetypes exist.
+    # Incremental — events already stored are skipped, so only the first backfill
+    # is expensive; daily runs fetch just new events.
+    for fmt in formats:
+        try:
+            known = writer.existing_event_ids(fmt)
+        except Exception as exc:  # noqa: BLE001 — fall back to a full pass on lookup failure
+            print(f"[error] {fmt}/existing-events: {exc}", file=sys.stderr)
+            known = set()
         deck_count = sync_decklists(
             fmt,
             WINDOWS,
             fetch_format_page=fetch,
             fetch_event_page=fetch_event,
             writer=writer,
+            skip_event_ids=known,
             on_error=lambda f, ctx, exc: print(f"[error] {f}/decklists/{ctx}: {exc}", file=sys.stderr),
         )
-        print(f"{fmt}/decklists: {deck_count} decks")
+        print(f"{fmt}/decklists: {deck_count} new decks")
 
     # Retention: drop events (and, via cascade, their decks/cards) older than the
     # retention window. Best-effort — a prune failure must not fail the run.
