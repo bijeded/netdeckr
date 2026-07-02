@@ -77,6 +77,23 @@ jobs:
           fi
           echo "format=$FMT" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve Scryfall cache date
+        id: scryfall
+        # UTC date matches the scraper's cache key (default_cards-<UTC date>.json),
+        # so the bulk file is shared across the day's staggered per-format runs.
+        run: echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Scryfall bulk data
+        # First run of the UTC day downloads the ~500MB default_cards file inside
+        # the scraper; later per-format runs (15 min apart) restore it here and
+        # skip the download. If the first run outlasts the stagger a later run may
+        # re-download — harmless (dated filename, best-effort resolver). No
+        # restore-keys: a stale prior-day file must not be restored.
+        uses: actions/cache@v4
+        with:
+          path: scraper/.cache/scryfall
+          key: scryfall-bulk-${{ steps.scryfall.outputs.date }}
+
       - name: Run scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
