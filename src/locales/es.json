@@ -25,7 +25,9 @@
     "updated": "Actualizado {{time}}"
   },
   "decks": {
-    "heading": "Listas recientes",
+    "heading": "Últimos decks · {{archetype}}",
+    "count": "{{count}} listas",
+    "viewDeck": "ver deck",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
   },
   "language": {

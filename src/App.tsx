@@ -11,7 +11,7 @@ import { relativeTimeFromNow } from './lib/relativeTime'
 import { FormatSwitcher } from './components/FormatSwitcher'
 import { WindowSelector } from './components/WindowSelector'
 import { ArchetypeCard } from './components/ArchetypeCard'
-import { DeckRow } from './components/DeckRow'
+import { DeckCard } from './components/DeckCard'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 
@@ -210,6 +210,7 @@ function App() {
                         sharePct={archetype.sharePct}
                         maxPct={maxPct}
                         expanded={expanded}
+                        style={expanded ? { gridColumn: '1 / -1' } : undefined}
                         onClick={
                           expandable
                             ? () =>
@@ -219,22 +220,55 @@ function App() {
                             : undefined
                         }
                       >
-                        <div data-testid="deck-list">
+                        <div
+                          data-testid="deck-list"
+                          style={{
+                            borderTop: '1px solid var(--neon-border)',
+                            background: 'var(--neon-tint-16)',
+                            padding: 14,
+                          }}
+                        >
                           <div
                             style={{
-                              padding: '10px 14px 4px',
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: 'var(--fs-2xs)',
-                              color: 'var(--text-faint)',
-                              textTransform: 'uppercase',
-                              letterSpacing: 'var(--track-wide)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginBottom: 11,
                             }}
                           >
-                            {t('decks.heading')}
+                            <span
+                              style={{
+                                fontFamily: 'var(--font-display)',
+                                fontSize: 'var(--fs-2xs)',
+                                fontWeight: 'var(--fw-bold)',
+                                letterSpacing: 'var(--track-wide)',
+                                textTransform: 'uppercase',
+                                color: 'var(--neon-text-soft)',
+                              }}
+                            >
+                              {t('decks.heading', { archetype: archetype.name })}
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 'var(--fs-2xs)',
+                                color: 'var(--text-faint)',
+                              }}
+                            >
+                              {t('decks.count', { count: decks.length })}
+                            </span>
                           </div>
-                          {decks.map((deck) => (
-                            <DeckRow key={deck.sourceDeckId} deck={deck} />
-                          ))}
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                              gap: 10,
+                            }}
+                          >
+                            {decks.map((deck) => (
+                              <DeckCard key={deck.sourceDeckId} deck={deck} />
+                            ))}
+                          </div>
                         </div>
                       </ArchetypeCard>
                     )
