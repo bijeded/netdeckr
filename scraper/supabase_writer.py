@@ -224,6 +224,9 @@ class SupabaseWriter:
         }
         if self._card_resolver is not None:
             printing = self._card_resolver.resolve(card.card_name)
+            # All four Scryfall columns are written together (identity + image);
+            # image_url is never set independently. backfill_scryfall relies on this
+            # coupling — it uses `image_url is null` as the completeness sentinel.
             row["scryfall_name"] = printing.name if printing else None
             row["set_code"] = printing.set_code if printing else None
             row["collector_number"] = printing.collector_number if printing else None
@@ -231,15 +234,17 @@ class SupabaseWriter:
         return row
 
     def backfill_scryfall(self, *, page_size: int = 1000) -> int:
-        """Populate the Scryfall columns on existing deck_cards rows still null.
+        """Populate the Scryfall columns on existing deck_cards rows still missing art.
 
-        A one-time pass over rows written before Scryfall mapping existed. Pages
-        the still-null rows by ascending id (a cursor, so unresolvable rows don't
-        loop forever), collects the distinct scraped card names, and PATCHes each
-        resolvable name's still-null rows in a single request. Requires a
-        card_resolver. Idempotent: the `scryfall_name=is.null` filter excludes
-        already-mapped rows, and a re-run only revisits rows that still miss.
-        Returns the number of rows updated.
+        A one-time pass over rows not yet fully enriched. `image_url` is the
+        completeness sentinel: it is the last Scryfall column written, so
+        `image_url is null` covers both never-mapped rows and rows mapped before
+        the image column existed (identity set, image null). Pages those rows by
+        ascending id (a cursor, so unresolvable rows don't loop forever), collects
+        the distinct scraped card names, and PATCHes each resolvable name's
+        still-null rows in a single request. Requires a card_resolver. Idempotent:
+        the `image_url=is.null` filter excludes fully-enriched rows, and a re-run
+        only revisits rows that still miss. Returns the number of rows updated.
         """
         if self._card_resolver is None:
             raise RuntimeError("backfill_scryfall requires a card_resolver")
@@ -249,7 +254,7 @@ class SupabaseWriter:
         while True:
             resp = self._session.get(
                 f"{self._rest}/deck_cards"
-                f"?scryfall_name=is.null&id=gt.{cursor}"
+                f"?image_url=is.null&id=gt.{cursor}"
                 f"&select=id,card_name&order=id.asc&limit={page_size}",
                 headers=self._headers,
             )
@@ -271,7 +276,7 @@ class SupabaseWriter:
             # double-quoted value literally, which matches zero rows.
             patch = self._session.patch(
                 f"{self._rest}/deck_cards"
-                f"?card_name=eq.{quote(name, safe='')}&scryfall_name=is.null",
+                f"?card_name=eq.{quote(name, safe='')}&image_url=is.null",
                 headers={**self._headers, "Prefer": "return=representation"},
                 json={
                     "scryfall_name": printing.name,

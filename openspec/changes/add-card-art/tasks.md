@@ -19,8 +19,8 @@
 
 ## 4. ArchetypeCard art (frontend)
 
-- [ ] 4.1 RED: `useArchetypes`/`useDecks` selectors expose `artImageUrl`; `ArchetypeCard` renders the art (cover) when present and the gradient placeholder when null; tests for both.
-- [ ] 4.2 GREEN: implement the selector fields and `ArchetypeCard` art rendering (gradient as loading backdrop + fallback).
+- [x] 4.1 RED: `useArchetypes`/`useDecks` selectors expose `artImageUrl`; `ArchetypeCard` renders the art (cover) when present and the gradient placeholder when null; tests for both.
+- [x] 4.2 GREEN: implement the selector fields and `ArchetypeCard` art rendering (gradient as loading backdrop + fallback).
 
 ## 5. Verify + wrap up
 

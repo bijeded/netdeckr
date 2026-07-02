@@ -267,7 +267,7 @@ def test_backfill_scryfall_patches_resolvable_names_and_skips_misses():
     assert session.patch.call_count == 1
     patch_url = session.patch.call_args[0][0]
     assert "/rest/v1/deck_cards" in patch_url
-    assert "scryfall_name=is.null" in patch_url  # only touch still-null rows
+    assert "image_url=is.null" in patch_url  # image_url is the completeness sentinel
     # The filter value is percent-encoded (comma -> %2C, space -> %20) and NOT
     # wrapped in double quotes — PostgREST matches a double-quoted value literally,
     # which matched zero rows in production.
@@ -280,6 +280,35 @@ def test_backfill_scryfall_patches_resolvable_names_and_skips_misses():
         "collector_number": "129",
         "image_url": "https://cards.scryfall.io/normal/ral.jpg",
     }
+    # Rows are paged on image_url (the sentinel) so identity-mapped rows that
+    # predate the image column (scryfall_name set, image_url null) are re-enriched.
+    read_url = session.get.call_args_list[0][0][0]
+    assert "image_url=is.null" in read_url
+
+
+def test_backfill_scryfall_writes_identity_even_when_printing_has_no_image():
+    # A card that resolves but whose printing carries no image still gets its
+    # identity columns backfilled (image_url stays null). Deliberate: identity is
+    # useful for export even without art. Such rows are (rarely) revisited on a
+    # re-run since image_url remains the null sentinel.
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 1, "card_name": "Imageless Card"}]),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 1}])
+    resolver = _StubResolver(
+        {"Imageless Card": Printing(name="Imageless Card", set_code="ABC", collector_number="7", image_url=None)}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    updated = writer.backfill_scryfall()
+
+    assert updated == 1
+    body = session.patch.call_args[1]["json"]
+    assert body["scryfall_name"] == "Imageless Card"
+    assert body["set_code"] == "ABC"
+    assert body["image_url"] is None
 
 
 def test_backfill_scryfall_no_null_rows_is_a_noop():
