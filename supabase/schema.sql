@@ -150,16 +150,18 @@ create table if not exists public.events (
 );
 
 -- One row per deck within an event. Links to the shared per-format archetype.
--- `placing` is the raw MTGTop8 result label (e.g. "1", "2", "3-4", "5-8") kept as
--- text because finishes are ranges. `source_deck_id` is MTGTop8's `d` param; the
--- (event_id, source_deck_id) unique key keeps the deck upsert idempotent.
+-- `placement` is the raw MTGTop8 result label (e.g. "1", "2", "3-4", "5-8") kept as
+-- text because finishes are ranges. Named `placement` because `placing` is a
+-- reserved SQL keyword (OVERLAY ... PLACING ...) and cannot be an unquoted column.
+-- `source_deck_id` is MTGTop8's `d` param; the (event_id, source_deck_id) unique
+-- key keeps the deck upsert idempotent.
 create table if not exists public.decks (
   id             bigint generated always as identity primary key,
   event_id       bigint not null references public.events(id) on delete cascade,
   archetype_id   bigint not null references public.archetypes(id) on delete cascade,
   source_deck_id text not null,                -- MTGTop8 `d` param
   player         text not null default '',     -- pilot name, '' if absent
-  placing        text not null default '',     -- raw finish label: 1, 2, 3-4, 5-8, ...
+  placement      text not null default '',     -- raw finish label: 1, 2, 3-4, 5-8, ...
   unique (event_id, source_deck_id)
 );
 
