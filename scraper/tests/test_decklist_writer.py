@@ -56,7 +56,7 @@ def test_upsert_deck_carries_player_placing_and_returns_id():
     assert body["event_id"] == 42
     assert body["archetype_id"] == 10
     assert body["source_deck_id"] == "863982"
-    assert body["placing"] == "3-4"
+    assert body["placement"] == "3-4"  # DB column (`placing` is a reserved keyword)
     assert body["player"] == "Spike"
 
 

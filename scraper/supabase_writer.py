@@ -132,7 +132,7 @@ class SupabaseWriter:
                 "archetype_id": archetype_id,
                 "source_deck_id": deck.source_deck_id,
                 "player": deck.player,
-                "placing": deck.placing,
+                "placement": deck.placing,  # DB column is `placement` (`placing` is reserved)
             },
         )
         upsert.raise_for_status()
