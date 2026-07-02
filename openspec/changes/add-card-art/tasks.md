@@ -13,9 +13,9 @@
 
 ## 3. Decklist modal card-art preview (frontend)
 
-- [ ] 3.1 RED: `useDeckCards` selects `image_url` and exposes it on `DeckCardLine`; test updated.
-- [ ] 3.2 RED: tests for a `CardArtPreview` (hover shows near pointer, mouse-leave hides; pointer `touch` shows and outside-tap dismisses; null image URL is a no-op; no layout shift / portal-rendered).
-- [ ] 3.3 GREEN: implement `useDeckCards` `image_url`, the `CardArtPreview` component/hook (portal, viewport-clamped, lazy `<img>`, `onError` hide, `prefers-reduced-motion`), and wire it into `DecklistModal`'s `CardLine`.
+- [x] 3.1 RED: `useDeckCards` selects `image_url` and exposes it on `DeckCardLine`; test updated.
+- [x] 3.2 RED: tests for a `CardArtPreview` (hover shows near pointer, mouse-leave hides; pointer `touch` shows and outside-tap dismisses; null image URL is a no-op; no layout shift / portal-rendered).
+- [x] 3.3 GREEN: implement `useDeckCards` `image_url`, the `CardArtPreview` component/hook (portal, viewport-clamped, lazy `<img>`, `onError` hide, `prefers-reduced-motion`), and wire it into `DecklistModal`'s `CardLine`.
 
 ## 4. ArchetypeCard art (frontend)
 

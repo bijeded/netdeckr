@@ -11,6 +11,35 @@ describe('ArchetypeCard', () => {
     expect(screen.getAllByTestId('mana-pip')).toHaveLength(2)
   })
 
+  it('renders the archetype art image when a URL is provided', () => {
+    render(
+      <ArchetypeCard
+        rank={1}
+        name="Izzet Control"
+        colors="UR"
+        sharePct={24}
+        artImageUrl="https://cards.scryfall.io/normal/fable.jpg"
+      />,
+    )
+    const img = screen.getByTestId('archetype-art')
+    expect(img).toHaveAttribute('src', 'https://cards.scryfall.io/normal/fable.jpg')
+    // Decorative art — empty alt so a screen reader doesn't double-announce the name.
+    expect(img).toHaveAttribute('alt', '')
+  })
+
+  it('renders no image (gradient placeholder) when there is no art URL', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
+    expect(screen.queryByTestId('archetype-art')).toBeNull()
+  })
+
+  it('falls back to the placeholder if the art image fails to load', () => {
+    render(
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} artImageUrl="https://x/broken.jpg" />,
+    )
+    fireEvent.error(screen.getByTestId('archetype-art'))
+    expect(screen.queryByTestId('archetype-art')).toBeNull()
+  })
+
   it('shows the tier badge derived from the share %', () => {
     render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
     expect(screen.getByText('T1')).toBeInTheDocument()
