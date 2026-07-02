@@ -218,6 +218,7 @@ class SupabaseWriter:
             row["scryfall_name"] = printing.name if printing else None
             row["set_code"] = printing.set_code if printing else None
             row["collector_number"] = printing.collector_number if printing else None
+            row["image_url"] = printing.image_url if printing else None
         return row
 
     def backfill_scryfall(self, *, page_size: int = 1000) -> int:
@@ -267,6 +268,7 @@ class SupabaseWriter:
                     "scryfall_name": printing.name,
                     "set_code": printing.set_code,
                     "collector_number": printing.collector_number,
+                    "image_url": printing.image_url,
                 },
             )
             patch.raise_for_status()

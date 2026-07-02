@@ -96,7 +96,14 @@ def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
     session.delete.return_value = _response(status=204)
     session.post.return_value = _response(status=201)
     resolver = _StubResolver(
-        {"Lightning Bolt": Printing(name="Lightning Bolt", set_code="CLU", collector_number="141")}
+        {
+            "Lightning Bolt": Printing(
+                name="Lightning Bolt",
+                set_code="CLU",
+                collector_number="141",
+                image_url="https://cards.scryfall.io/normal/bolt.jpg",
+            )
+        }
     )
     writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
     cards = [
@@ -107,16 +114,18 @@ def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
     writer.replace_deck_cards(9, cards)
 
     rows = session.post.call_args[1]["json"]
-    # Resolvable card carries the canonical Scryfall identity.
+    # Resolvable card carries the canonical Scryfall identity + image.
     assert rows[0]["scryfall_name"] == "Lightning Bolt"
     assert rows[0]["set_code"] == "CLU"
     assert rows[0]["collector_number"] == "141"
+    assert rows[0]["image_url"] == "https://cards.scryfall.io/normal/bolt.jpg"
     assert rows[0]["card_name"] == "Lightning Bolt"
     # A miss leaves the Scryfall columns null (scraped name retained).
     assert rows[1]["card_name"] == "Homebrew Nonsense"
     assert rows[1]["scryfall_name"] is None
     assert rows[1]["set_code"] is None
     assert rows[1]["collector_number"] is None
+    assert rows[1]["image_url"] is None
 
 
 def test_replace_deck_cards_without_resolver_omits_scryfall_columns():
@@ -240,7 +249,14 @@ def test_backfill_scryfall_patches_resolvable_names_and_skips_misses():
     # PATCH returns the representation of the rows it updated (2 Ral lines).
     session.patch.return_value = _response([{"id": 1}, {"id": 2}])
     resolver = _StubResolver(
-        {"Ral, Crackling Wit": Printing(name="Ral, Crackling Wit", set_code="DFT", collector_number="129")}
+        {
+            "Ral, Crackling Wit": Printing(
+                name="Ral, Crackling Wit",
+                set_code="DFT",
+                collector_number="129",
+                image_url="https://cards.scryfall.io/normal/ral.jpg",
+            )
+        }
     )
     writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
 
@@ -258,7 +274,12 @@ def test_backfill_scryfall_patches_resolvable_names_and_skips_misses():
     assert "card_name=eq.Ral%2C%20Crackling%20Wit" in patch_url
     assert "%22" not in patch_url
     body = session.patch.call_args[1]["json"]
-    assert body == {"scryfall_name": "Ral, Crackling Wit", "set_code": "DFT", "collector_number": "129"}
+    assert body == {
+        "scryfall_name": "Ral, Crackling Wit",
+        "set_code": "DFT",
+        "collector_number": "129",
+        "image_url": "https://cards.scryfall.io/normal/ral.jpg",
+    }
 
 
 def test_backfill_scryfall_no_null_rows_is_a_noop():

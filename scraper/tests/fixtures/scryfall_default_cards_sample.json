@@ -17,7 +17,8 @@
     "digital": false,
     "games": ["paper", "mtgo"],
     "finishes": ["nonfoil", "foil"],
-    "set_type": "masters"
+    "set_type": "masters",
+    "image_uris": { "normal": "https://cards.scryfall.io/normal/bolt-clu.jpg" }
   },
   {
     "name": "Lightning Bolt",
@@ -39,8 +40,8 @@
     "finishes": ["nonfoil", "foil"],
     "set_type": "draft_innovation",
     "card_faces": [
-      { "name": "Fire" },
-      { "name": "Ice" }
+      { "name": "Fire", "image_uris": { "normal": "https://cards.scryfall.io/normal/fire.jpg" } },
+      { "name": "Ice", "image_uris": { "normal": "https://cards.scryfall.io/normal/ice.jpg" } }
     ]
   },
   {
