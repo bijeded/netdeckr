@@ -6,9 +6,10 @@ offline-testable: network is injected (``fetch_meta``/``download``) so tests bui
 an index straight from a saved bulk fixture and never hit live Scryfall.
 
 Scryfall's `default_cards` bulk export holds one row per printing (multiple per
-card). We keep, per canonical card name, the most-recent non-foil *paper*
-printing, and index it under the full name plus each face name so split/DFC
-front-face names (what MTGTop8 emits) still resolve.
+card). We keep, per canonical card name, the best non-foil *paper* printing —
+preferring a standard (non-promo, non-crossover) printing over a special one,
+then the most recent — and index it under the full name plus each face name so
+split/DFC front-face names (what MTGTop8 emits) still resolve.
 """
 from __future__ import annotations
 
@@ -56,9 +57,24 @@ def _is_paper_nonfoil(row: dict) -> bool:
     return bool(row.get("nonfoil", True))
 
 
-def _recency_key(row: dict) -> tuple[str, str]:
-    """Sort key selecting the newest printing, with set code as a stable tiebreak."""
-    return (row.get("released_at", ""), str(row.get("set", "")))
+def _is_special_printing(row: dict) -> bool:
+    """True for promo or Universes Beyond crossover printings — alternate
+    treatments (odd collector numbers, different art) that we avoid when a plain
+    standard printing of the same card exists."""
+    if row.get("promo"):
+        return True
+    return "universesbeyond" in (row.get("promo_types") or [])
+
+
+def _selection_key(row: dict) -> tuple[int, str, str]:
+    """Sort key choosing the best printing. Prefer a standard (non-promo,
+    non-crossover) printing over a special one, then the most recent, then set
+    code as a stable tiebreak. Greater is better."""
+    return (
+        0 if _is_special_printing(row) else 1,
+        row.get("released_at", ""),
+        str(row.get("set", "")),
+    )
 
 
 def _name_keys(row: dict):
@@ -84,17 +100,17 @@ class CardIndex:
 
     @classmethod
     def from_bulk_rows(cls, rows) -> "CardIndex":
-        # Keep the most-recent paper non-foil printing per canonical name. Ties on
-        # release date are broken by set code so selection is deterministic
-        # regardless of bulk-file ordering (any current non-foil printing is
-        # acceptable for export; we just want it stable across runs).
+        # Per canonical name, keep the best paper non-foil printing: a standard
+        # (non-promo, non-crossover) printing is preferred over a special one,
+        # then the most recent, with set code as a stable tiebreak so selection
+        # is deterministic regardless of bulk-file ordering.
         best: dict[str, dict] = {}
         for row in rows:
             if not _is_paper_nonfoil(row):
                 continue
             name = row["name"]
             current = best.get(name)
-            if current is None or _recency_key(row) > _recency_key(current):
+            if current is None or _selection_key(row) > _selection_key(current):
                 best[name] = row
 
         by_name: dict[str, Printing] = {}

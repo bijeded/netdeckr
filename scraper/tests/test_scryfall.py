@@ -38,6 +38,16 @@ def test_prefers_most_recent_nonfoil_paper_printing_and_skips_digital():
     assert printing.set_code == "CLU"  # not LEA (older) and not PMTG1 (digital)
 
 
+def test_prefers_standard_printing_over_newer_promo_and_crossover():
+    # "Prefer Standard" has a clean expansion printing (2023) plus a newer promo
+    # (2026) and a newer Universes Beyond crossover (2025). Recency alone would
+    # pick the promo; we prefer the standard, non-promo, non-crossover printing.
+    printing = _index().resolve("Prefer Standard")
+    assert printing is not None
+    assert printing.set_code == "STD"
+    assert printing.collector_number == "42"
+
+
 def test_split_card_front_face_resolves_to_full_card():
     printing = _index().resolve("Fire")
     assert printing is not None
