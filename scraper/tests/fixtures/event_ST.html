@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head><title>$uper $unday RCQ 9:30am @ SCG CON Las Vegas @ mtgtop8.com</title></head>
+<body>
+<!--
+  Minimal, structurally-faithful MTGTop8 fixture for an event/decklist page
+  (event?e=87496&f=ST). Trimmed to the two blocks the parsers read:
+    1. The results list: <div class=chosen_tr|hover_tr> rows, each with a placing
+       label, the deck (archetype) link, and an <a class=player> pilot link.
+       Covers single placings (1, 2) and range placings (3-4, 5-8).
+    2. The currently-displayed deck's card list: <div class="deck_line hover_tr">
+       rows keyed id=md... (mainboard) / id=sb... (sideboard), each "QTY <span
+       class=L14>Card Name</span>", under <div class=O14> section headers.
+  Never regenerate casually — see CLAUDE.md "Do not modify".
+-->
+
+<!-- Results list (all decks in the event) -->
+<div class=chosen_tr style="padding:3px 0px 3px 0px;" align=left>
+  <div style="display:flex;align-items:center;">
+    <div style="width:42px;" align=center class=S14>1</div>
+    <div style="width:80px;height:40px;background:black;"><a href=?e=87496&d=863982&f=ST><img src=/metas_thumbs/15.jpg></a></div>
+    <div style="flex:1;">
+      <div class=S14 style="width:100%;padding-left:4px;margin-bottom:4px;"><a href=?e=87496&d=863982&f=ST>Izzet Spellementals</a> </div>
+      <div style="margin-right:10px;" align=right class=G11><a class=player href=search?player=Norbspro>Norbspro</a></div>
+    </div>
+  </div>
+</div>
+<div class=hover_tr style="padding:3px 0px 3px 0px;" align=left>
+  <div style="display:flex;align-items:center;">
+    <div style="width:42px;" align=center class=S14>2</div>
+    <div style="width:80px;height:40px;background:black;"><a href=?e=87496&d=863983&f=ST><img src=/metas_thumbs/15.jpg></a></div>
+    <div style="flex:1;">
+      <div class=S14 style="width:100%;padding-left:4px;margin-bottom:4px;"><a href=?e=87496&d=863983&f=ST>Izzet Spellementals</a> </div>
+      <div style="margin-right:10px;" align=right class=G11><a class=player href=search?player=Kanister>Kanister</a></div>
+    </div>
+  </div>
+</div>
+<div class=hover_tr style="padding:3px 0px 3px 0px;" align=left>
+  <div style="display:flex;align-items:center;">
+    <div style="width:42px;" align=center class=S14>3-4</div>
+    <div style="width:80px;height:40px;background:black;"><a href=?e=87496&d=863984&f=ST><img src=/metas_thumbs/74.jpg></a></div>
+    <div style="flex:1;">
+      <div class=S14 style="width:100%;padding-left:4px;margin-bottom:4px;"><a href=?e=87496&d=863984&f=ST>Dimir Midrange</a> </div>
+      <div style="margin-right:10px;" align=right class=G11><a class=player href=search?player=Aspiringspike>Aspiringspike</a></div>
+    </div>
+  </div>
+</div>
+<div class=hover_tr style="padding:3px 0px 3px 0px;" align=left>
+  <div style="display:flex;align-items:center;">
+    <div style="width:42px;" align=center class=S14>5-8</div>
+    <div style="width:80px;height:40px;background:black;"><a href=?e=87496&d=863985&f=ST><img src=/metas_thumbs/302.jpg></a></div>
+    <div style="flex:1;">
+      <div class=S14 style="width:100%;padding-left:4px;margin-bottom:4px;"><a href=?e=87496&d=863985&f=ST>Mono Red Aggro</a> </div>
+      <div style="margin-right:10px;" align=right class=G11><a class=player href=search?player=Javier+Dominguez>Javier Dominguez</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- Currently-displayed deck's card list (deck d=863982) -->
+<div style="margin:3px;flex:1;" align=left>
+  <div class=O14>20 LANDS</div>
+  <div id=mdabu130 class="deck_line hover_tr" onclick="AffCard('abu130','Island','','');">6 <span class=L14>Island</span> </div>
+  <div id=mdspm180 class="deck_line hover_tr" onclick="AffCard('spm180','Multiversal+Passage','','');">4 <span class=L14>Multiversal Passage</span> </div>
+  <div class=O14>SPELLS</div>
+  <div id=mddft090 class="deck_line hover_tr" onclick="AffCard('dft090','Winternight+Stories','','');">2 <span class=L14>Winternight Stories</span> </div>
+</div>
+<div style="margin:3px;flex:1;" align=left>
+  <div class=O14>SIDEBOARD</div>
+  <div id=sburs012 class="deck_line hover_tr" onclick="AffCard('urs012','Annul','','');">2 <span class=L14>Annul</span> </div>
+  <div id=sbdft192 class="deck_line hover_tr" onclick="AffCard('dft192','Broadside+Barrage','','');">1 <span class=L14>Broadside Barrage</span> </div>
+</div>
+</body>
+</html>
