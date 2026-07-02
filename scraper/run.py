@@ -106,6 +106,12 @@ def main(argv: list[str] | None = None) -> int:
         writer = SupabaseWriter(url, key, card_resolver=resolver)
         updated = writer.backfill_scryfall()
         print(f"backfill: enriched {updated} deck_cards rows")
+        for fmt in FORMATS:
+            try:
+                arts = writer.refresh_archetype_art(fmt)
+                print(f"{fmt}/archetype-art: {arts} archetypes")
+            except Exception as exc:  # noqa: BLE001 — art is best-effort
+                print(f"[error] {fmt}/archetype-art: {exc}", file=sys.stderr)
         return 0
 
     formats = formats_to_scrape(argv, FORMATS)
@@ -148,6 +154,14 @@ def main(argv: list[str] | None = None) -> int:
             on_error=lambda f, ctx, exc: print(f"[error] {f}/decklists/{ctx}: {exc}", file=sys.stderr),
         )
         print(f"{fmt}/decklists: {deck_count} new decks")
+
+        # Refresh each archetype's signature-card art from its current decks.
+        # Best-effort — art is a nicety, not worth failing the scrape.
+        try:
+            arts = writer.refresh_archetype_art(fmt)
+            print(f"{fmt}/archetype-art: {arts} archetypes")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[error] {fmt}/archetype-art: {exc}", file=sys.stderr)
 
     # Retention: drop events (and, via cascade, their decks/cards) older than the
     # retention window. Best-effort — a prune failure must not fail the run.

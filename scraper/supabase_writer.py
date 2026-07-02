@@ -12,6 +12,15 @@ import requests
 
 from mtgtop8 import Archetype, DeckCard, DeckResult, Event, color_identity_for
 
+# Basic lands are excluded when choosing an archetype's signature card — they are
+# the most-copied cards but say nothing about the deck's identity. Nonbasic lands
+# are not excluded here (the resolver has no type line); a type-based exclusion is
+# a follow-up. Names are matched case-insensitively.
+_BASIC_LAND_NAMES = frozenset(
+    {"plains", "island", "swamp", "mountain", "forest", "wastes"}
+    | {f"snow-covered {b}" for b in ("plains", "island", "swamp", "mountain", "forest")}
+)
+
 
 class SupabaseWriter:
     """Replace-on-run writer, scoped per (format, meta_window) snapshot slice."""
@@ -274,6 +283,75 @@ class SupabaseWriter:
             patch.raise_for_status()
             updated += len(patch.json())
         return updated
+
+    def refresh_archetype_art(self, fmt: str) -> int:
+        """Set each archetype's signature card + art for a format.
+
+        The signature card is the most-played non-basic-land mainboard card across
+        the archetype's stored decks (ties: count desc, then name asc). It is
+        resolved to a printing and stored as ``signature_card_name`` +
+        ``art_image_url``; an archetype with no card (only lands) or whose top card
+        does not resolve is left null. Requires a card_resolver. Idempotent —
+        recomputed from current decks each run. Returns the number of archetypes
+        updated.
+        """
+        if self._card_resolver is None:
+            raise RuntimeError("refresh_archetype_art requires a card_resolver")
+
+        archetypes = self._session.get(
+            f"{self._rest}/archetypes?format_code=eq.{quote(fmt)}&select=id,name",
+            headers=self._headers,
+        )
+        archetypes.raise_for_status()
+
+        updated = 0
+        for arch in archetypes.json():
+            signature = self._signature_card(arch["id"])
+            if signature is None:
+                continue
+            printing = self._card_resolver.resolve(signature)
+            if printing is None or printing.image_url is None:
+                continue
+            patch = self._session.patch(
+                f"{self._rest}/archetypes?id=eq.{arch['id']}",
+                headers=self._headers,
+                json={"signature_card_name": signature, "art_image_url": printing.image_url},
+            )
+            patch.raise_for_status()
+            updated += 1
+        return updated
+
+    def _signature_card(self, archetype_id: int, *, page_size: int = 1000) -> str | None:
+        """Most-played non-basic-land mainboard card across an archetype's decks.
+
+        Sums quantities per card name over the archetype's mainboard deck_cards
+        (paged by ascending id), excludes basic lands, and returns the top name
+        (ties broken by name asc), or None if there is no such card.
+        """
+        totals: dict[str, int] = {}
+        cursor = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/deck_cards"
+                f"?board=eq.main&decks.archetype_id=eq.{archetype_id}&id=gt.{cursor}"
+                f"&select=id,card_name,quantity,decks!inner(archetype_id)"
+                f"&order=id.asc&limit={page_size}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
+                break
+            for row in rows:
+                if row["card_name"].strip().lower() in _BASIC_LAND_NAMES:
+                    continue
+                totals[row["card_name"]] = totals.get(row["card_name"], 0) + row["quantity"]
+            cursor = rows[-1]["id"]
+
+        if not totals:
+            return None
+        # Highest total wins; ties broken by name ascending for determinism.
+        return min(totals, key=lambda name: (-totals[name], name))
 
     def existing_event_ids(self, fmt: str) -> set[str]:
         """Return the set of source event ids already stored for a format.

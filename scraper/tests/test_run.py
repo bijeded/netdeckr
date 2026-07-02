@@ -54,3 +54,19 @@ def test_backfill_flag_fails_when_bulk_sync_unavailable(monkeypatch):
     monkeypatch.setattr(run, "build_card_resolver", lambda: None)  # Scryfall down
 
     assert run.main(["run.py", "--backfill-scryfall"]) == 1
+
+
+def test_backfill_flag_also_refreshes_archetype_art(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    monkeypatch.setattr(run, "build_card_resolver", lambda: object())
+    writer = MagicMock()
+    writer.backfill_scryfall.return_value = 3
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+
+    rc = run.main(["run.py", "--backfill-scryfall"])
+
+    assert rc == 0
+    writer.backfill_scryfall.assert_called_once()
+    # Backfill also refreshes archetype art for every format.
+    assert writer.refresh_archetype_art.call_count == len(FORMATS)
