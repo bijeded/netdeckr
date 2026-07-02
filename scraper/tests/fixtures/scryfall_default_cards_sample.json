@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Lightning Bolt",
+    "set": "lea",
+    "collector_number": "161",
+    "released_at": "1993-08-05",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil"],
+    "set_type": "core"
+  },
+  {
+    "name": "Lightning Bolt",
+    "set": "clu",
+    "collector_number": "141",
+    "released_at": "2024-02-23",
+    "digital": false,
+    "games": ["paper", "mtgo"],
+    "finishes": ["nonfoil", "foil"],
+    "set_type": "masters"
+  },
+  {
+    "name": "Lightning Bolt",
+    "set": "pmtg1",
+    "collector_number": "99",
+    "released_at": "2030-01-01",
+    "digital": true,
+    "games": ["mtgo"],
+    "finishes": ["nonfoil"],
+    "set_type": "promo"
+  },
+  {
+    "name": "Fire // Ice",
+    "set": "mh2",
+    "collector_number": "290",
+    "released_at": "2021-06-18",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil", "foil"],
+    "set_type": "draft_innovation",
+    "card_faces": [
+      { "name": "Fire" },
+      { "name": "Ice" }
+    ]
+  },
+  {
+    "name": "Fable of the Mirror-Breaker // Reflection of Kiki-Rik",
+    "set": "neo",
+    "collector_number": "141",
+    "released_at": "2022-02-18",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil", "foil"],
+    "set_type": "expansion",
+    "card_faces": [
+      { "name": "Fable of the Mirror-Breaker" },
+      { "name": "Reflection of Kiki-Rik" }
+    ]
+  },
+  {
+    "name": "Un-Card",
+    "set": "unf",
+    "collector_number": "5",
+    "released_at": "2022-10-07",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil"],
+    "set_type": "funny"
+  },
+  {
+    "name": "Oversized Card",
+    "set": "o90p",
+    "collector_number": "1",
+    "released_at": "2020-01-01",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["nonfoil"],
+    "set_type": "memorabilia"
+  },
+  {
+    "name": "Foil Only Card",
+    "set": "sld",
+    "collector_number": "42",
+    "released_at": "2023-01-01",
+    "digital": false,
+    "games": ["paper"],
+    "finishes": ["foil"],
+    "set_type": "masters"
+  }
+]
