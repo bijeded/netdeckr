@@ -29,6 +29,14 @@ def test_resolves_known_card_to_a_printing():
     assert printing.name == "Lightning Bolt"
     assert printing.set_code == "CLU"
     assert printing.collector_number == "141"
+    assert printing.image_url == "https://cards.scryfall.io/normal/bolt-clu.jpg"
+
+
+def test_split_card_printing_uses_front_face_image():
+    # Split/DFC cards carry no top-level image_uris; use the front face's.
+    printing = _index().resolve("Fire / Ice")
+    assert printing is not None
+    assert printing.image_url == "https://cards.scryfall.io/normal/fire.jpg"
 
 
 def test_prefers_most_recent_nonfoil_paper_printing_and_skips_digital():

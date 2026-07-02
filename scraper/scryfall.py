@@ -31,6 +31,7 @@ class Printing:
     name: str  # canonical Scryfall name (full, e.g. "Fire // Ice")
     set_code: str  # uppercased set code, matching Arena's "(SET) NUM"
     collector_number: str
+    image_url: str | None = None  # hotlinked Scryfall CDN image (normal size), if any
 
 
 def _normalize(name: str) -> str:
@@ -77,6 +78,19 @@ def _selection_key(row: dict) -> tuple[int, str, str]:
     )
 
 
+def _normal_image_url(row: dict) -> str | None:
+    """The printing's `normal`-size image URL. Split/DFC cards carry no top-level
+    `image_uris`; fall back to the front face's."""
+    top = (row.get("image_uris") or {}).get("normal")
+    if top:
+        return top
+    for face in row.get("card_faces") or []:
+        face_url = (face.get("image_uris") or {}).get("normal")
+        if face_url:
+            return face_url
+    return None
+
+
 def _name_keys(row: dict):
     """Yield the lookup keys a printing should answer to: the full name and,
     for split/DFC/adventure cards, each individual face name. The `//` split and
@@ -119,6 +133,7 @@ class CardIndex:
                 name=name,
                 set_code=str(row["set"]).upper(),
                 collector_number=str(row["collector_number"]),
+                image_url=_normal_image_url(row),
             )
             for key in _name_keys(row):
                 by_name.setdefault(key, printing)

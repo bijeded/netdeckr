@@ -21,6 +21,8 @@ create table if not exists public.archetypes (
   format_code    text not null references public.formats(code) on delete cascade,
   name           text not null,              -- English archetype name, e.g. "Izzet Cauldron"
   color_identity text not null default '',   -- WUBRG subset, '' = colorless
+  signature_card_name text,                  -- most-played non-land card (null until computed)
+  art_image_url  text,                       -- that card's hotlinked Scryfall image (null on a miss)
   unique (format_code, name)
 );
 
@@ -166,18 +168,19 @@ create table if not exists public.decks (
 );
 
 -- One row per card line in a deck, split into main/side boards. `card_name` is the
--- name scraped from MTGTop8 and is always present. The `scryfall_*` columns are
--- nullable and left null by this change; a later Scryfall-mapping change populates
--- them for a more canonical MTG Arena export (export falls back to card_name).
+-- name scraped from MTGTop8 and is always present. The `scryfall_*` columns and
+-- `image_url` are populated by the Scryfall mapping when the card resolves and are
+-- null on a miss (export/art fall back to card_name / a placeholder).
 create table if not exists public.deck_cards (
   id               bigint generated always as identity primary key,
   deck_id          bigint not null references public.decks(id) on delete cascade,
   board            text not null,              -- 'main' or 'side'
   quantity         integer not null,
   card_name        text not null,              -- scraped card name (fallback for export)
-  scryfall_name    text,                       -- canonical English name (null until Scryfall change)
-  set_code         text,                       -- current non-foil set (null until Scryfall change)
-  collector_number text,                       -- printing collector number (null until Scryfall change)
+  scryfall_name    text,                       -- canonical English name (null on a resolution miss)
+  set_code         text,                       -- current non-foil set (null on a miss)
+  collector_number text,                       -- printing collector number (null on a miss)
+  image_url        text,                       -- hotlinked Scryfall CDN image (normal size; null on a miss)
   constraint deck_cards_board_check check (board in ('main', 'side'))
 );
 
@@ -186,6 +189,13 @@ create index if not exists decks_event_idx on public.decks (event_id);
 create index if not exists decks_archetype_idx on public.decks (archetype_id);
 create index if not exists deck_cards_deck_idx on public.deck_cards (deck_id);
 create index if not exists events_format_date_idx on public.events (format_code, event_date desc);
+
+-- Card-art columns for existing deployments (the create-table definitions above
+-- already include them for a fresh apply; these add them to a database created
+-- before card art). All nullable and hotlinked from Scryfall's CDN — no re-host.
+alter table public.deck_cards add column if not exists image_url text;
+alter table public.archetypes add column if not exists signature_card_name text;
+alter table public.archetypes add column if not exists art_image_url text;
 
 -- ---------------------------------------------------------------------------
 -- One-time merge: MTGTop8 capitalizes archetype names inconsistently across
