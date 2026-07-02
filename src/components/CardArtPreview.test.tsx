@@ -1,0 +1,60 @@
+import { describe, it, expect } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { CardArtPreview } from './CardArtPreview'
+
+const IMG = 'https://cards.scryfall.io/normal/bolt.jpg'
+
+describe('CardArtPreview', () => {
+  it('renders the card name', () => {
+    render(<CardArtPreview name="Lightning Bolt" imageUrl={IMG} />)
+    expect(screen.getByText('Lightning Bolt')).toBeInTheDocument()
+  })
+
+  it('shows the card image on hover and hides it on leave (mouse)', () => {
+    render(<CardArtPreview name="Lightning Bolt" imageUrl={IMG} />)
+    const anchor = screen.getByText('Lightning Bolt')
+    expect(screen.queryByRole('img')).toBeNull() // lazy: no image until hovered
+
+    fireEvent.pointerEnter(anchor, { pointerType: 'mouse', clientX: 20, clientY: 20 })
+    const img = screen.getByRole('img')
+    expect(img).toHaveAttribute('src', IMG)
+    expect(img).toHaveAttribute('alt', 'Lightning Bolt')
+
+    fireEvent.pointerLeave(anchor, { pointerType: 'mouse' })
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('shows on touch and dismisses on an outside tap (mobile)', () => {
+    render(<CardArtPreview name="Lightning Bolt" imageUrl={IMG} />)
+    const anchor = screen.getByText('Lightning Bolt')
+
+    fireEvent.pointerDown(anchor, { pointerType: 'touch', clientX: 30, clientY: 30 })
+    expect(screen.getByRole('img')).toBeInTheDocument()
+
+    fireEvent.pointerDown(document.body, { pointerType: 'touch' })
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('is a no-op when there is no image URL', () => {
+    render(<CardArtPreview name="Homebrew" imageUrl={null} />)
+    const anchor = screen.getByText('Homebrew')
+    fireEvent.pointerEnter(anchor, { pointerType: 'mouse', clientX: 10, clientY: 10 })
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('renders the preview in a portal (document.body), not inline in the list', () => {
+    const { container } = render(<CardArtPreview name="Lightning Bolt" imageUrl={IMG} />)
+    fireEvent.pointerEnter(screen.getByText('Lightning Bolt'), { pointerType: 'mouse', clientX: 20, clientY: 20 })
+    const img = screen.getByRole('img')
+    // The image lives outside the component's own subtree (portalled to body),
+    // so it cannot shift the decklist layout.
+    expect(container.contains(img)).toBe(false)
+  })
+
+  it('hides the preview if the image fails to load', () => {
+    render(<CardArtPreview name="Lightning Bolt" imageUrl={IMG} />)
+    fireEvent.pointerEnter(screen.getByText('Lightning Bolt'), { pointerType: 'mouse', clientX: 20, clientY: 20 })
+    fireEvent.error(screen.getByRole('img'))
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+})
