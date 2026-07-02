@@ -10,11 +10,11 @@
 
 ## 1b. Pipeline performance: incremental + staggered per-format scraping (one PR — follow-up to group 1)
 
-- [ ] 1b.1 Add `existing_event_ids(fmt)` to the writer (GET events?format_code=eq.&select=source_event_id → set) — tested
-- [ ] 1b.2 Make `sync_decklists` incremental: accept a set of known event ids and skip those events entirely (no results/deck fetches) — tested (skipped vs new)
-- [ ] 1b.3 Make `run.py` accept an optional format arg (`python scraper/run.py ST`) to scrape one format; default = all — tested
-- [ ] 1b.4 Rewrite `.github/workflows/scrape.yml`: 5 staggered crons mapped to formats via `github.event.schedule`, `workflow_dispatch` input for a single format or all, per-format concurrency group, and a higher `timeout-minutes` for the first backfill
-- [ ] 1b.5 Run `cd scraper && ./venv/bin/pytest`; verify the workflow scrapes one format per schedule
+- [x] 1b.1 Add `existing_event_ids(fmt)` to the writer (GET events?format_code=eq.&select=source_event_id → set) — tested
+- [x] 1b.2 Make `sync_decklists` incremental: accept a set of known event ids and skip those events entirely (no results/deck fetches) — tested (skipped vs new)
+- [x] 1b.3 Make `run.py` accept an optional format arg (`python scraper/run.py ST`) to scrape one format; default = all — tested
+- [x] 1b.4 Rewrite `.github/workflows/scrape.yml`: 5 staggered crons mapped to formats via `github.event.schedule`, `workflow_dispatch` input for a single format or all, per-format concurrency group, and a higher `timeout-minutes` for the first backfill
+- [x] 1b.5 Run `cd scraper && ./venv/bin/pytest`; verify the workflow scrapes one format per schedule
 
 ## 2. Frontend: read decks + expand archetype (one PR)
 

@@ -4,12 +4,14 @@ import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
 import { useMetagameBreakdown } from './hooks/useMetagameBreakdown'
 import { useLastUpdated } from './hooks/useLastUpdated'
+import { useDecks } from './hooks/useDecks'
 import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
 import { FormatSwitcher } from './components/FormatSwitcher'
 import { WindowSelector } from './components/WindowSelector'
 import { ArchetypeCard } from './components/ArchetypeCard'
+import { DeckRow } from './components/DeckRow'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 
@@ -52,6 +54,14 @@ function App() {
   const { window: metaWindow, setWindow } = useWindowSelection()
   const { data, loading, error } = useMetagameBreakdown(format, metaWindow)
   const lastUpdated = useLastUpdated(format, metaWindow)
+  const { decksByArchetype } = useDecks(format, metaWindow)
+
+  // Which archetype card is expanded to show its decklists. Collapses whenever the
+  // format or window changes (the decks it showed no longer apply).
+  const [expandedName, setExpandedName] = useState<string | null>(null)
+  useEffect(() => {
+    setExpandedName(null)
+  }, [format, metaWindow])
 
   // Sidebar state: open by default on desktop, a collapsible overlay drawer on
   // narrow viewports (the filter panel collapses on mobile). Initialized lazily
@@ -187,16 +197,48 @@ function App() {
                     gap: 'var(--sp-5)',
                   }}
                 >
-                  {data.map((archetype) => (
-                    <ArchetypeCard
-                      key={archetype.rank}
-                      rank={archetype.rank}
-                      name={archetype.name}
-                      colors={archetype.colorIdentity}
-                      sharePct={archetype.sharePct}
-                      maxPct={maxPct}
-                    />
-                  ))}
+                  {data.map((archetype) => {
+                    const decks = decksByArchetype[archetype.name] ?? []
+                    const expandable = decks.length > 0
+                    const expanded = expandable && expandedName === archetype.name
+                    return (
+                      <ArchetypeCard
+                        key={archetype.rank}
+                        rank={archetype.rank}
+                        name={archetype.name}
+                        colors={archetype.colorIdentity}
+                        sharePct={archetype.sharePct}
+                        maxPct={maxPct}
+                        expanded={expanded}
+                        onClick={
+                          expandable
+                            ? () =>
+                                setExpandedName((current) =>
+                                  current === archetype.name ? null : archetype.name,
+                                )
+                            : undefined
+                        }
+                      >
+                        <div data-testid="deck-list">
+                          <div
+                            style={{
+                              padding: '10px 14px 4px',
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 'var(--fs-2xs)',
+                              color: 'var(--text-faint)',
+                              textTransform: 'uppercase',
+                              letterSpacing: 'var(--track-wide)',
+                            }}
+                          >
+                            {t('decks.heading')}
+                          </div>
+                          {decks.map((deck) => (
+                            <DeckRow key={deck.sourceDeckId} deck={deck} />
+                          ))}
+                        </div>
+                      </ArchetypeCard>
+                    )
+                  })}
                 </div>
               )}
             </div>

@@ -31,17 +31,41 @@ describe('ArchetypeCard', () => {
     expect(onClick).toHaveBeenCalledOnce()
   })
 
-  it('is a keyboard-accessible button when clickable', () => {
+  it('is a native, keyboard-accessible button when clickable', () => {
     const onClick = vi.fn()
     render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} onClick={onClick} />)
+    // A native <button> is focusable and Enter/Space-activatable without extra ARIA.
     const card = screen.getByRole('button', { name: /Izzet Control/ })
-    expect(card).toHaveAttribute('tabindex', '0')
-    fireEvent.keyDown(card, { key: 'Enter' })
+    expect(card.tagName).toBe('BUTTON')
+    fireEvent.click(card)
     expect(onClick).toHaveBeenCalledOnce()
   })
 
   it('is not a button when not clickable', () => {
     render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('renders children only when expanded', () => {
+    const { rerender } = render(
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} onClick={vi.fn()}>
+        <div>deck rows</div>
+      </ArchetypeCard>,
+    )
+    expect(screen.queryByText('deck rows')).toBeNull()
+
+    rerender(
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} expanded onClick={vi.fn()}>
+        <div>deck rows</div>
+      </ArchetypeCard>,
+    )
+    expect(screen.getByText('deck rows')).toBeInTheDocument()
+  })
+
+  it('reflects the expanded state via aria-expanded on the clickable card', () => {
+    render(
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} expanded onClick={vi.fn()} />,
+    )
+    expect(screen.getByRole('button', { name: /Izzet Control/ })).toHaveAttribute('aria-expanded', 'true')
   })
 })

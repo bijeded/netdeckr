@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   WINDOWS,
   DEFAULT_WINDOW,
+  WINDOW_DAYS,
   isWindowCode,
   normalizeWindow,
+  windowStartISO,
   type WindowCode,
 } from './windows'
 
@@ -30,5 +32,18 @@ describe('windows', () => {
     expect(normalizeWindow('2months')).toBe<WindowCode>('2months')
     expect(normalizeWindow('nope')).toBe(DEFAULT_WINDOW)
     expect(normalizeWindow(null)).toBe(DEFAULT_WINDOW)
+  })
+
+  it('maps each window to its lookback in days', () => {
+    expect(WINDOW_DAYS['5days']).toBe(5)
+    expect(WINDOW_DAYS['2weeks']).toBe(14)
+    expect(WINDOW_DAYS['2months']).toBe(60)
+  })
+
+  it('computes the window start as an ISO date N days before now', () => {
+    const now = new Date('2026-07-01T12:00:00Z')
+    expect(windowStartISO('5days', now)).toBe('2026-06-26')
+    expect(windowStartISO('2weeks', now)).toBe('2026-06-17')
+    expect(windowStartISO('2months', now)).toBe('2026-05-02')
   })
 })

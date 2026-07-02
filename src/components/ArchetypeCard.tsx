@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { ManaPips } from './ManaPips'
 
 // A stable hue (0-360) derived from the name, so placeholder art varies per card.
@@ -17,7 +17,11 @@ interface ArchetypeCardProps {
   /** Leader's share, so bars scale relative to the top archetype. */
   maxPct?: number
   selected?: boolean
+  /** When true, the card is visually active and renders `children` below the header. */
+  expanded?: boolean
   onClick?: () => void
+  /** Expanded content (the decklist rows); rendered only when `expanded`. */
+  children?: ReactNode
   style?: CSSProperties
 }
 
@@ -28,36 +32,18 @@ export function ArchetypeCard({
   sharePct,
   maxPct = 100,
   selected = false,
+  expanded = false,
   onClick,
+  children,
   style,
 }: ArchetypeCardProps) {
   const hue = hueFromName(name)
-  return (
-    <div
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                onClick()
-              }
-            }
-          : undefined
-      }
-      style={{
-        border: `1px solid ${selected ? 'var(--neon-border)' : 'var(--border-soft)'}`,
-        background: 'var(--surface-card)',
-        borderRadius: 'var(--r-xl)',
-        overflow: 'hidden',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'border-color var(--dur-slow), box-shadow var(--dur-slow)',
-        boxShadow: selected ? '0 0 0 1px rgba(177,75,255,.25), var(--shadow-card)' : 'none',
-        ...style,
-      }}
-    >
+  const active = selected || expanded
+
+  // The header (art + stats) is the interactive region so the expanded deck rows
+  // — which are their own buttons — are never nested inside a button.
+  const header = (
+    <>
       <div
         style={{
           position: 'relative',
@@ -133,6 +119,42 @@ export function ArchetypeCard({
           />
         </div>
       </div>
+    </>
+  )
+
+  const headerReset: CSSProperties = {
+    display: 'block',
+    width: '100%',
+    padding: 0,
+    margin: 0,
+    border: 'none',
+    background: 'transparent',
+    color: 'inherit',
+    textAlign: 'left',
+    font: 'inherit',
+    cursor: 'pointer',
+  }
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${active ? 'var(--neon-border)' : 'var(--border-soft)'}`,
+        background: 'var(--surface-card)',
+        borderRadius: 'var(--r-xl)',
+        overflow: 'hidden',
+        transition: 'border-color var(--dur-slow), box-shadow var(--dur-slow)',
+        boxShadow: active ? '0 0 0 1px rgba(177,75,255,.25), var(--shadow-card)' : 'none',
+        ...style,
+      }}
+    >
+      {onClick ? (
+        <button type="button" aria-expanded={expanded} onClick={onClick} style={headerReset}>
+          {header}
+        </button>
+      ) : (
+        header
+      )}
+      {expanded && children}
     </div>
   )
 }
