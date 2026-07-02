@@ -24,6 +24,6 @@
 
 ## 5. Verify + wrap up
 
-- [ ] 5.1 Apply `supabase/schema.sql` (service-role); run `python scraper/run.py --backfill-scryfall`; spot-check via the anon key that `deck_cards.image_url` and archetype art are populated; visually verify the modal preview (mouse + touch) and ArchetypeCard art in `npm run dev`.
-- [ ] 5.2 Full suite (`npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest`).
-- [ ] 5.3 `/opsx:sync` deltas into `openspec/specs/`, `/opsx:archive` the change (chore: PR), update `docs/HANDOFF.md`.
+- [x] 5.1 Apply `supabase/schema.sql` (service-role); run `python scraper/run.py --backfill-scryfall`; spot-check via the anon key that `deck_cards.image_url` and archetype art are populated; visually verify the modal preview (mouse + touch) and ArchetypeCard art in `npm run dev`.
+- [x] 5.2 Full suite (`npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest`).
+- [x] 5.3 `/opsx:sync` deltas into `openspec/specs/`, `/opsx:archive` the change (chore: PR), update `docs/HANDOFF.md`.
