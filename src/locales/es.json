@@ -40,7 +40,13 @@
     "cards_other": "{{count}} cartas",
     "close": "Cerrar",
     "loading": "Cargando la lista…",
-    "error": "No se pudo cargar esta lista."
+    "error": "No se pudo cargar esta lista.",
+    "export": {
+      "action": "Exportar a MTG Arena",
+      "copied": "Lista copiada al portapapeles",
+      "downloaded": "Lista descargada",
+      "error": "No se pudo copiar la lista"
+    }
   },
   "language": {
     "label": "Idioma",

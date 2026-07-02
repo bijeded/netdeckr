@@ -285,7 +285,7 @@ function App() {
         </main>
       </div>
 
-      {selectedDeck && <DecklistModal deck={selectedDeck} onClose={() => setSelectedDeck(null)} />}
+      {selectedDeck && <DecklistModal deck={selectedDeck} format={format} onClose={() => setSelectedDeck(null)} />}
     </div>
   )
 }
