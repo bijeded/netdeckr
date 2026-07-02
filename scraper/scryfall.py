@@ -33,8 +33,13 @@ class Printing:
 
 
 def _normalize(name: str) -> str:
-    """Lowercase and collapse whitespace so lookups are case/space insensitive."""
-    return " ".join(name.strip().lower().split())
+    """Lowercase and collapse whitespace so lookups are case/space insensitive.
+
+    MTGTop8 writes split/DFC names with a single slash (``Fire / Ice``) where
+    Scryfall uses a double slash (``Fire // Ice``); normalize the single-slash
+    separator to ``//`` so both forms resolve to the same key."""
+    collapsed = " ".join(name.strip().lower().split())
+    return collapsed.replace(" / ", " // ")
 
 
 def _is_paper_nonfoil(row: dict) -> bool:

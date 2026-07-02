@@ -18,7 +18,7 @@
 
 ## 4. Pipeline wiring
 
-- [ ] 4.1 Add a bulk-download + `actions/cache` step to `.github/workflows/scrape.yml` (cache keyed on the UTC date so the file is downloaded once and reused across the staggered per-format jobs).
+- [x] 4.1 Add a bulk-download + `actions/cache` step to `.github/workflows/scrape.yml` (cache keyed on the UTC date so the file is downloaded once and reused across the staggered per-format jobs).
 
 ## 5. Verify + wrap up
 

@@ -225,22 +225,22 @@ def test_backfill_scryfall_requires_a_resolver():
 
 def test_backfill_scryfall_patches_resolvable_names_and_skips_misses():
     session = MagicMock()
-    # One page of still-null rows (two Lightning Bolt lines + one unmappable),
-    # then an empty page to end the cursor loop.
+    # One page of still-null rows (two planeswalker lines whose name carries a
+    # comma + one unmappable), then an empty page to end the cursor loop.
     session.get.side_effect = [
         _response(
             [
-                {"id": 1, "card_name": "Lightning Bolt"},
-                {"id": 2, "card_name": "Lightning Bolt"},
+                {"id": 1, "card_name": "Ral, Crackling Wit"},
+                {"id": 2, "card_name": "Ral, Crackling Wit"},
                 {"id": 3, "card_name": "Homebrew Nonsense"},
             ]
         ),
         _response([]),
     ]
-    # PATCH returns the representation of the rows it updated (2 Bolt lines).
+    # PATCH returns the representation of the rows it updated (2 Ral lines).
     session.patch.return_value = _response([{"id": 1}, {"id": 2}])
     resolver = _StubResolver(
-        {"Lightning Bolt": Printing(name="Lightning Bolt", set_code="CLU", collector_number="141")}
+        {"Ral, Crackling Wit": Printing(name="Ral, Crackling Wit", set_code="DFT", collector_number="129")}
     )
     writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
 
@@ -251,10 +251,14 @@ def test_backfill_scryfall_patches_resolvable_names_and_skips_misses():
     assert session.patch.call_count == 1
     patch_url = session.patch.call_args[0][0]
     assert "/rest/v1/deck_cards" in patch_url
-    assert "card_name=eq." in patch_url
     assert "scryfall_name=is.null" in patch_url  # only touch still-null rows
+    # The filter value is percent-encoded (comma -> %2C, space -> %20) and NOT
+    # wrapped in double quotes — PostgREST matches a double-quoted value literally,
+    # which matched zero rows in production.
+    assert "card_name=eq.Ral%2C%20Crackling%20Wit" in patch_url
+    assert "%22" not in patch_url
     body = session.patch.call_args[1]["json"]
-    assert body == {"scryfall_name": "Lightning Bolt", "set_code": "CLU", "collector_number": "141"}
+    assert body == {"scryfall_name": "Ral, Crackling Wit", "set_code": "DFT", "collector_number": "129"}
 
 
 def test_backfill_scryfall_no_null_rows_is_a_noop():

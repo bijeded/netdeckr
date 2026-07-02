@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scryfall import CardIndex, load_bulk_index, sync_bulk  # noqa: E402
+from scryfall import CardIndex, _normalize, load_bulk_index, sync_bulk  # noqa: E402
 
 FIXTURE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "fixtures", "scryfall_default_cards_sample.json"
@@ -54,6 +54,21 @@ def test_double_faced_front_name_resolves_to_full_card():
 
 def test_full_split_name_also_resolves():
     printing = _index().resolve("Fire // Ice")
+    assert printing is not None
+    assert printing.name == "Fire // Ice"
+
+
+def test_normalize_maps_single_slash_and_leaves_double_slash_untouched():
+    # The normalization contract: single slash -> double; existing "//" unchanged.
+    assert _normalize("Fire / Ice") == "fire // ice"
+    assert _normalize("Fire // Ice") == "fire // ice"
+    assert _normalize("  LIGHTNING   Bolt ") == "lightning bolt"
+
+
+def test_single_slash_split_name_resolves():
+    # MTGTop8 writes split/DFC names with a single slash (" / "); Scryfall uses
+    # " // ". The single-slash scraped form must still resolve to the full card.
+    printing = _index().resolve("Fire / Ice")
     assert printing is not None
     assert printing.name == "Fire // Ice"
 
