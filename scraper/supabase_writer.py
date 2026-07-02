@@ -22,6 +22,9 @@ class SupabaseWriter:
             raise ValueError("Supabase URL must use https")
         self._rest = f"{url.rstrip('/')}/rest/v1"
         self._session = session or requests.Session()
+        # Per-format {lower(name): id} cache for case-insensitive archetype
+        # get-or-create (loaded lazily on first decklist upsert for a format).
+        self._archetype_ids_by_format: dict[str, dict[str, int]] = {}
         self._headers = {
             "apikey": service_role_key,
             "Authorization": f"Bearer {service_role_key}",
@@ -110,17 +113,50 @@ class SupabaseWriter:
         return upsert.json()[0]["id"]
 
     def upsert_archetype(self, fmt: str, name: str) -> int:
-        """Get-or-create an archetype on (format_code, name); return its id.
+        """Get-or-create an archetype for a format, matching case-insensitively.
 
-        Colour identity is derived from the name, mirroring the breakdown scraper.
+        MTGTop8 capitalizes archetype names inconsistently across pages (the
+        breakdown spells "UW Control", the decklist results table "Uw Control").
+        Matching on the exact name would create a duplicate archetype row that has
+        no metagame snapshot and strands its decks, so we resolve against a
+        per-format `lower(name) -> id` map and only insert on a true miss (keeping
+        the first-seen display name). Colour identity is derived from the name.
         """
-        upsert = self._session.post(
-            f"{self._rest}/archetypes?on_conflict=format_code,name",
-            headers={**self._headers, "Prefer": "resolution=merge-duplicates,return=representation"},
+        cache = self._archetype_ids(fmt)
+        existing = cache.get(name.lower())
+        if existing is not None:
+            return existing
+
+        insert = self._session.post(
+            f"{self._rest}/archetypes",
+            headers={**self._headers, "Prefer": "return=representation"},
             json={"format_code": fmt, "name": name, "color_identity": color_identity_for(name)},
         )
-        upsert.raise_for_status()
-        return upsert.json()[0]["id"]
+        insert.raise_for_status()
+        new_id = insert.json()[0]["id"]
+        cache[name.lower()] = new_id
+        return new_id
+
+    def _archetype_ids(self, fmt: str) -> dict[str, int]:
+        """Lazily load and cache a format's `lower(name) -> id` archetype map.
+
+        Assumes the breakdown pass (which POSTs archetypes directly, bypassing
+        this cache) is complete before any decklist `upsert_archetype` for the
+        format — true in run.py, where the decklist pass follows all breakdowns —
+        so the first lazy load sees the canonical breakdown names. In-run inserts
+        update the cache. Archetype counts per format are well under PostgREST's
+        default 1000-row page cap, so a single GET returns them all.
+        """
+        if fmt not in self._archetype_ids_by_format:
+            resp = self._session.get(
+                f"{self._rest}/archetypes?format_code=eq.{quote(fmt)}&select=id,name",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            self._archetype_ids_by_format[fmt] = {
+                row["name"].lower(): row["id"] for row in resp.json()
+            }
+        return self._archetype_ids_by_format[fmt]
 
     def upsert_deck(self, event_id: int, archetype_id: int, deck: DeckResult) -> int:
         """Upsert a deck on (event_id, source_deck_id); return its id."""

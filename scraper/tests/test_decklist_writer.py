@@ -116,3 +116,47 @@ def test_prune_events_before_deletes_older_events():
     url = session.delete.call_args[0][0]
     assert "/rest/v1/events" in url
     assert "event_date=lt.2026-01-01" in url
+
+
+def test_upsert_archetype_resolves_case_variant_to_existing_row():
+    # Reproduces the casing bug: MTGTop8's decklist table title-cases an
+    # archetype ("Uw Control") the breakdown spells "UW Control". The writer must
+    # resolve to the existing row case-insensitively, not create a duplicate.
+    session = MagicMock()
+    session.get.return_value = _response([{"id": 57, "name": "UW Control"}])
+
+    arch_id = _writer(session).upsert_archetype("MO", "Uw Control")
+
+    assert arch_id == 57
+    session.post.assert_not_called()  # no duplicate archetype row inserted
+
+
+def test_upsert_archetype_inserts_when_not_present():
+    session = MagicMock()
+    session.get.return_value = _response([])  # no archetypes yet for the format
+    session.post.return_value = _response([{"id": 200}])
+
+    arch_id = _writer(session).upsert_archetype("MO", "Mardu Energy")
+
+    assert arch_id == 200
+    post_url = session.post.call_args[0][0]
+    assert "/rest/v1/archetypes" in post_url
+    body = session.post.call_args[1]["json"]
+    assert body["name"] == "Mardu Energy"
+    assert body["format_code"] == "MO"
+
+
+def test_upsert_archetype_caches_within_a_format_run():
+    # A second case-variant of a just-inserted archetype in the same run must not
+    # insert again, and the format's archetypes are loaded only once.
+    session = MagicMock()
+    session.get.return_value = _response([])
+    session.post.return_value = _response([{"id": 200}])
+    writer = _writer(session)
+
+    first = writer.upsert_archetype("MO", "Mardu Energy")
+    second = writer.upsert_archetype("MO", "mardu energy")
+
+    assert first == second == 200
+    assert session.post.call_count == 1  # inserted exactly once
+    assert session.get.call_count == 1  # format archetypes loaded once
