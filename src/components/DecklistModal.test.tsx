@@ -108,7 +108,7 @@ describe('DecklistModal', () => {
       fireEvent.click(screen.getByRole('button', { name: /export to mtg arena/i }))
 
       await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
-      expect(writeText).toHaveBeenCalledWith('Deck\n4 Island\n2 Opt\n\nSideboard\n3 Negate')
+      expect(writeText).toHaveBeenCalledWith('About\nName Izzet Control\n\nDeck\n4 Island\n2 Opt\n\nSideboard\n3 Negate')
       expect(await screen.findByText(/copied to clipboard/i)).toBeInTheDocument()
       vi.unstubAllGlobals()
     })
@@ -131,7 +131,7 @@ describe('DecklistModal', () => {
       const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
       render(<DecklistModal deck={deck} format="MO" onClose={vi.fn()} />)
-      fireEvent.click(screen.getByRole('button', { name: /export to mtg arena/i }))
+      fireEvent.click(screen.getByRole('button', { name: /download decklist/i }))
 
       expect(createObjectURL).toHaveBeenCalledTimes(1)
       const blob = createObjectURL.mock.calls[0][0] as Blob
@@ -149,7 +149,7 @@ describe('DecklistModal', () => {
       vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() })
       render(<DecklistModal deck={deck} format="MO" onClose={vi.fn()} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /export to mtg arena/i }))
+      fireEvent.click(screen.getByRole('button', { name: /download decklist/i }))
 
       expect(await screen.findByText(/could not copy/i)).toBeInTheDocument()
       vi.unstubAllGlobals()

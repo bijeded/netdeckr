@@ -45,7 +45,8 @@
       "action": "Export to MTG Arena",
       "copied": "Decklist copied to clipboard",
       "downloaded": "Decklist downloaded",
-      "error": "Could not copy the decklist"
+      "error": "Could not copy the decklist",
+      "download": "Download Decklist"
     }
   },
   "language": {
