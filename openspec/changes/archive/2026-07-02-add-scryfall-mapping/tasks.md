@@ -22,6 +22,6 @@
 
 ## 5. Verify + wrap up
 
-- [ ] 5.1 Run the one-time backfill with the service-role key and spot-check (read via anon key) that previously-null `deck_cards` rows now carry Scryfall identity; confirm Arena export shows `(SET) NUM` for resolved cards.
-- [ ] 5.2 Run the full suite (`npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest`).
-- [ ] 5.3 `/opsx:sync` deltas into `openspec/specs/`, then `/opsx:archive` the change (via a `chore:` PR since `main` is protected). Update `docs/HANDOFF.md`.
+- [x] 5.1 Run the one-time backfill with the service-role key and spot-check (read via anon key) that previously-null `deck_cards` rows now carry Scryfall identity; confirm Arena export shows `(SET) NUM` for resolved cards.
+- [x] 5.2 Run the full suite (`npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest`).
+- [x] 5.3 `/opsx:sync` deltas into `openspec/specs/`, then `/opsx:archive` the change (via a `chore:` PR since `main` is protected). Update `docs/HANDOFF.md`.
