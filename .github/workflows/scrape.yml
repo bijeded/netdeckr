@@ -2,25 +2,45 @@ name: Daily scrape
 
 on:
   schedule:
-    # Daily at 12:00 UTC (see CLAUDE.md → Data pipeline).
-    - cron: '0 12 * * *'
-  # Manual trigger — used to seed the database on demand.
+    # One format per staggered slot (UTC) to spread load on MTGTop8. The slot ->
+    # format mapping lives in the "Resolve format" step below; keep them in sync.
+    - cron: '0 12 * * *'   # ST   (Standard)
+    - cron: '15 12 * * *'  # PI   (Pioneer)
+    - cron: '30 12 * * *'  # MO   (Modern)
+    - cron: '45 12 * * *'  # PAU  (Pauper)
+    - cron: '0 13 * * *'   # PREM (Pre-Modern)
+  # Manual trigger — seed on demand. A fixed choice (not free text) so the value
+  # is constrained to known codes and can never inject into the shell steps below.
   workflow_dispatch:
+    inputs:
+      format:
+        description: 'Format to scrape'
+        type: choice
+        default: 'all'
+        options:
+          - all
+          - ST
+          - PI
+          - MO
+          - PAU
+          - PREM
 
 # The job only checks out code; it needs no write access to the repo.
 permissions:
   contents: read
 
-# Never run more than one scrape at a time.
+# Never run the same format's scrape twice at once; different formats may overlap.
 concurrency:
-  group: daily-scrape
+  group: daily-scrape-${{ github.event.schedule || github.event.inputs.format || 'all' }}
   cancel-in-progress: false
 
 jobs:
   scrape:
     name: scrape
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Generous ceiling for the first (backfill) run; incremental daily runs finish
+    # in minutes because already-stored events are skipped.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -34,8 +54,37 @@ jobs:
       - name: Install scraper dependencies
         run: pip install -r scraper/requirements.txt
 
+      - name: Resolve format
+        id: fmt
+        # Values come in via env (never inlined into the script) to avoid any shell
+        # interpolation of event data. A scheduled run with an unmapped cron fails
+        # loudly rather than silently falling back to a full "all" backfill.
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_FORMAT: ${{ github.event.inputs.format }}
+        run: |
+          if [ -n "$SCHEDULE" ]; then
+            case "$SCHEDULE" in
+              "0 12 * * *")  FMT=ST ;;
+              "15 12 * * *") FMT=PI ;;
+              "30 12 * * *") FMT=MO ;;
+              "45 12 * * *") FMT=PAU ;;
+              "0 13 * * *")  FMT=PREM ;;
+              *) echo "Unmapped schedule '$SCHEDULE' — update the case to match on.schedule" >&2; exit 1 ;;
+            esac
+          else
+            FMT="${INPUT_FORMAT:-all}"
+          fi
+          echo "format=$FMT" >> "$GITHUB_OUTPUT"
+
       - name: Run scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python scraper/run.py
+          FMT: ${{ steps.fmt.outputs.format }}
+        run: |
+          if [ "$FMT" = "all" ]; then
+            python scraper/run.py
+          else
+            python scraper/run.py "$FMT"
+          fi

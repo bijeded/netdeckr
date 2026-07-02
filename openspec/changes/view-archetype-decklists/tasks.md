@@ -1,12 +1,20 @@
 ## 1. Schema + scraper: decklist data contract (one PR — shared contract)
 
-- [ ] 1.1 Add `events`, `decks`, `deck_cards` tables to `supabase/schema.sql` with FKs to `formats`/`archetypes`, uniqueness for idempotent upsert (`events(source_event_id, format_code)`, `decks(event_id, source_deck_id)`), `board` CHECK (`main`/`side`), and nullable Scryfall fields; validate SQL locally with sqlglot
-- [ ] 1.2 Add RLS anon SELECT-only policies for the three new tables (no anon writes)
-- [ ] 1.3 Extend the 6-month prune to delete events (cascading decks/deck_cards) older than 6 months
-- [ ] 1.4 Add MTGTop8 event-list + decklist page parsing in `scraper/mtgtop8.py` (enumerate every event for each format+window incl. pagination if any; store all decks with parsed placing — all finishes — and event date for the latest-4 fallback and future filters: player, placing, archetype, main/side cards) — tests first against new saved fixtures
-- [ ] 1.5 Store scraped card names in `deck_cards`; leave the Scryfall columns null (Scryfall bulk-sync + mapping is a separate change — see design.md; export falls back to scraped names until it lands)
-- [ ] 1.6 Idempotent upsert of events/decks/deck_cards (get-or-create archetypes as today); re-run does not duplicate — tested
-- [ ] 1.7 Wire decklist scraping into `scraper/run.py` daily flow; run `cd scraper && ./venv/bin/pytest`
+- [x] 1.1 Add `events`, `decks`, `deck_cards` tables to `supabase/schema.sql` with FKs to `formats`/`archetypes`, uniqueness for idempotent upsert (`events(source_event_id, format_code)`, `decks(event_id, source_deck_id)`), `board` CHECK (`main`/`side`), and nullable Scryfall fields; validate SQL locally with sqlglot
+- [x] 1.2 Add RLS anon SELECT-only policies for the three new tables (no anon writes)
+- [x] 1.3 Extend the 6-month prune to delete events (cascading decks/deck_cards) older than 6 months
+- [x] 1.4 Add MTGTop8 event-list + decklist page parsing in `scraper/mtgtop8.py` (enumerate every event for each format+window incl. pagination if any; store all decks with parsed placing — all finishes — and event date for the latest-4 fallback and future filters: player, placing, archetype, main/side cards) — tests first against new saved fixtures
+- [x] 1.5 Store scraped card names in `deck_cards`; leave the Scryfall columns null (Scryfall bulk-sync + mapping is a separate change — see design.md; export falls back to scraped names until it lands)
+- [x] 1.6 Idempotent upsert of events/decks/deck_cards (get-or-create archetypes as today); re-run does not duplicate — tested
+- [x] 1.7 Wire decklist scraping into `scraper/run.py` daily flow; run `cd scraper && ./venv/bin/pytest`
+
+## 1b. Pipeline performance: incremental + staggered per-format scraping (one PR — follow-up to group 1)
+
+- [ ] 1b.1 Add `existing_event_ids(fmt)` to the writer (GET events?format_code=eq.&select=source_event_id → set) — tested
+- [ ] 1b.2 Make `sync_decklists` incremental: accept a set of known event ids and skip those events entirely (no results/deck fetches) — tested (skipped vs new)
+- [ ] 1b.3 Make `run.py` accept an optional format arg (`python scraper/run.py ST`) to scrape one format; default = all — tested
+- [ ] 1b.4 Rewrite `.github/workflows/scrape.yml`: 5 staggered crons mapped to formats via `github.event.schedule`, `workflow_dispatch` input for a single format or all, per-format concurrency group, and a higher `timeout-minutes` for the first backfill
+- [ ] 1b.5 Run `cd scraper && ./venv/bin/pytest`; verify the workflow scrapes one format per schedule
 
 ## 2. Frontend: read decks + expand archetype (one PR)
 

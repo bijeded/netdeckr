@@ -88,6 +88,25 @@ def test_replace_deck_cards_with_none_only_clears():
     session.post.assert_not_called()
 
 
+def test_existing_event_ids_queries_format_and_returns_set():
+    session = MagicMock()
+    session.get.return_value = _response([{"source_event_id": "1"}, {"source_event_id": "2"}])
+
+    ids = _writer(session).existing_event_ids("ST")
+
+    assert ids == {"1", "2"}
+    url = session.get.call_args[0][0]
+    assert "/rest/v1/events" in url
+    assert "format_code=eq.ST" in url
+    assert "select=source_event_id" in url
+
+
+def test_existing_event_ids_empty_when_none_stored():
+    session = MagicMock()
+    session.get.return_value = _response([])
+    assert _writer(session).existing_event_ids("ST") == set()
+
+
 def test_prune_events_before_deletes_older_events():
     session = MagicMock()
     session.delete.return_value = _response(status=204)

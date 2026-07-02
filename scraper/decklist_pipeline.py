@@ -11,7 +11,7 @@ need the complete set.
 """
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import AbstractSet, Callable, Optional
 
 from mtgtop8 import parse_decklist, parse_event_decks, parse_event_list
 
@@ -23,19 +23,24 @@ def sync_decklists(
     fetch_format_page: Callable[[str, str], str],
     fetch_event_page: Callable[..., str],
     writer,
+    skip_event_ids: AbstractSet[str] = frozenset(),
     on_error: Optional[Callable[[str, str, Exception], None]] = None,
 ) -> int:
-    """Scrape and store every event and deck for one format.
+    """Scrape and store every new event and deck for one format.
 
     Gathers events from each window's format page (deduped by source event id),
     then per event stores the event, each deck (get-or-create archetype), and each
-    deck's cards. A failure on one window or one event does not abort the rest.
-    Returns the number of decks stored.
+    deck's cards. Events whose id is in ``skip_event_ids`` are skipped entirely
+    (no results/deck fetches) — a past event's decklists do not change, so daily
+    runs only fetch new events. A failure on one window or one event does not
+    abort the rest. Returns the number of decks stored.
     """
     events = {}
     for window in windows:
         try:
             for event in parse_event_list(fetch_format_page(fmt, window)):
+                if event.source_event_id in skip_event_ids:
+                    continue
                 events.setdefault(event.source_event_id, event)
         except Exception as exc:  # noqa: BLE001 — one bad window must not stop the rest
             if on_error is not None:
