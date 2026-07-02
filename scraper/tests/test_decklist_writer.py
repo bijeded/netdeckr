@@ -290,3 +290,110 @@ def test_backfill_scryfall_no_null_rows_is_a_noop():
 
     assert writer.backfill_scryfall() == 0
     session.patch.assert_not_called()
+
+
+# -- Archetype signature-card art ------------------------------------------
+
+def _card_row(cid, name, qty):
+    return {"id": cid, "card_name": name, "quantity": qty, "decks": {"archetype_id": 5}}
+
+
+def test_refresh_archetype_art_requires_a_resolver():
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        _writer(MagicMock()).refresh_archetype_art("MO")
+
+
+def test_refresh_archetype_art_picks_most_played_nonland_and_stores_art():
+    session = MagicMock()
+    # 1) list archetypes for the format; 2) a page of this archetype's mainboard
+    # cards; 3) an empty page to end the cursor loop.
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Izzet Prowess"}]),
+        _response(
+            [
+                _card_row(1, "Island", 8),  # basic land — excluded even though most copies
+                _card_row(2, "Fable of the Mirror-Breaker", 12),
+                _card_row(3, "Fable of the Mirror-Breaker", 4),  # another deck, same card
+                _card_row(4, "Torch the Tower", 6),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {
+            "Fable of the Mirror-Breaker": Printing(
+                name="Fable of the Mirror-Breaker // Reflection of Kiki-Rik",
+                set_code="NEO",
+                collector_number="141",
+                image_url="https://cards.scryfall.io/normal/fable.jpg",
+            )
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    assert session.patch.call_count == 1
+    patch_url = session.patch.call_args[0][0]
+    assert "/rest/v1/archetypes" in patch_url
+    assert "id=eq.5" in patch_url
+    body = session.patch.call_args[1]["json"]
+    # Signature is the most-played NON-land card (Fable 16 > Torch 6; Island excluded).
+    assert body["signature_card_name"] == "Fable of the Mirror-Breaker"
+    assert body["art_image_url"] == "https://cards.scryfall.io/normal/fable.jpg"
+
+
+def test_refresh_archetype_art_leaves_unresolvable_top_card_null():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Homebrew"}]),
+        _response([_card_row(1, "Totally Made Up Card", 20)]),
+        _response([]),
+    ]
+    resolver = _StubResolver({})  # nothing resolves
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    session.patch.assert_not_called()  # no resolvable card -> art stays null
+
+
+def test_refresh_archetype_art_skips_archetype_with_only_lands():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Landfall Weird"}]),
+        _response([_card_row(1, "Mountain", 20), _card_row(2, "Forest", 4)]),
+        _response([]),
+    ]
+    resolver = _StubResolver({"Mountain": Printing(name="Mountain", set_code="X", collector_number="1")})
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    session.patch.assert_not_called()  # only basic lands -> no signature card
+
+
+def test_refresh_archetype_art_breaks_count_ties_by_name_ascending():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Even Split"}]),
+        # Two non-land cards tied at 8 copies each; the alphabetically-first wins.
+        _response([_card_row(1, "Zenith Flare", 8), _card_row(2, "Abrade", 8)]),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {
+            "Abrade": Printing(name="Abrade", set_code="X", collector_number="1", image_url="a.jpg"),
+            "Zenith Flare": Printing(name="Zenith Flare", set_code="Y", collector_number="2", image_url="z.jpg"),
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    body = session.patch.call_args[1]["json"]
+    assert body["signature_card_name"] == "Abrade"  # ties broken by name asc

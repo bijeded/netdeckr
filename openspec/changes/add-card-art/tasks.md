@@ -1,10 +1,10 @@
 ## 1. Schema + deck-card image (one PR — shared contract)
 
-- [ ] 1.1 Migration: add nullable `deck_cards.image_url`; add nullable `archetypes.art_image_url` and `archetypes.signature_card_name` to `supabase/schema.sql` (idempotent `alter table ... add column if not exists`). Validate with **pglast**.
-- [ ] 1.2 RED: extend `scraper/tests/test_scryfall.py` — the resolved `Printing` carries `image_url` from `image_uris.normal` (front-face fallback for split/DFC); a fixture card exercises it.
-- [ ] 1.3 GREEN: `Printing` gains `image_url`; `CardIndex.from_bulk_rows` reads `image_uris.normal` (falling back to `card_faces[0].image_uris.normal`).
-- [ ] 1.4 RED: extend `scraper/tests/test_decklist_writer.py` — `replace_deck_cards` writes `image_url` for resolvable cards (null on miss); the backfill PATCH includes `image_url`.
-- [ ] 1.5 GREEN: writer stores `deck_cards.image_url` in `_deck_card_row` and adds it to `backfill_scryfall`'s PATCH body.
+- [x] 1.1 Migration: add nullable `deck_cards.image_url`; add nullable `archetypes.art_image_url` and `archetypes.signature_card_name` to `supabase/schema.sql` (idempotent `alter table ... add column if not exists`). Validate with **pglast**.
+- [x] 1.2 RED: extend `scraper/tests/test_scryfall.py` — the resolved `Printing` carries `image_url` from `image_uris.normal` (front-face fallback for split/DFC); a fixture card exercises it.
+- [x] 1.3 GREEN: `Printing` gains `image_url`; `CardIndex.from_bulk_rows` reads `image_uris.normal` (falling back to `card_faces[0].image_uris.normal`).
+- [x] 1.4 RED: extend `scraper/tests/test_decklist_writer.py` — `replace_deck_cards` writes `image_url` for resolvable cards (null on miss); the backfill PATCH includes `image_url`.
+- [x] 1.5 GREEN: writer stores `deck_cards.image_url` in `_deck_card_row` and adds it to `backfill_scryfall`'s PATCH body.
 
 ## 2. Archetype signature-card art (scraper)
 
