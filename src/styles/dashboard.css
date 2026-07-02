@@ -99,3 +99,22 @@
     transform: none;
   }
 }
+
+/* Decklist modal: two columns (main | sideboard) that stack on narrow screens.
+   The mainboard uses two text columns on wide viewports for a dense list. */
+.decklist-grid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+}
+.decklist-main-cols {
+  columns: 2;
+  column-gap: 18px;
+}
+@media (max-width: 640px) {
+  .decklist-grid {
+    grid-template-columns: 1fr;
+  }
+  .decklist-main-cols {
+    columns: 1;
+  }
+}

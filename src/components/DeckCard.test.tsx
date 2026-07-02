@@ -5,6 +5,7 @@ import { DeckCard } from './DeckCard'
 import type { DeckRow } from '../lib/deckSelection'
 
 const deck: DeckRow = {
+  id: 7,
   sourceDeckId: '863982',
   player: 'Norbspro',
   placement: '3-4',

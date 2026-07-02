@@ -3,6 +3,7 @@ import { isTopFour, selectDisplayDecks, type DeckRow } from './deckSelection'
 
 function row(partial: Partial<DeckRow>): DeckRow {
   return {
+    id: 1,
     sourceDeckId: '1',
     player: 'Player',
     placement: '1',

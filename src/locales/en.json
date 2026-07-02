@@ -33,6 +33,15 @@
     "viewDeck": "go to deck",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
   },
+  "modal": {
+    "main": "Main",
+    "side": "Sideboard",
+    "cards_one": "{{count}} card",
+    "cards_other": "{{count}} cards",
+    "close": "Close",
+    "loading": "Loading the decklist…",
+    "error": "Could not load this decklist."
+  },
   "language": {
     "label": "Language",
     "en": "EN",

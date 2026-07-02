@@ -33,6 +33,15 @@
     "viewDeck": "ver deck",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
   },
+  "modal": {
+    "main": "Main",
+    "side": "Sideboard",
+    "cards_one": "{{count}} carta",
+    "cards_other": "{{count}} cartas",
+    "close": "Cerrar",
+    "loading": "Cargando la lista…",
+    "error": "No se pudo cargar esta lista."
+  },
   "language": {
     "label": "Idioma",
     "en": "EN",
