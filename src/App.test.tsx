@@ -7,11 +7,13 @@ const useFormatSelection = vi.fn()
 const useMetagameBreakdown = vi.fn()
 const useLastUpdated = vi.fn()
 const useDecks = vi.fn()
+const useDeckCards = vi.fn()
 
 vi.mock('./hooks/useFormatSelection', () => ({ useFormatSelection: () => useFormatSelection() }))
 vi.mock('./hooks/useMetagameBreakdown', () => ({ useMetagameBreakdown: () => useMetagameBreakdown() }))
 vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => useLastUpdated() }))
 vi.mock('./hooks/useDecks', () => ({ useDecks: () => useDecks() }))
+vi.mock('./hooks/useDeckCards', () => ({ useDeckCards: (id: number | null) => useDeckCards(id) }))
 
 const setFormat = vi.fn()
 
@@ -26,6 +28,7 @@ beforeEach(() => {
   useMetagameBreakdown.mockReturnValue({ data: [], loading: false, error: null })
   useLastUpdated.mockReturnValue(null)
   useDecks.mockReturnValue({ decksByArchetype: {}, loading: false, error: null })
+  useDeckCards.mockReturnValue({ main: [], side: [], mainCount: 0, sideCount: 0, loading: false, error: null })
 })
 
 afterEach(() => {
@@ -130,6 +133,7 @@ describe('App dashboard', () => {
       decksByArchetype: {
         'Izzet Control': [
           {
+            id: 1,
             sourceDeckId: 'd1',
             player: 'Norbspro',
             placement: '1',
@@ -152,6 +156,50 @@ describe('App dashboard', () => {
 
     act(() => fireEvent.click(screen.getByRole('button', { name: /Izzet Control/ })))
     expect(screen.queryByTestId('deck-list')).toBeNull()
+  })
+
+  it('opens the decklist modal when a deck card is clicked', () => {
+    useMetagameBreakdown.mockReturnValue({
+      data: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
+      loading: false,
+      error: null,
+    })
+    useDecks.mockReturnValue({
+      decksByArchetype: {
+        'Izzet Control': [
+          {
+            id: 1,
+            sourceDeckId: 'd1',
+            player: 'Norbspro',
+            placement: '1',
+            eventName: 'RCQ',
+            eventDate: '2026-06-20',
+            archetypeName: 'Izzet Control',
+            colorIdentity: 'UR',
+          },
+        ],
+      },
+      loading: false,
+      error: null,
+    })
+    useDeckCards.mockReturnValue({
+      main: [{ quantity: 4, name: 'Island' }],
+      side: [],
+      mainCount: 4,
+      sideCount: 0,
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+
+    // Expand, then click the deck card to open the modal.
+    act(() => fireEvent.click(screen.getByRole('button', { name: /Izzet Control/ })))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    act(() => fireEvent.click(screen.getByRole('button', { name: /Norbspro/ })))
+
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('Island')).toBeInTheDocument()
+    expect(useDeckCards).toHaveBeenCalledWith(1)
   })
 
   it('does not make an archetype expandable when it has no decks', () => {

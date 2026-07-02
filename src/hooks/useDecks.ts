@@ -5,6 +5,7 @@ import { windowStartISO, type WindowCode } from '../lib/windows'
 import { selectDisplayDecks, type DeckRow } from '../lib/deckSelection'
 
 interface DeckQueryRow {
+  id: number
   source_deck_id: string
   player: string
   placement: string
@@ -31,7 +32,7 @@ export function useDecks(formatCode: FormatCode, metaWindow: WindowCode) {
 
     supabase
       .from('decks')
-      .select('source_deck_id, player, placement, archetypes(name, color_identity), events!inner(name, event_date, format_code)')
+      .select('id, source_deck_id, player, placement, archetypes(name, color_identity), events!inner(name, event_date, format_code)')
       .eq('events.format_code', formatCode)
       .gte('events.event_date', windowStartISO(metaWindow))
       .order('event_date', { referencedTable: 'events', ascending: false })
@@ -51,6 +52,7 @@ export function useDecks(formatCode: FormatCode, metaWindow: WindowCode) {
           const archetypeName = row.archetypes?.name ?? ''
           if (!archetypeName) continue
           const deck: DeckRow = {
+            id: row.id,
             sourceDeckId: row.source_deck_id,
             player: row.player,
             placement: row.placement,

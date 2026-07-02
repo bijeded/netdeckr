@@ -3,6 +3,8 @@
 // latest lists — this logic lives here (not in JSX) so it is unit-testable.
 
 export interface DeckRow {
+  /** Database deck id (decks.id) — used to fetch this deck's cards. */
+  id: number
   sourceDeckId: string
   player: string
   /** Raw MTGTop8 finish label: "1", "2", "3-4", "5-8", … */

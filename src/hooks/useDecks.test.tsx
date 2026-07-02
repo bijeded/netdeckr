@@ -21,6 +21,7 @@ import type { WindowCode } from '../lib/windows'
 
 function deckRow(over: Record<string, unknown> = {}) {
   return {
+    id: 1,
     source_deck_id: '1',
     player: 'Player',
     placement: '1',
@@ -65,12 +66,13 @@ describe('useDecks', () => {
   })
 
   it('maps a deck row to camelCase fields', async () => {
-    queryResult.data = [deckRow({ source_deck_id: 'z', player: 'Spike', placement: '3-4' })]
+    queryResult.data = [deckRow({ id: 99, source_deck_id: 'z', player: 'Spike', placement: '3-4' })]
     const { result } = renderHook(() => useDecks('ST', '5days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const deck = result.current.decksByArchetype['Izzet Control'][0]
     expect(deck).toEqual({
+      id: 99,
       sourceDeckId: 'z',
       player: 'Spike',
       placement: '3-4',

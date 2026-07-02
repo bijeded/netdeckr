@@ -1,0 +1,208 @@
+import { useEffect, useRef, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
+import { ManaPips } from './ManaPips'
+import { Spinner } from './Spinner'
+import { EmptyState } from './EmptyState'
+import { useDeckCards, type DeckCardLine } from '../hooks/useDeckCards'
+import { placementBadge, type PlacementKind } from '../lib/placement'
+import type { DeckRow } from '../lib/deckSelection'
+
+interface DecklistModalProps {
+  deck: DeckRow
+  onClose: () => void
+}
+
+const BADGE: Record<PlacementKind, { color: string; bg: string }> = {
+  first: { color: 'var(--up)', bg: 'var(--up-tint)' },
+  second: { color: 'var(--tier-2)', bg: 'rgba(127,216,255,.12)' },
+  top4: { color: 'var(--neon-text-soft)', bg: 'var(--neon-tint-16)' },
+  other: { color: 'var(--text-faint)', bg: 'rgba(255,255,255,.06)' },
+}
+
+function formatDate(isoDate: string, locale: string): string {
+  if (!isoDate) return ''
+  const date = new Date(`${isoDate}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function CardLine({ line }: { line: DeckCardLine }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '3px 0', breakInside: 'avoid' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--neon-text-soft)', width: 18, flex: '0 0 auto' }}>
+        {line.quantity}
+      </span>
+      <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>{line.name}</span>
+    </div>
+  )
+}
+
+function SectionHeading({ label, count }: { label: string; count: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <span
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--fs-2xs)',
+          fontWeight: 'var(--fw-bold)',
+          letterSpacing: 'var(--track-wide)',
+          textTransform: 'uppercase',
+          color: 'var(--neon-text-soft)',
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-2xs)', color: 'var(--text-faint)' }}>
+        {count}
+      </span>
+    </div>
+  )
+}
+
+/** Full decklist modal: mainboard + sideboard for one deck. Dismissible; returns
+ * focus to the element that opened it. */
+export function DecklistModal({ deck, onClose }: DecklistModalProps) {
+  const { t, i18n } = useTranslation()
+  const { main, side, mainCount, sideCount, loading, error } = useDeckCards(deck.id)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const badge = placementBadge(deck.placement)
+  const badgeColors = BADGE[badge.kind]
+
+  // Escape to close.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  // Move focus into the modal on open; restore it to the trigger on close.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null
+    closeRef.current?.focus()
+    return () => previouslyFocused?.focus?.()
+  }, [])
+
+  const badgeStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '3px 9px',
+    borderRadius: 'var(--r-sm)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 'var(--fs-2xs)',
+    fontWeight: 'var(--fw-bold)',
+    color: badgeColors.color,
+    background: badgeColors.bg,
+  }
+
+  return (
+    <div
+      data-testid="modal-backdrop"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 60,
+        background: 'rgba(5,5,9,.74)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '40px 20px',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decklist-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 880,
+          background: 'var(--surface-modal)',
+          border: '1px solid var(--border-line)',
+          borderRadius: 'var(--r-3xl)',
+          overflow: 'hidden',
+          boxShadow: '0 30px 80px rgba(0,0,0,.6)',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '20px 22px',
+            borderBottom: '1px solid var(--border-soft)',
+            background: 'linear-gradient(120deg, var(--neon-tint-16), transparent 70%)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
+              <ManaPips colors={deck.colorIdentity} size={13} />
+              <span id="decklist-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-lg)', letterSpacing: 'var(--track-tight)' }}>
+                {deck.archetypeName}
+              </span>
+              <span style={badgeStyle}>{badge.label}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', color: 'var(--text-faint)', fontSize: 'var(--fs-sm)' }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 'var(--fw-semibold)' }}>{deck.player}</span>
+              <span>·</span>
+              <span>{deck.eventName}</span>
+              <span>·</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)' }}>{formatDate(deck.eventDate, i18n.language)}</span>
+            </div>
+          </div>
+          <button
+            ref={closeRef}
+            type="button"
+            aria-label={t('modal.close')}
+            onClick={onClose}
+            style={{
+              flex: '0 0 auto',
+              width: 34,
+              height: 34,
+              borderRadius: 'var(--r-md)',
+              border: '1px solid var(--border-line)',
+              background: 'var(--surface-subtle)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: 'var(--fs-md)',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
+            <Spinner label={t('modal.loading')} />
+          </div>
+        ) : error ? (
+          <EmptyState message={t('modal.error')} />
+        ) : (
+          <div className="decklist-grid">
+            <div style={{ padding: '20px 22px', borderRight: '1px solid var(--border-soft)' }}>
+              <SectionHeading label={t('modal.main')} count={t('modal.cards', { count: mainCount })} />
+              <div className="decklist-main-cols">
+                {main.map((line, i) => (
+                  <CardLine key={`m-${i}-${line.name}`} line={line} />
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: '20px 22px', background: 'var(--surface-faint)' }}>
+              <SectionHeading label={t('modal.side')} count={t('modal.cards', { count: sideCount })} />
+              {side.map((line, i) => (
+                <CardLine key={`s-${i}-${line.name}`} line={line} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

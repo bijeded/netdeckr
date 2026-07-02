@@ -12,6 +12,8 @@ import { FormatSwitcher } from './components/FormatSwitcher'
 import { WindowSelector } from './components/WindowSelector'
 import { ArchetypeCard } from './components/ArchetypeCard'
 import { DeckCard } from './components/DeckCard'
+import { DecklistModal } from './components/DecklistModal'
+import type { DeckRow } from './lib/deckSelection'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 
@@ -59,8 +61,11 @@ function App() {
   // Which archetype card is expanded to show its decklists. Collapses whenever the
   // format or window changes (the decks it showed no longer apply).
   const [expandedName, setExpandedName] = useState<string | null>(null)
+  // The deck whose full decklist modal is open, if any.
+  const [selectedDeck, setSelectedDeck] = useState<DeckRow | null>(null)
   useEffect(() => {
     setExpandedName(null)
+    setSelectedDeck(null)
   }, [format, metaWindow])
 
   // Sidebar state: open by default on desktop, a collapsible overlay drawer on
@@ -266,7 +271,7 @@ function App() {
                             }}
                           >
                             {decks.map((deck) => (
-                              <DeckCard key={deck.sourceDeckId} deck={deck} />
+                              <DeckCard key={deck.sourceDeckId} deck={deck} onSelect={setSelectedDeck} />
                             ))}
                           </div>
                         </div>
@@ -279,6 +284,8 @@ function App() {
           </div>
         </main>
       </div>
+
+      {selectedDeck && <DecklistModal deck={selectedDeck} onClose={() => setSelectedDeck(null)} />}
     </div>
   )
 }
