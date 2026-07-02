@@ -26,12 +26,21 @@
 
 ## 2b. Frontend: ArchetypeCard design polish to match the prototype (one PR — before task 3)
 
-- [ ] 2b.1 Add `tierFor(pct)` lib + `TierBadge` component (T1/T2/T3/Otros per design thresholds/tokens) — tested
-- [ ] 2b.2 Add `placementBadge(placement)` helper mapping raw finishes to design labels (1st/2nd/Top 4/Top N) + a color kind — tested
-- [ ] 2b.3 Collapsed card: show the tier badge (top-right of the art) and render the rank as `#N` (skip the ARTE placeholder label) — tested
-- [ ] 2b.4 Expanded state: span full width (`grid-column: 1 / -1`) and lay decks out as a grid of deck cards (position badge + pips, player, event, date + localized `ver deck`/`go to deck` CTA) — tested
-- [ ] 2b.5 Expanded header shows `ÚLTIMOS DECKS · <archetype>` + a localized `N listas`/`N lists` count
-- [ ] 2b.6 Add ES/EN strings (`decks.heading` with archetype, `decks.count`, `decks.viewDeck`); no hardcoded text; MTG proper nouns stay English
+- [x] 2b.1 Add `tierFor(pct)` lib + `TierBadge` component (T1/T2/T3/Otros per design thresholds/tokens) — tested
+- [x] 2b.2 Add `placementBadge(placement)` helper mapping raw finishes to design labels (1st/2nd/Top 4/Top N) + a color kind — tested
+- [x] 2b.3 Collapsed card: show the tier badge (top-right of the art) and render the rank as `#N` (skip the ARTE placeholder label) — tested
+- [x] 2b.4 Expanded state: span full width (`grid-column: 1 / -1`) and lay decks out as a grid of deck cards (position badge + pips, player, event, date + localized `ver deck`/`go to deck` CTA) — tested
+- [x] 2b.5 Expanded header shows `ÚLTIMOS DECKS · <archetype>` + a localized `N listas`/`N lists` count
+- [x] 2b.6 Add ES/EN strings (`decks.heading` with archetype, `decks.count`, `decks.viewDeck`); no hardcoded text; MTG proper nouns stay English
+
+## 2c. Frontend: DeckCard design refinements (one PR — follow-up to 2b)
+
+- [x] 2c.1 Expanded header reverts to `Recent decklists`/`Listas recientes` (no archetype name)
+- [x] 2c.2 Shrink deck cards (min 160px) and widen the grid gap; fix crowding/overlap (`min-width: 0`)
+- [x] 2c.3 Remove the redundant color pips from the deck card; right-align the position badge
+- [x] 2c.4 Add a subtle hover lift to the deck card (CSS `.deck-card:hover` translateY)
+- [x] 2c.5 Make the whole deck card a button (modal open wired in task 3)
+- [x] 2c.6 Localize the fringe tier label: `Otros` (ES) / `Rogue` (EN)
 
 ## 3. Frontend: decklist modal (one PR)
 

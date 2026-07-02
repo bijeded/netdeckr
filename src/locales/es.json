@@ -24,8 +24,11 @@
     "empty": "Aún no hay datos del metajuego — vuelve pronto.",
     "updated": "Actualizado {{time}}"
   },
+  "tiers": {
+    "rogue": "Otros"
+  },
   "decks": {
-    "heading": "Últimos decks · {{archetype}}",
+    "heading": "Listas recientes",
     "count": "{{count}} listas",
     "viewDeck": "ver deck",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"

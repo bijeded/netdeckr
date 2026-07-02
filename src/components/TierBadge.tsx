@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { tierFor, type Tier } from '../lib/tiers'
 
 const TIERS: Record<Tier, { color: string; bg: string; border: string }> = {
@@ -17,8 +18,11 @@ interface TierBadgeProps {
 
 /** Mono chip marking an archetype's tier (T1/T2/T3/Otros). */
 export function TierBadge({ tier, pct, style }: TierBadgeProps) {
+  const { t } = useTranslation()
   const resolved = tier ?? (pct != null ? tierFor(pct) : 'T3')
   const c = TIERS[resolved]
+  // T1/T2/T3 are universal; only the fringe tier is localized (EN "Rogue" / ES "Otros").
+  const label = resolved === 'Otros' ? t('tiers.rogue') : resolved
   return (
     <span
       style={{
@@ -34,7 +38,7 @@ export function TierBadge({ tier, pct, style }: TierBadgeProps) {
         ...style,
       }}
     >
-      {resolved}
+      {label}
     </span>
   )
 }

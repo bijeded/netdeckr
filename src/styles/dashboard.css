@@ -78,3 +78,24 @@
   margin: 0 auto;
   padding: var(--sp-7) var(--sp-6) var(--sp-8);
 }
+
+/* Expanded-archetype deck cards: base surface + a subtle hover lift. Border lives
+   here (not inline) so the hover border-color isn't overridden by an inline style. */
+.deck-card {
+  border: 1px solid var(--border-soft);
+  background: var(--surface-card);
+  border-radius: var(--r-lg);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.deck-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--neon-border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .deck-card {
+    transition: none;
+  }
+  .deck-card:hover {
+    transform: none;
+  }
+}

@@ -12,4 +12,10 @@ describe('TierBadge', () => {
     render(<TierBadge tier="T2" />)
     expect(screen.getByText('T2')).toBeInTheDocument()
   })
+
+  it('localizes the fringe tier as "Rogue" in English', () => {
+    render(<TierBadge tier="Otros" />)
+    expect(screen.getByText('Rogue')).toBeInTheDocument()
+    expect(screen.queryByText('Otros')).toBeNull()
+  })
 })

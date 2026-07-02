@@ -246,7 +246,7 @@ function App() {
                                 color: 'var(--neon-text-soft)',
                               }}
                             >
-                              {t('decks.heading', { archetype: archetype.name })}
+                              {t('decks.heading')}
                             </span>
                             <span
                               style={{
@@ -261,8 +261,8 @@ function App() {
                           <div
                             style={{
                               display: 'grid',
-                              gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-                              gap: 10,
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                              gap: 18,
                             }}
                           >
                             {decks.map((deck) => (

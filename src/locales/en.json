@@ -24,8 +24,11 @@
     "empty": "No metagame data yet — check back soon.",
     "updated": "Updated {{time}}"
   },
+  "tiers": {
+    "rogue": "Rogue"
+  },
   "decks": {
-    "heading": "Recent decks · {{archetype}}",
+    "heading": "Recent decklists",
     "count": "{{count}} lists",
     "viewDeck": "go to deck",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
