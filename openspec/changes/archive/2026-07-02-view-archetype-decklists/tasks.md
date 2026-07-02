@@ -58,6 +58,6 @@
 
 ## 5. Verify + wrap up
 
-- [ ] 5.1 Run full suite: `npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest`
-- [ ] 5.2 After merge: apply `supabase/schema.sql` (service-role) then `gh workflow run scrape.yml --ref main`; verify decks appear via anon read
-- [ ] 5.3 `/opsx:sync` deltas into `openspec/specs/` and `/opsx:archive` the change (via a `chore:` PR)
+- [x] 5.1 Run full suite: `npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest`
+- [x] 5.2 After merge: apply `supabase/schema.sql` (service-role) then `gh workflow run scrape.yml --ref main`; verify decks appear via anon read
+- [x] 5.3 `/opsx:sync` deltas into `openspec/specs/` and `/opsx:archive` the change (via a `chore:` PR)
