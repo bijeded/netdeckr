@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { ManaPips } from './ManaPips'
+import { TierBadge } from './TierBadge'
 
 // A stable hue (0-360) derived from the name, so placeholder art varies per card.
 function hueFromName(name: string): number {
@@ -63,6 +64,7 @@ export function ArchetypeCard({
         <div style={{ position: 'absolute', left: 11, top: 10 }}>
           <ManaPips colors={colors} size={16} />
         </div>
+        <TierBadge pct={sharePct} style={{ position: 'absolute', right: 10, top: 10 }} />
       </div>
       <div style={{ padding: '13px 14px 15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
@@ -73,7 +75,7 @@ export function ArchetypeCard({
               color: 'var(--text-faint)',
             }}
           >
-            {String(rank).padStart(2, '0')}
+            #{rank}
           </span>
           <span
             style={{

@@ -3,12 +3,17 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ArchetypeCard } from './ArchetypeCard'
 
 describe('ArchetypeCard', () => {
-  it('renders a zero-padded rank, name, one-decimal share, and pips', () => {
+  it('renders a #-prefixed rank, name, one-decimal share, and pips', () => {
     render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
-    expect(screen.getByText('01')).toBeInTheDocument()
+    expect(screen.getByText('#1')).toBeInTheDocument()
     expect(screen.getByText('Izzet Control')).toBeInTheDocument()
     expect(screen.getByText('24.0%')).toBeInTheDocument()
     expect(screen.getAllByTestId('mana-pip')).toHaveLength(2)
+  })
+
+  it('shows the tier badge derived from the share %', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
+    expect(screen.getByText('T1')).toBeInTheDocument()
   })
 
   it('formats a fractional share to one decimal', () => {
@@ -21,7 +26,7 @@ describe('ArchetypeCard', () => {
     const pips = screen.getAllByTestId('mana-pip')
     expect(pips).toHaveLength(1)
     expect(pips[0].dataset.color).toBe('C')
-    expect(screen.getByText('12')).toBeInTheDocument()
+    expect(screen.getByText('#12')).toBeInTheDocument()
   })
 
   it('calls onClick when the card is activated', () => {

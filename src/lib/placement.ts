@@ -1,0 +1,23 @@
+// Map a raw MTGTop8 finish label ("1", "2", "3-4", "5-8", …) to a display badge:
+// "1st" / "2nd" / "Top 4" / "Top <n>". These competitive labels stay in English in
+// both locales (like MTG proper nouns). `kind` drives the badge colour.
+
+export type PlacementKind = 'first' | 'second' | 'top4' | 'other'
+
+export interface PlacementBadge {
+  label: string
+  kind: PlacementKind
+}
+
+export function placementBadge(placement: string): PlacementBadge {
+  const nums = placement.match(/\d+/g)?.map(Number) ?? []
+  if (nums.length === 0) return { label: placement || '—', kind: 'other' }
+
+  const low = nums[0]
+  const high = nums[nums.length - 1]
+
+  if (low === 1 && high === 1) return { label: '1st', kind: 'first' }
+  if (low === 2 && high === 2) return { label: '2nd', kind: 'second' }
+  if (high <= 4) return { label: 'Top 4', kind: 'top4' }
+  return { label: `Top ${high}`, kind: 'other' }
+}

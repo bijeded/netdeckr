@@ -18,11 +18,20 @@
 
 ## 2. Frontend: read decks + expand archetype (one PR)
 
-- [ ] 2.1 Add a `useDecks`/selector hook that reads decks + deck_cards for the current (format, window) via Supabase, shaping deck rows (placing, player, event name+date, archetype color identity) outside JSX, and applying the display rule per archetype: show 1st/2nd/Top 4 decks, else fall back to the latest 4 by event date — tested (both branches)
-- [ ] 2.2 Expose which archetypes have ≥1 deck for the current (format, window) so cards render expandable only when data exists (hide-until-data)
-- [ ] 2.3 Add expand/collapse state to `ArchetypeCard`; expanded content renders the deck-row list with color pips; clicking again collapses — tested
-- [ ] 2.4 Deck rows re-query on format/window change; card collapses when no decks match — tested
-- [ ] 2.5 Add ES/EN strings for deck-row labels (placing/result, player, event/date); verify no hardcoded text
+- [x] 2.1 Add a `useDecks`/selector hook that reads decks + deck_cards for the current (format, window) via Supabase, shaping deck rows (placing, player, event name+date, archetype color identity) outside JSX, and applying the display rule per archetype: show 1st/2nd/Top 4 decks, else fall back to the latest 4 by event date — tested (both branches)
+- [x] 2.2 Expose which archetypes have ≥1 deck for the current (format, window) so cards render expandable only when data exists (hide-until-data)
+- [x] 2.3 Add expand/collapse state to `ArchetypeCard`; expanded content renders the deck-row list with color pips; clicking again collapses — tested
+- [x] 2.4 Deck rows re-query on format/window change; card collapses when no decks match — tested
+- [x] 2.5 Add ES/EN strings for deck-row labels (placing/result, player, event/date); verify no hardcoded text
+
+## 2b. Frontend: ArchetypeCard design polish to match the prototype (one PR — before task 3)
+
+- [ ] 2b.1 Add `tierFor(pct)` lib + `TierBadge` component (T1/T2/T3/Otros per design thresholds/tokens) — tested
+- [ ] 2b.2 Add `placementBadge(placement)` helper mapping raw finishes to design labels (1st/2nd/Top 4/Top N) + a color kind — tested
+- [ ] 2b.3 Collapsed card: show the tier badge (top-right of the art) and render the rank as `#N` (skip the ARTE placeholder label) — tested
+- [ ] 2b.4 Expanded state: span full width (`grid-column: 1 / -1`) and lay decks out as a grid of deck cards (position badge + pips, player, event, date + localized `ver deck`/`go to deck` CTA) — tested
+- [ ] 2b.5 Expanded header shows `ÚLTIMOS DECKS · <archetype>` + a localized `N listas`/`N lists` count
+- [ ] 2b.6 Add ES/EN strings (`decks.heading` with archetype, `decks.count`, `decks.viewDeck`); no hardcoded text; MTG proper nouns stay English
 
 ## 3. Frontend: decklist modal (one PR)
 
