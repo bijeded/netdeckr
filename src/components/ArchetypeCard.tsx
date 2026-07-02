@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ManaPips } from './ManaPips'
 import { TierBadge } from './TierBadge'
 
@@ -15,6 +15,8 @@ interface ArchetypeCardProps {
   /** WUBRG color-identity string; "" renders a colorless gray pip. */
   colors: string
   sharePct: number
+  /** Signature-card art (hotlinked Scryfall CDN); null falls back to the gradient. */
+  artImageUrl?: string | null
   /** Leader's share, so bars scale relative to the top archetype. */
   maxPct?: number
   selected?: boolean
@@ -31,6 +33,7 @@ export function ArchetypeCard({
   name,
   colors,
   sharePct,
+  artImageUrl = null,
   maxPct = 100,
   selected = false,
   expanded = false,
@@ -40,6 +43,11 @@ export function ArchetypeCard({
 }: ArchetypeCardProps) {
   const hue = hueFromName(name)
   const active = selected || expanded
+  // Track the specific URL that failed rather than a boolean, so a card reused
+  // for a different archetype (the grid keys by rank) doesn't suppress a new,
+  // valid image after an earlier one 404'd.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const showArt = artImageUrl != null && failedUrl !== artImageUrl
 
   // The header (art + stats) is the interactive region so the expanded deck rows
   // — which are their own buttons — are never nested inside a button.
@@ -61,6 +69,23 @@ export function ArchetypeCard({
               'repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 2px, transparent 2px 11px)',
           }}
         />
+        {showArt && (
+          <img
+            src={artImageUrl ?? undefined}
+            alt=""
+            data-testid="archetype-art"
+            onError={() => setFailedUrl(artImageUrl)}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              // Frame the card art on the creature/spell, not the name/text box.
+              objectPosition: 'center 18%',
+            }}
+          />
+        )}
         <div style={{ position: 'absolute', left: 11, top: 10 }}>
           <ManaPips colors={colors} size={16} />
         </div>

@@ -213,6 +213,7 @@ function App() {
                         name={archetype.name}
                         colors={archetype.colorIdentity}
                         sharePct={archetype.sharePct}
+                        artImageUrl={archetype.artImageUrl}
                         maxPct={maxPct}
                         expanded={expanded}
                         style={expanded ? { gridColumn: '1 / -1' } : undefined}
