@@ -6,10 +6,12 @@ import App from './App'
 const useFormatSelection = vi.fn()
 const useMetagameBreakdown = vi.fn()
 const useLastUpdated = vi.fn()
+const useDecks = vi.fn()
 
 vi.mock('./hooks/useFormatSelection', () => ({ useFormatSelection: () => useFormatSelection() }))
 vi.mock('./hooks/useMetagameBreakdown', () => ({ useMetagameBreakdown: () => useMetagameBreakdown() }))
 vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => useLastUpdated() }))
+vi.mock('./hooks/useDecks', () => ({ useDecks: () => useDecks() }))
 
 const setFormat = vi.fn()
 
@@ -23,6 +25,7 @@ beforeEach(() => {
   useFormatSelection.mockReturnValue({ format: 'ST', setFormat })
   useMetagameBreakdown.mockReturnValue({ data: [], loading: false, error: null })
   useLastUpdated.mockReturnValue(null)
+  useDecks.mockReturnValue({ decksByArchetype: {}, loading: false, error: null })
 })
 
 afterEach(() => {
@@ -115,6 +118,52 @@ describe('App dashboard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Last 2 months' }))
     })
     expect(screen.getByTestId('window-pill').textContent).toBe('Last 2 months')
+  })
+
+  it('expands an archetype with decks to show its decklist rows, and collapses again', () => {
+    useMetagameBreakdown.mockReturnValue({
+      data: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
+      loading: false,
+      error: null,
+    })
+    useDecks.mockReturnValue({
+      decksByArchetype: {
+        'Izzet Control': [
+          {
+            sourceDeckId: 'd1',
+            player: 'Norbspro',
+            placement: '1',
+            eventName: 'RCQ',
+            eventDate: '2026-06-20',
+            archetypeName: 'Izzet Control',
+            colorIdentity: 'UR',
+          },
+        ],
+      },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+
+    expect(screen.queryByTestId('deck-list')).toBeNull()
+    act(() => fireEvent.click(screen.getByRole('button', { name: /Izzet Control/ })))
+    expect(screen.getByTestId('deck-list')).toBeInTheDocument()
+    expect(screen.getByText('Norbspro')).toBeInTheDocument()
+
+    act(() => fireEvent.click(screen.getByRole('button', { name: /Izzet Control/ })))
+    expect(screen.queryByTestId('deck-list')).toBeNull()
+  })
+
+  it('does not make an archetype expandable when it has no decks', () => {
+    useMetagameBreakdown.mockReturnValue({
+      data: [{ rank: 1, name: 'Reanimator', colorIdentity: '', sharePct: 3 }],
+      loading: false,
+      error: null,
+    })
+    useDecks.mockReturnValue({ decksByArchetype: {}, loading: false, error: null })
+    render(<App />)
+    // No decks → the card is not a button and cannot expand.
+    expect(screen.queryByRole('button', { name: /Reanimator/ })).toBeNull()
   })
 
   it('localizes UI copy in Spanish but keeps MTG format names in English', () => {

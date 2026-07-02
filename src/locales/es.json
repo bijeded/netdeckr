@@ -24,6 +24,10 @@
     "empty": "Aún no hay datos del metajuego — vuelve pronto.",
     "updated": "Actualizado {{time}}"
   },
+  "decks": {
+    "heading": "Listas recientes",
+    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
+  },
   "language": {
     "label": "Idioma",
     "en": "EN",

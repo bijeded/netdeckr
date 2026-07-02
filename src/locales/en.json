@@ -24,6 +24,10 @@
     "empty": "No metagame data yet — check back soon.",
     "updated": "Updated {{time}}"
   },
+  "decks": {
+    "heading": "Recent decklists",
+    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
+  },
   "language": {
     "label": "Language",
     "en": "EN",
