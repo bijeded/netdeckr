@@ -359,6 +359,63 @@ class SupabaseWriter:
             updated += len(patch.json())
         return updated
 
+    def remap_scryfall(self, *, page_size: int = 1000) -> int:
+        """Fully re-resolve every existing deck_cards row against the resolver.
+
+        Unlike the sentinel-keyed backfills, this considers every distinct
+        `card_name` in the table (no `is.null` filter), so a later resolver,
+        printing-selection, or metadata heuristic change reaches already-enriched
+        rows. Pages by ascending id to gather the distinct names, then for each
+        name that resolves PATCHes all its rows — no sentinel filter — rewriting
+        every Scryfall column. A name that does not resolve (a miss) is skipped, so
+        existing data is never nulled out by a regression. Requires a card_resolver.
+        Idempotent with a deterministic resolver. Returns the number of rows updated.
+        """
+        if self._card_resolver is None:
+            raise RuntimeError("remap_scryfall requires a card_resolver")
+
+        names: set[str] = set()
+        cursor = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/deck_cards"
+                f"?id=gt.{cursor}"
+                f"&select=id,card_name&order=id.asc&limit={page_size}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
+                break
+            names.update(row["card_name"] for row in rows)
+            cursor = rows[-1]["id"]
+
+        updated = 0
+        for name in names:
+            printing = self._card_resolver.resolve(name)
+            if printing is None:
+                continue  # a miss never writes — existing data is left untouched
+            # Percent-encode the whole value (safe="" so commas/slashes escape too)
+            # and do NOT double-quote it — see backfill_scryfall for the rationale.
+            # No null sentinel on the filter, so already-enriched rows are rewritten.
+            patch = self._session.patch(
+                f"{self._rest}/deck_cards?card_name=eq.{quote(name, safe='')}",
+                headers={**self._headers, "Prefer": "return=representation"},
+                json={
+                    "scryfall_name": printing.name,
+                    "set_code": printing.set_code,
+                    "collector_number": printing.collector_number,
+                    "image_url": printing.image_url,
+                    "type_line": printing.type_line,
+                    "rarity": printing.rarity,
+                    "cmc": printing.cmc,
+                    "released_at": printing.released_at,
+                },
+            )
+            patch.raise_for_status()
+            updated += len(patch.json())
+        return updated
+
     def refresh_archetype_art(self, fmt: str) -> int:
         """Set each archetype's signature card + art for a format.
 
