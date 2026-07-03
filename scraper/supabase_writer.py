@@ -300,6 +300,65 @@ class SupabaseWriter:
             updated += len(patch.json())
         return updated
 
+    def backfill_metadata(self, *, page_size: int = 1000) -> int:
+        """Populate the card-metadata columns on existing deck_cards rows.
+
+        A one-time pass over rows missing the newer metadata. `type_line` is the
+        completeness sentinel (the first metadata column written for the refined
+        signature selection), so `type_line is null` covers both never-mapped rows
+        and rows enriched with identity/image before the metadata columns existed.
+        Pages those rows by ascending id (a cursor, so unresolvable rows don't loop
+        forever), collects the distinct scraped names, and PATCHes each resolvable
+        name's still-null rows, (re)writing all identity/image/metadata columns.
+        Requires a card_resolver. Idempotent: the `type_line=is.null` filter
+        excludes rows already carrying metadata; a re-run only revisits rows that
+        still miss (e.g. resolution misses). Returns the number of rows updated.
+        """
+        if self._card_resolver is None:
+            raise RuntimeError("backfill_metadata requires a card_resolver")
+
+        names: set[str] = set()
+        cursor = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/deck_cards"
+                f"?type_line=is.null&id=gt.{cursor}"
+                f"&select=id,card_name&order=id.asc&limit={page_size}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
+                break
+            names.update(row["card_name"] for row in rows)
+            cursor = rows[-1]["id"]
+
+        updated = 0
+        for name in names:
+            printing = self._card_resolver.resolve(name)
+            if printing is None:
+                continue
+            # Percent-encode the whole value (safe="" so commas/slashes escape too)
+            # and do NOT double-quote it — see backfill_scryfall for the rationale.
+            patch = self._session.patch(
+                f"{self._rest}/deck_cards"
+                f"?card_name=eq.{quote(name, safe='')}&type_line=is.null",
+                headers={**self._headers, "Prefer": "return=representation"},
+                json={
+                    "scryfall_name": printing.name,
+                    "set_code": printing.set_code,
+                    "collector_number": printing.collector_number,
+                    "image_url": printing.image_url,
+                    "type_line": printing.type_line,
+                    "rarity": printing.rarity,
+                    "cmc": printing.cmc,
+                    "released_at": printing.released_at,
+                },
+            )
+            patch.raise_for_status()
+            updated += len(patch.json())
+        return updated
+
     def refresh_archetype_art(self, fmt: str) -> int:
         """Set each archetype's signature card + art for a format.
 

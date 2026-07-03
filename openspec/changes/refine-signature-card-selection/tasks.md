@@ -21,9 +21,9 @@ Disciplined mode: each `##` group is one branch → PR → human merge. Groups 1
 
 ## 3. One-time `--backfill` mode (one PR)
 
-- [ ] 3.1 (TDD) `scraper/supabase_writer.py`: add a backfill path that re-resolves `deck_cards` rows missing the new metadata (e.g. `type_line is null`) and writes `type_line/rarity/cmc/released_at` (plus any missing identity/image columns), idempotently. Tests: rows missing metadata get filled; already-filled rows unchanged; unresolved rows stay null.
-- [ ] 3.2 (TDD) `scraper/run.py`: wire a `--backfill` flag (mirroring `--backfill-scryfall`) that runs the metadata backfill then `refresh_archetype_art` per format. Test the arg handling where feasible.
-- [ ] 3.3 `cd scraper && ./venv/bin/pytest`. Code-review subagent → github-pr.
+- [x] 3.1 (TDD) `scraper/supabase_writer.py`: add a backfill path that re-resolves `deck_cards` rows missing the new metadata (e.g. `type_line is null`) and writes `type_line/rarity/cmc/released_at` (plus any missing identity/image columns), idempotently. Tests: rows missing metadata get filled; already-filled rows unchanged; unresolved rows stay null.
+- [x] 3.2 (TDD) `scraper/run.py`: wire a `--backfill` flag (mirroring `--backfill-scryfall`) that runs the metadata backfill then `refresh_archetype_art` per format. Test the arg handling where feasible.
+- [x] 3.3 `cd scraper && ./venv/bin/pytest`. Code-review subagent → github-pr.
 
 ## 4. Deploy & verify (post-merge, human/service-role steps)
 

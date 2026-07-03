@@ -70,3 +70,33 @@ def test_backfill_flag_also_refreshes_archetype_art(monkeypatch):
     writer.backfill_scryfall.assert_called_once()
     # Backfill also refreshes archetype art for every format.
     assert writer.refresh_archetype_art.call_count == len(FORMATS)
+
+
+def test_metadata_backfill_flag_runs_backfill_and_refreshes_art(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    resolver = object()
+    monkeypatch.setattr(run, "build_card_resolver", lambda: resolver)
+    writer = MagicMock()
+    writer.backfill_metadata.return_value = 7
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+    sync_all = MagicMock()
+    monkeypatch.setattr(run, "sync_all", sync_all)
+
+    rc = run.main(["run.py", "--backfill"])
+
+    assert rc == 0
+    writer.backfill_metadata.assert_called_once()
+    writer.backfill_scryfall.assert_not_called()  # this mode fills the metadata columns
+    sync_all.assert_not_called()  # standalone mode, not a scrape
+    assert run.SupabaseWriter.call_args.kwargs.get("card_resolver") is resolver
+    # Recomputes each archetype's signature card + art from the refreshed rows.
+    assert writer.refresh_archetype_art.call_count == len(FORMATS)
+
+
+def test_metadata_backfill_flag_fails_when_bulk_sync_unavailable(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    monkeypatch.setattr(run, "build_card_resolver", lambda: None)  # Scryfall down
+
+    assert run.main(["run.py", "--backfill"]) == 1
