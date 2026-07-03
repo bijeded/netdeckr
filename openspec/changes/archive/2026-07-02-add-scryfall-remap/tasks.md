@@ -12,4 +12,4 @@ Disciplined mode. One cohesive PR (scraper + workflow, no schema change).
 ## 2. Post-merge (operator, service-role)
 
 - [ ] 2.1 After merge, when a resolver heuristic actually changes: Actions → run `scrape.yml` with format `remap-scryfall` (or `gh workflow run scrape.yml -f format=remap-scryfall`); note the rows-updated + per-format archetype-art counts.
-- [ ] 2.2 After all tasks: `/opsx:sync` deltas into `openspec/specs/`, then `/opsx:archive` (chore PR). Update `docs/HANDOFF.md` (mark deferred item #2 done).
+- [x] 2.2 After all tasks: `/opsx:sync` deltas into `openspec/specs/`, then `/opsx:archive` (chore PR). Update `docs/HANDOFF.md` (mark deferred item #2 done).
