@@ -18,7 +18,13 @@
     "games": ["paper", "mtgo"],
     "finishes": ["nonfoil", "foil"],
     "set_type": "masters",
-    "image_uris": { "normal": "https://cards.scryfall.io/normal/bolt-clu.jpg" }
+    "type_line": "Instant",
+    "rarity": "uncommon",
+    "cmc": 1,
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/bolt-clu.jpg",
+      "art_crop": "https://cards.scryfall.io/art_crop/bolt-clu.jpg"
+    }
   },
   {
     "name": "Lightning Bolt",
@@ -39,8 +45,17 @@
     "games": ["paper"],
     "finishes": ["nonfoil", "foil"],
     "set_type": "draft_innovation",
+    "type_line": "Instant // Instant",
+    "rarity": "uncommon",
+    "cmc": 2,
     "card_faces": [
-      { "name": "Fire", "image_uris": { "normal": "https://cards.scryfall.io/normal/fire.jpg" } },
+      {
+        "name": "Fire",
+        "image_uris": {
+          "normal": "https://cards.scryfall.io/normal/fire.jpg",
+          "art_crop": "https://cards.scryfall.io/art_crop/fire.jpg"
+        }
+      },
       { "name": "Ice", "image_uris": { "normal": "https://cards.scryfall.io/normal/ice.jpg" } }
     ]
   },

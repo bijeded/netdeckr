@@ -32,6 +32,11 @@ class Printing:
     set_code: str  # uppercased set code, matching Arena's "(SET) NUM"
     collector_number: str
     image_url: str | None = None  # hotlinked Scryfall CDN image (normal size), if any
+    art_crop_url: str | None = None  # hotlinked Scryfall CDN art_crop image, if any
+    type_line: str | None = None  # printing type line, e.g. "Creature — Elf"
+    rarity: str | None = None  # mythic/rare/uncommon/common
+    cmc: float | None = None  # converted mana cost
+    released_at: str | None = None  # printing's set release date (ISO YYYY-MM-DD)
 
 
 def _normalize(name: str) -> str:
@@ -91,6 +96,19 @@ def _normal_image_url(row: dict) -> str | None:
     return None
 
 
+def _art_crop_url(row: dict) -> str | None:
+    """The printing's `art_crop`-size image URL. Split/DFC cards carry no top-level
+    `image_uris`; fall back to the front face's (mirrors `_normal_image_url`)."""
+    top = (row.get("image_uris") or {}).get("art_crop")
+    if top:
+        return top
+    for face in row.get("card_faces") or []:
+        face_url = (face.get("image_uris") or {}).get("art_crop")
+        if face_url:
+            return face_url
+    return None
+
+
 def _name_keys(row: dict):
     """Yield the lookup keys a printing should answer to: the full name and,
     for split/DFC/adventure cards, each individual face name. The `//` split and
@@ -134,6 +152,11 @@ class CardIndex:
                 set_code=str(row["set"]).upper(),
                 collector_number=str(row["collector_number"]),
                 image_url=_normal_image_url(row),
+                art_crop_url=_art_crop_url(row),
+                type_line=row.get("type_line"),
+                rarity=row.get("rarity"),
+                cmc=row.get("cmc"),
+                released_at=row.get("released_at"),
             )
             for key in _name_keys(row):
                 by_name.setdefault(key, printing)

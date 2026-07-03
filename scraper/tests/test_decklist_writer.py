@@ -102,6 +102,10 @@ def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
                 set_code="CLU",
                 collector_number="141",
                 image_url="https://cards.scryfall.io/normal/bolt.jpg",
+                type_line="Instant",
+                rarity="uncommon",
+                cmc=1,
+                released_at="2024-02-23",
             )
         }
     )
@@ -114,18 +118,26 @@ def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
     writer.replace_deck_cards(9, cards)
 
     rows = session.post.call_args[1]["json"]
-    # Resolvable card carries the canonical Scryfall identity + image.
+    # Resolvable card carries the canonical Scryfall identity + image + metadata.
     assert rows[0]["scryfall_name"] == "Lightning Bolt"
     assert rows[0]["set_code"] == "CLU"
     assert rows[0]["collector_number"] == "141"
     assert rows[0]["image_url"] == "https://cards.scryfall.io/normal/bolt.jpg"
     assert rows[0]["card_name"] == "Lightning Bolt"
+    assert rows[0]["type_line"] == "Instant"
+    assert rows[0]["rarity"] == "uncommon"
+    assert rows[0]["cmc"] == 1
+    assert rows[0]["released_at"] == "2024-02-23"
     # A miss leaves the Scryfall columns null (scraped name retained).
     assert rows[1]["card_name"] == "Homebrew Nonsense"
     assert rows[1]["scryfall_name"] is None
     assert rows[1]["set_code"] is None
     assert rows[1]["collector_number"] is None
     assert rows[1]["image_url"] is None
+    assert rows[1]["type_line"] is None
+    assert rows[1]["rarity"] is None
+    assert rows[1]["cmc"] is None
+    assert rows[1]["released_at"] is None
 
 
 def test_replace_deck_cards_without_resolver_omits_scryfall_columns():
@@ -323,8 +335,17 @@ def test_backfill_scryfall_no_null_rows_is_a_noop():
 
 # -- Archetype signature-card art ------------------------------------------
 
-def _card_row(cid, name, qty):
-    return {"id": cid, "card_name": name, "quantity": qty, "decks": {"archetype_id": 5}}
+def _card_row(cid, name, qty, *, type_line="Creature", rarity=None, cmc=None, released_at=None):
+    return {
+        "id": cid,
+        "card_name": name,
+        "quantity": qty,
+        "type_line": type_line,
+        "rarity": rarity,
+        "cmc": cmc,
+        "released_at": released_at,
+        "decks": {"archetype_id": 5},
+    }
 
 
 def test_refresh_archetype_art_requires_a_resolver():
@@ -342,7 +363,7 @@ def test_refresh_archetype_art_picks_most_played_nonland_and_stores_art():
         _response([{"id": 5, "name": "Izzet Prowess"}]),
         _response(
             [
-                _card_row(1, "Island", 8),  # basic land — excluded even though most copies
+                _card_row(1, "Island", 8, type_line="Basic Land — Island"),  # land — excluded
                 _card_row(2, "Fable of the Mirror-Breaker", 12),
                 _card_row(3, "Fable of the Mirror-Breaker", 4),  # another deck, same card
                 _card_row(4, "Torch the Tower", 6),
@@ -358,6 +379,7 @@ def test_refresh_archetype_art_picks_most_played_nonland_and_stores_art():
                 set_code="NEO",
                 collector_number="141",
                 image_url="https://cards.scryfall.io/normal/fable.jpg",
+                art_crop_url="https://cards.scryfall.io/art_crop/fable.jpg",
             )
         }
     )
@@ -373,6 +395,7 @@ def test_refresh_archetype_art_picks_most_played_nonland_and_stores_art():
     # Signature is the most-played NON-land card (Fable 16 > Torch 6; Island excluded).
     assert body["signature_card_name"] == "Fable of the Mirror-Breaker"
     assert body["art_image_url"] == "https://cards.scryfall.io/normal/fable.jpg"
+    assert body["art_crop_url"] == "https://cards.scryfall.io/art_crop/fable.jpg"
 
 
 def test_refresh_archetype_art_leaves_unresolvable_top_card_null():
@@ -394,7 +417,12 @@ def test_refresh_archetype_art_skips_archetype_with_only_lands():
     session = MagicMock()
     session.get.side_effect = [
         _response([{"id": 5, "name": "Landfall Weird"}]),
-        _response([_card_row(1, "Mountain", 20), _card_row(2, "Forest", 4)]),
+        _response(
+            [
+                _card_row(1, "Mountain", 20, type_line="Basic Land — Mountain"),
+                _card_row(2, "Forest", 4, type_line="Basic Land — Forest"),
+            ]
+        ),
         _response([]),
     ]
     resolver = _StubResolver({"Mountain": Printing(name="Mountain", set_code="X", collector_number="1")})
@@ -402,15 +430,125 @@ def test_refresh_archetype_art_skips_archetype_with_only_lands():
 
     writer.refresh_archetype_art("MO")
 
-    session.patch.assert_not_called()  # only basic lands -> no signature card
+    session.patch.assert_not_called()  # only lands -> no signature card
 
 
-def test_refresh_archetype_art_breaks_count_ties_by_name_ascending():
+def test_refresh_archetype_art_excludes_nonbasic_land_by_type():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Aggro"}]),
+        _response(
+            [
+                # A 4-of nonbasic land has the most copies but is excluded by type.
+                _card_row(1, "Den of the Bugbear", 16, type_line="Land"),
+                _card_row(2, "Monastery Swiftspear", 8, type_line="Creature — Human Monk"),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {"Monastery Swiftspear": Printing(name="Monastery Swiftspear", set_code="X", collector_number="1", image_url="s.jpg")}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    body = session.patch.call_args[1]["json"]
+    assert body["signature_card_name"] == "Monastery Swiftspear"  # land excluded
+
+
+def test_refresh_archetype_art_breaks_count_ties_by_rarity_then_set_then_cmc_then_name():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Tiebreaks"}]),
+        _response(
+            [
+                # All tied at 8 copies. Ranking: rarity > set recency > cmc > name.
+                _card_row(1, "Common Zebra", 8, rarity="common", released_at="2025-01-01", cmc=5),
+                _card_row(2, "Mythic Payoff", 8, rarity="mythic", released_at="2020-01-01", cmc=1),
+                _card_row(3, "Rare Newer", 8, rarity="rare", released_at="2026-01-01", cmc=2),
+                _card_row(4, "Rare Older", 8, rarity="rare", released_at="2019-01-01", cmc=9),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {"Mythic Payoff": Printing(name="Mythic Payoff", set_code="X", collector_number="1", image_url="m.jpg")}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    body = session.patch.call_args[1]["json"]
+    # Highest rarity wins the quantity tie outright.
+    assert body["signature_card_name"] == "Mythic Payoff"
+
+
+def test_refresh_archetype_art_set_recency_and_cmc_break_rarity_ties():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "SetTie"}]),
+        _response(
+            [
+                # Both rare, tied at 8. Newer set wins; if same set, higher cmc.
+                _card_row(1, "Old Rare", 8, rarity="rare", released_at="2020-01-01", cmc=6),
+                _card_row(2, "New Rare Low", 8, rarity="rare", released_at="2026-01-01", cmc=2),
+                _card_row(3, "New Rare High", 8, rarity="rare", released_at="2026-01-01", cmc=4),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {"New Rare High": Printing(name="New Rare High", set_code="X", collector_number="1", image_url="h.jpg")}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    body = session.patch.call_args[1]["json"]
+    # Newest set (2026) with the higher cmc (4 > 2) wins.
+    assert body["signature_card_name"] == "New Rare High"
+
+
+def test_refresh_archetype_art_resolved_metadata_beats_null_at_equal_quantity():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "NullLast"}]),
+        _response(
+            [
+                # Tied at 8. One has resolved rarity; the other has all-null metadata.
+                _card_row(1, "Unresolved Card", 8, rarity=None, released_at=None, cmc=None),
+                _card_row(2, "Resolved Rare", 8, rarity="rare", released_at="2024-01-01", cmc=3),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {"Resolved Rare": Printing(name="Resolved Rare", set_code="X", collector_number="1", image_url="r.jpg")}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    body = session.patch.call_args[1]["json"]
+    assert body["signature_card_name"] == "Resolved Rare"  # null metadata sorts last
+
+
+def test_refresh_archetype_art_breaks_full_ties_by_name_ascending():
     session = MagicMock()
     session.get.side_effect = [
         _response([{"id": 5, "name": "Even Split"}]),
-        # Two non-land cards tied at 8 copies each; the alphabetically-first wins.
-        _response([_card_row(1, "Zenith Flare", 8), _card_row(2, "Abrade", 8)]),
+        # Two non-land cards tied on quantity and all metadata; name breaks it.
+        _response(
+            [
+                _card_row(1, "Zenith Flare", 8, rarity="rare", released_at="2024-01-01", cmc=3),
+                _card_row(2, "Abrade", 8, rarity="rare", released_at="2024-01-01", cmc=3),
+            ]
+        ),
         _response([]),
     ]
     session.patch.return_value = _response([{"id": 5}])

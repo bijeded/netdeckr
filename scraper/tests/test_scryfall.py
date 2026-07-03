@@ -32,11 +32,26 @@ def test_resolves_known_card_to_a_printing():
     assert printing.image_url == "https://cards.scryfall.io/normal/bolt-clu.jpg"
 
 
+def test_resolved_printing_carries_card_metadata():
+    printing = _index().resolve("Lightning Bolt")
+    assert printing.type_line == "Instant"
+    assert printing.rarity == "uncommon"
+    assert printing.cmc == 1
+    assert printing.released_at == "2024-02-23"
+    assert printing.art_crop_url == "https://cards.scryfall.io/art_crop/bolt-clu.jpg"
+
+
 def test_split_card_printing_uses_front_face_image():
     # Split/DFC cards carry no top-level image_uris; use the front face's.
     printing = _index().resolve("Fire / Ice")
     assert printing is not None
     assert printing.image_url == "https://cards.scryfall.io/normal/fire.jpg"
+
+
+def test_split_card_art_crop_uses_front_face():
+    # Split/DFC cards carry no top-level image_uris; art_crop uses the front face's.
+    printing = _index().resolve("Fire / Ice")
+    assert printing.art_crop_url == "https://cards.scryfall.io/art_crop/fire.jpg"
 
 
 def test_prefers_most_recent_nonfoil_paper_printing_and_skips_digital():
