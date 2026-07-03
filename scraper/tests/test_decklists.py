@@ -47,6 +47,21 @@ def test_event_list_missing_date_is_none():
     assert by_id["87444"].event_date is None
 
 
+def test_event_list_parses_page_two_with_distinct_events():
+    # A paginated (cp=2) events page has the same row structure as page 1 but
+    # distinct event ids, so the pagination loop accumulates new events.
+    events = parse_event_list(_load("event_list_ST_p2.html"))
+    assert [e.source_event_id for e in events] == ["87498", "87151", "87045"]
+    by_id = {e.source_event_id: e for e in events}
+    assert by_id["87498"].name == "MTGO RC Super Qualifier"
+    assert by_id["87045"].event_date == "2026-06-20"
+
+
+def test_event_list_empty_page_has_no_events():
+    # A page beyond the last yields no event rows (the pagination stop signal).
+    assert parse_event_list(_load("event_list_empty.html")) == []
+
+
 # --- parse_event_decks ------------------------------------------------------
 
 

@@ -31,7 +31,10 @@ from supabase_writer import SupabaseWriter
 USER_AGENT = "MetaStack/0.1 (metagame dashboard; +https://github.com/bijeded/metastack)"
 REQUEST_DELAY_SECONDS = 2  # respectful rate limiting between requests (fair use)
 REQUEST_TIMEOUT_SECONDS = 30
-RETENTION_DAYS = 182  # ~6 months; data older than this is pruned each run
+RETENTION_DAYS = 30  # data older than this is pruned each run
+# The decklist pass gathers only the two-week window (which contains the last five
+# days by date); the metagame breakdown still uses both logical windows (WINDOWS).
+DECKLIST_WINDOWS = ["2weeks"]
 SCRYFALL_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "scryfall")
 
 
@@ -62,12 +65,13 @@ def _get(url: str) -> str:
     return response.text
 
 
-def fetch(fmt: str, window: str) -> str:
-    """Fetch a format's page for one logical window.
+def fetch(fmt: str, window: str, cp: int | None = None) -> str:
+    """Fetch a format's page for one logical window (optionally a later events page).
 
-    Resolves the logical window to that format's MTGTop8 `meta` ID.
+    Resolves the logical window to that format's MTGTop8 `meta` ID; ``cp`` selects a
+    1-based events-list page (``None`` = page 1) for decklist pagination.
     """
-    return _get(format_url(fmt, meta_id_for(fmt, window)))
+    return _get(format_url(fmt, meta_id_for(fmt, window), cp))
 
 
 def fetch_event(fmt: str, event_id: str, deck_id: str | None = None) -> str:
@@ -183,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
             known = set()
         deck_count = sync_decklists(
             fmt,
-            WINDOWS,
+            DECKLIST_WINDOWS,
             fetch_format_page=fetch,
             fetch_event_page=fetch_event,
             writer=writer,

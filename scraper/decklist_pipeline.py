@@ -15,33 +15,49 @@ from typing import AbstractSet, Callable, Optional
 
 from mtgtop8 import parse_decklist, parse_event_decks, parse_event_list
 
+# Safety cap on how many events-list pages to follow per window. MTGTop8 shows
+# ~24 events per page; the two-week window is a handful of pages, so this only
+# bounds a runaway (e.g. a page that never stops yielding new events).
+DEFAULT_MAX_PAGES = 20
+
 
 def sync_decklists(
     fmt: str,
     windows: list[str],
     *,
-    fetch_format_page: Callable[[str, str], str],
+    fetch_format_page: Callable[..., str],
     fetch_event_page: Callable[..., str],
     writer,
     skip_event_ids: AbstractSet[str] = frozenset(),
     on_error: Optional[Callable[[str, str, Exception], None]] = None,
+    max_pages: int = DEFAULT_MAX_PAGES,
 ) -> int:
     """Scrape and store every new event and deck for one format.
 
-    Gathers events from each window's format page (deduped by source event id),
-    then per event stores the event, each deck (get-or-create archetype), and each
-    deck's cards. Events whose id is in ``skip_event_ids`` are skipped entirely
-    (no results/deck fetches) — a past event's decklists do not change, so daily
-    runs only fetch new events. A failure on one window or one event does not
-    abort the rest. Returns the number of decks stored.
+    Gathers events from each window's format page — following every page of the
+    events list (``&cp=2``, ``&cp=3``, …) until a page yields no new events or the
+    ``max_pages`` cap is reached — deduped by source event id across pages and
+    windows. Then per event stores the event, each deck (get-or-create archetype),
+    and each deck's cards. Events whose id is in ``skip_event_ids`` are skipped
+    entirely (no results/deck fetches) — a past event's decklists do not change,
+    so daily runs only fetch new events (and, since MTGTop8 lists newest-first, a
+    first all-known page halts pagination cheaply). A failure on one window or one
+    event does not abort the rest. Returns the number of decks stored.
     """
     events = {}
     for window in windows:
         try:
-            for event in parse_event_list(fetch_format_page(fmt, window)):
-                if event.source_event_id in skip_event_ids:
-                    continue
-                events.setdefault(event.source_event_id, event)
+            for page in range(1, max_pages + 1):
+                html = fetch_format_page(fmt, window) if page == 1 else fetch_format_page(fmt, window, page)
+                new_on_page = 0
+                for event in parse_event_list(html):
+                    if event.source_event_id in skip_event_ids:
+                        continue
+                    if event.source_event_id not in events:
+                        events[event.source_event_id] = event
+                        new_on_page += 1
+                if new_on_page == 0:
+                    break  # past the last page (empty, repeated, or all already-known)
         except Exception as exc:  # noqa: BLE001 — one bad window must not stop the rest
             if on_error is not None:
                 on_error(fmt, window, exc)

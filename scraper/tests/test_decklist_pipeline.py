@@ -80,6 +80,102 @@ def test_deck_pages_fetched_per_deck():
     assert len(deck_fetches) == 12
 
 
+def test_pagination_follows_and_dedupes_across_pages():
+    writer = _fake_writer()
+    fetch_format_page = MagicMock(
+        side_effect=[
+            _load("event_list_ST.html"),     # page 1: 87496, 87497, 87444
+            _load("event_list_ST_p2.html"),  # page 2: 87498, 87151, 87045
+            _load("event_list_empty.html"),  # page 3: no events -> stop
+        ]
+    )
+    fetch_event_page = MagicMock(return_value=_load("event_ST.html"))
+
+    sync_decklists(
+        "ST",
+        ["2weeks"],
+        fetch_format_page=fetch_format_page,
+        fetch_event_page=fetch_event_page,
+        writer=writer,
+    )
+
+    # 3 events on page 1 + 3 distinct events on page 2 = 6 events stored.
+    assert writer.upsert_event.call_count == 6
+    # Pages 2 and 3 were requested with a cp page number (3rd positional arg).
+    cps = [c.args[2] for c in fetch_format_page.call_args_list if len(c.args) >= 3]
+    assert cps == [2, 3]
+
+
+def test_pagination_stops_when_a_page_has_no_new_events():
+    writer = _fake_writer()
+    # Every page returns the same three events; page 2 yields nothing new -> stop.
+    fetch_format_page = MagicMock(return_value=_load("event_list_ST.html"))
+    fetch_event_page = MagicMock(return_value=_load("event_ST.html"))
+
+    sync_decklists(
+        "ST",
+        ["2weeks"],
+        fetch_format_page=fetch_format_page,
+        fetch_event_page=fetch_event_page,
+        writer=writer,
+    )
+
+    # Page 1 (3 new) then page 2 (0 new) -> exactly two page fetches, 3 events.
+    assert fetch_format_page.call_count == 2
+    assert writer.upsert_event.call_count == 3
+
+
+def test_pagination_respects_the_page_cap():
+    writer = _fake_writer()
+    counter = {"n": 0}
+
+    def unique_page(*_args, **_kwargs):
+        counter["n"] += 1
+        i = counter["n"]
+        return (
+            "<table><tr class=hover_tr>"
+            f"<td class=S14><a href=event?e=90{i:03d}&f=ST>E{i}</a></td>"
+            "<td class=S12>01/07/26</td></tr></table>"
+        )
+
+    # Every page returns a brand-new event, so only the cap can stop the loop.
+    fetch_format_page = MagicMock(side_effect=unique_page)
+    fetch_event_page = MagicMock(return_value=_load("event_ST.html"))
+
+    sync_decklists(
+        "ST",
+        ["2weeks"],
+        fetch_format_page=fetch_format_page,
+        fetch_event_page=fetch_event_page,
+        writer=writer,
+        max_pages=3,
+    )
+
+    assert fetch_format_page.call_count == 3  # capped at max_pages
+    assert writer.upsert_event.call_count == 3  # one new event per page
+
+
+def test_pagination_short_circuits_when_first_page_all_known():
+    writer = _fake_writer()
+    # All of page 1's events are already stored; MTGTop8 lists newest-first, so no
+    # new event lies deeper — pagination halts after a single fetch on daily runs.
+    fetch_format_page = MagicMock(return_value=_load("event_list_ST.html"))
+    fetch_event_page = MagicMock(return_value=_load("event_ST.html"))
+
+    count = sync_decklists(
+        "ST",
+        ["2weeks"],
+        fetch_format_page=fetch_format_page,
+        fetch_event_page=fetch_event_page,
+        writer=writer,
+        skip_event_ids={"87496", "87497", "87444"},
+    )
+
+    assert fetch_format_page.call_count == 1  # a first all-known page halts pagination
+    assert count == 0
+    writer.upsert_event.assert_not_called()
+
+
 def test_incremental_skips_known_events():
     writer = _fake_writer()
     fetch_event_page = MagicMock(return_value=_load("event_ST.html"))

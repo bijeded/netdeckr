@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head><title>Standard events and metagame @ mtgtop8.com</title></head>
+<body>
+<!--
+  Minimal, structurally-faithful MTGTop8 fixture for PAGE 2 of a format page's
+  events table (f=ST&meta=50&cp=2). Same <tr class=hover_tr> structure as page 1
+  (event_list_ST.html) but with three DISTINCT event ids, so the pagination loop's
+  accumulate/dedupe across pages is exercised. Also carries a trimmed Nav pager
+  (Nav_norm links + a Nav_cur marker for the current page) mirroring the live page.
+  Verified against a live cp=2 page; never regenerate casually — see CLAUDE.md
+  "Do not modify".
+-->
+<table>
+  <tr class=hover_tr>
+    <td width=5% align=center><img src=/graph/online/mtgo.png height=14 title="MTG Online"></td>
+    <td width=70% class=S14><a href=event?e=87498&f=ST>MTGO RC Super Qualifier</a></td>
+    <td width=13% align=center><img src=/graph/star.png><img src=/graph/star.png></td>
+    <td align=right width=12% class=S12>28/06/26</td>
+  </tr>
+  <tr class=hover_tr>
+    <td width=5% align=center><img src=/graph/online/mtgo.png height=14 title="MTG Online"></td>
+    <td width=70% class=S14><a href=event?e=87151&f=ST>MTGO Challenge 32</a></td>
+    <td width=13% align=center><img src=/graph/star.png><img src=/graph/star.png></td>
+    <td align=right width=12% class=S12>21/06/26</td>
+  </tr>
+  <tr class=hover_tr>
+    <td width=5% align=center><img src=/graph/online/paper.png height=17 title="Paper"></td>
+    <td width=70% class=S14><a href=event?e=87045&f=ST>AID Invitational Qualifier</a> @ <a class=und href=event?e=87045&f=ST>Ancestral Info Depot</a></td>
+    <td width=13% align=center><img src=/graph/star.png></td>
+    <td align=right width=12% class=S12>20/06/26</td>
+  </tr>
+</table>
+<div class=Nav_norm><a href=?f=ST&meta=50&cp=1>Prev</a></div>
+<div class=Nav_norm><a href=?f=ST&meta=50&cp=1>1</a></div>
+<div class=Nav_cur>2</div>
+</body>
+</html>
