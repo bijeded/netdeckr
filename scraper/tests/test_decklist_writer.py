@@ -333,6 +333,95 @@ def test_backfill_scryfall_no_null_rows_is_a_noop():
     session.patch.assert_not_called()
 
 
+# -- Metadata backfill -----------------------------------------------------
+
+def test_backfill_metadata_requires_a_resolver():
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        _writer(MagicMock()).backfill_metadata()
+
+
+def test_backfill_metadata_pages_on_type_line_and_writes_all_columns():
+    session = MagicMock()
+    # One page of rows missing metadata (type_line is null), then an empty page.
+    session.get.side_effect = [
+        _response(
+            [
+                {"id": 1, "card_name": "Lightning Bolt"},
+                {"id": 2, "card_name": "Lightning Bolt"},
+                {"id": 3, "card_name": "Homebrew Nonsense"},  # unresolvable
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 1}, {"id": 2}])
+    resolver = _StubResolver(
+        {
+            "Lightning Bolt": Printing(
+                name="Lightning Bolt",
+                set_code="CLU",
+                collector_number="141",
+                image_url="https://cards.scryfall.io/normal/bolt.jpg",
+                art_crop_url="https://cards.scryfall.io/art_crop/bolt.jpg",
+                type_line="Instant",
+                rarity="uncommon",
+                cmc=1,
+                released_at="2024-02-23",
+            )
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    updated = writer.backfill_metadata()
+
+    assert updated == 2  # only the resolvable rows counted
+    # Rows are read paging on the type_line sentinel.
+    read_url = session.get.call_args_list[0][0][0]
+    assert "type_line=is.null" in read_url
+    assert session.patch.call_count == 1
+    patch_url = session.patch.call_args[0][0]
+    assert "/rest/v1/deck_cards" in patch_url
+    assert "type_line=is.null" in patch_url  # sentinel filter on the PATCH too
+    assert "card_name=eq.Lightning%20Bolt" in patch_url
+    assert "%22" not in patch_url
+    body = session.patch.call_args[1]["json"]
+    # All columns are (re)written, including identity/image and the new metadata.
+    assert body == {
+        "scryfall_name": "Lightning Bolt",
+        "set_code": "CLU",
+        "collector_number": "141",
+        "image_url": "https://cards.scryfall.io/normal/bolt.jpg",
+        "type_line": "Instant",
+        "rarity": "uncommon",
+        "cmc": 1,
+        "released_at": "2024-02-23",
+    }
+
+
+def test_backfill_metadata_skips_unresolvable_names():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 1, "card_name": "Totally Made Up"}]),
+        _response([]),
+    ]
+    resolver = _StubResolver({})  # nothing resolves
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    assert writer.backfill_metadata() == 0
+    session.patch.assert_not_called()  # unresolved rows stay null
+
+
+def test_backfill_metadata_no_null_rows_is_a_noop():
+    session = MagicMock()
+    session.get.return_value = _response([])  # nothing missing metadata
+    resolver = _StubResolver({})
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    assert writer.backfill_metadata() == 0
+    session.patch.assert_not_called()
+
+
 # -- Archetype signature-card art ------------------------------------------
 
 def _card_row(cid, name, qty, *, type_line="Creature", rarity=None, cmc=None, released_at=None):

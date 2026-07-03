@@ -10,6 +10,7 @@ SUPABASE_SERVICE_ROLE_KEY set.
     python scraper/run.py                    # scrape all formats
     python scraper/run.py ST                 # scrape one format
     python scraper/run.py --backfill-scryfall  # one-time: map existing deck_cards
+    python scraper/run.py --backfill           # one-time: fill card metadata + art_crop
 """
 from __future__ import annotations
 
@@ -87,6 +88,16 @@ def formats_to_scrape(argv: list[str], available) -> list[str]:
     return list(available)
 
 
+def _refresh_all_archetype_art(writer: SupabaseWriter) -> None:
+    """Recompute every format's archetype signature card + art (best-effort)."""
+    for fmt in FORMATS:
+        try:
+            arts = writer.refresh_archetype_art(fmt)
+            print(f"{fmt}/archetype-art: {arts} archetypes")
+        except Exception as exc:  # noqa: BLE001 — art is best-effort
+            print(f"[error] {fmt}/archetype-art: {exc}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
     try:
@@ -105,13 +116,23 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         writer = SupabaseWriter(url, key, card_resolver=resolver)
         updated = writer.backfill_scryfall()
-        print(f"backfill: enriched {updated} deck_cards rows")
-        for fmt in FORMATS:
-            try:
-                arts = writer.refresh_archetype_art(fmt)
-                print(f"{fmt}/archetype-art: {arts} archetypes")
-            except Exception as exc:  # noqa: BLE001 — art is best-effort
-                print(f"[error] {fmt}/archetype-art: {exc}", file=sys.stderr)
+        print(f"backfill-scryfall: enriched {updated} deck_cards rows")
+        _refresh_all_archetype_art(writer)
+        return 0
+
+    if "--backfill" in argv:
+        # One-time mode: fill the card-metadata columns (type_line/rarity/cmc/
+        # released_at, plus any missing identity/image) on existing deck_cards rows,
+        # then recompute archetype signature cards + art from the refreshed rows. A
+        # standalone pass — it does not scrape.
+        resolver = build_card_resolver()
+        if resolver is None:
+            print("Scryfall bulk sync unavailable; cannot backfill", file=sys.stderr)
+            return 1
+        writer = SupabaseWriter(url, key, card_resolver=resolver)
+        updated = writer.backfill_metadata()
+        print(f"backfill: enriched {updated} deck_cards rows with card metadata")
+        _refresh_all_archetype_art(writer)
         return 0
 
     formats = formats_to_scrape(argv, FORMATS)
