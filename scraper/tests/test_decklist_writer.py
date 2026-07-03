@@ -422,6 +422,96 @@ def test_backfill_metadata_no_null_rows_is_a_noop():
     session.patch.assert_not_called()
 
 
+# -- Scryfall remap (full re-resolution) -----------------------------------
+
+def test_remap_scryfall_requires_a_resolver():
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        _writer(MagicMock()).remap_scryfall()
+
+
+def test_remap_scryfall_rewrites_all_columns_for_resolvable_names():
+    session = MagicMock()
+    # A page of rows (some already enriched) then an empty page. Remap does NOT
+    # filter on a null sentinel — every distinct name is reconsidered.
+    session.get.side_effect = [
+        _response(
+            [
+                {"id": 1, "card_name": "Lightning Bolt"},
+                {"id": 2, "card_name": "Lightning Bolt"},
+                {"id": 3, "card_name": "Homebrew Nonsense"},  # unresolvable
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 1}, {"id": 2}])
+    resolver = _StubResolver(
+        {
+            "Lightning Bolt": Printing(
+                name="Lightning Bolt",
+                set_code="CLU",
+                collector_number="141",
+                image_url="https://cards.scryfall.io/normal/bolt.jpg",
+                art_crop_url="https://cards.scryfall.io/art_crop/bolt.jpg",
+                type_line="Instant",
+                rarity="uncommon",
+                cmc=1,
+                released_at="2024-02-23",
+            )
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    updated = writer.remap_scryfall()
+
+    assert updated == 2  # only the resolvable rows counted
+    # Read pages over ALL rows — no null sentinel on the read.
+    read_url = session.get.call_args_list[0][0][0]
+    assert "is.null" not in read_url
+    assert session.patch.call_count == 1
+    patch_url = session.patch.call_args[0][0]
+    assert "/rest/v1/deck_cards" in patch_url
+    # PATCH targets the name with NO null sentinel — rewrites already-enriched rows.
+    assert "is.null" not in patch_url
+    assert "card_name=eq.Lightning%20Bolt" in patch_url
+    assert "%22" not in patch_url
+    body = session.patch.call_args[1]["json"]
+    assert body == {
+        "scryfall_name": "Lightning Bolt",
+        "set_code": "CLU",
+        "collector_number": "141",
+        "image_url": "https://cards.scryfall.io/normal/bolt.jpg",
+        "type_line": "Instant",
+        "rarity": "uncommon",
+        "cmc": 1,
+        "released_at": "2024-02-23",
+    }
+
+
+def test_remap_scryfall_skips_misses_leaving_rows_untouched():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 1, "card_name": "Totally Made Up"}]),
+        _response([]),
+    ]
+    resolver = _StubResolver({})  # nothing resolves
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    assert writer.remap_scryfall() == 0
+    session.patch.assert_not_called()  # a miss never writes -> existing data untouched
+
+
+def test_remap_scryfall_empty_table_is_a_noop():
+    session = MagicMock()
+    session.get.return_value = _response([])
+    resolver = _StubResolver({})
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    assert writer.remap_scryfall() == 0
+    session.patch.assert_not_called()
+
+
 # -- Archetype signature-card art ------------------------------------------
 
 def _card_row(cid, name, qty, *, type_line="Creature", rarity=None, cmc=None, released_at=None):

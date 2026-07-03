@@ -11,6 +11,7 @@ SUPABASE_SERVICE_ROLE_KEY set.
     python scraper/run.py ST                 # scrape one format
     python scraper/run.py --backfill-scryfall  # one-time: map existing deck_cards
     python scraper/run.py --backfill           # one-time: fill card metadata + art_crop
+    python scraper/run.py --remap-scryfall     # one-time: re-resolve ALL rows (heuristic changes)
 """
 from __future__ import annotations
 
@@ -117,6 +118,21 @@ def main(argv: list[str] | None = None) -> int:
         writer = SupabaseWriter(url, key, card_resolver=resolver)
         updated = writer.backfill_scryfall()
         print(f"backfill-scryfall: enriched {updated} deck_cards rows")
+        _refresh_all_archetype_art(writer)
+        return 0
+
+    if "--remap-scryfall" in argv:
+        # One-time mode: fully re-resolve EVERY existing deck_cards row against the
+        # current resolver (not just sentinel-null rows), so a later resolver change
+        # reaches already-enriched rows, then recompute archetype signature cards +
+        # art. A standalone pass — it does not scrape.
+        resolver = build_card_resolver()
+        if resolver is None:
+            print("Scryfall bulk sync unavailable; cannot remap", file=sys.stderr)
+            return 1
+        writer = SupabaseWriter(url, key, card_resolver=resolver)
+        updated = writer.remap_scryfall()
+        print(f"remap-scryfall: re-resolved {updated} deck_cards rows")
         _refresh_all_archetype_art(writer)
         return 0
 

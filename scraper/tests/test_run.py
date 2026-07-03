@@ -100,3 +100,34 @@ def test_metadata_backfill_flag_fails_when_bulk_sync_unavailable(monkeypatch):
     monkeypatch.setattr(run, "build_card_resolver", lambda: None)  # Scryfall down
 
     assert run.main(["run.py", "--backfill"]) == 1
+
+
+def test_remap_flag_runs_remap_and_refreshes_art(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    resolver = object()
+    monkeypatch.setattr(run, "build_card_resolver", lambda: resolver)
+    writer = MagicMock()
+    writer.remap_scryfall.return_value = 12
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+    sync_all = MagicMock()
+    monkeypatch.setattr(run, "sync_all", sync_all)
+
+    rc = run.main(["run.py", "--remap-scryfall"])
+
+    assert rc == 0
+    writer.remap_scryfall.assert_called_once()
+    writer.backfill_scryfall.assert_not_called()
+    writer.backfill_metadata.assert_not_called()
+    sync_all.assert_not_called()  # standalone mode, not a scrape
+    assert run.SupabaseWriter.call_args.kwargs.get("card_resolver") is resolver
+    # Recomputes each archetype's signature card + art from the refreshed rows.
+    assert writer.refresh_archetype_art.call_count == len(FORMATS)
+
+
+def test_remap_flag_fails_when_bulk_sync_unavailable(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    monkeypatch.setattr(run, "build_card_resolver", lambda: None)  # Scryfall down
+
+    assert run.main(["run.py", "--remap-scryfall"]) == 1
