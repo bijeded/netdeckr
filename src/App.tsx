@@ -214,6 +214,7 @@ function App() {
                         colors={archetype.colorIdentity}
                         sharePct={archetype.sharePct}
                         artImageUrl={archetype.artImageUrl}
+                        artCropUrl={archetype.artCropUrl}
                         maxPct={maxPct}
                         expanded={expanded}
                         style={expanded ? { gridColumn: '1 / -1' } : undefined}

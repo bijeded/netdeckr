@@ -27,6 +27,39 @@ describe('ArchetypeCard', () => {
     expect(img).toHaveAttribute('alt', '')
   })
 
+  it('prefers the cropped art URL over the normal image', () => {
+    render(
+      <ArchetypeCard
+        rank={1}
+        name="Izzet Control"
+        colors="UR"
+        sharePct={24}
+        artImageUrl="https://cards.scryfall.io/normal/fable.jpg"
+        artCropUrl="https://cards.scryfall.io/art_crop/fable.jpg"
+      />,
+    )
+    expect(screen.getByTestId('archetype-art')).toHaveAttribute(
+      'src',
+      'https://cards.scryfall.io/art_crop/fable.jpg',
+    )
+  })
+
+  it('renders the normal image when only it is provided (no crop)', () => {
+    render(
+      <ArchetypeCard
+        rank={1}
+        name="Izzet Control"
+        colors="UR"
+        sharePct={24}
+        artImageUrl="https://cards.scryfall.io/normal/fable.jpg"
+      />,
+    )
+    expect(screen.getByTestId('archetype-art')).toHaveAttribute(
+      'src',
+      'https://cards.scryfall.io/normal/fable.jpg',
+    )
+  })
+
   it('renders no image (gradient placeholder) when there is no art URL', () => {
     render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
     expect(screen.queryByTestId('archetype-art')).toBeNull()

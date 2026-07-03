@@ -15,9 +15,9 @@ Disciplined mode: each `##` group is one branch → PR → human merge. Groups 1
 
 ## 2. Frontend: ArchetypeCard prefers cropped art (one PR)
 
-- [ ] 2.1 (TDD) `src/hooks/useMetagameBreakdown.ts`: add `art_crop_url` to the `archetypes(...)` select and the row type; expose a crop-preferred art URL (`art_crop_url ?? art_image_url`) in the shaped result (keep `artImageUrl` available). Update `useMetagameBreakdown.test.tsx` fixtures.
-- [ ] 2.2 (TDD) `src/components/ArchetypeCard.tsx` (+ test): render the crop-preferred URL as the cover art; fall back to normal image, then gradient. Tests: crop shown when present; normal image shown when only it present; gradient when both null.
-- [ ] 2.3 `npm run lint`, `npm run type-check`, `npm run test`. Code-review subagent → github-pr.
+- [x] 2.1 (TDD) `src/hooks/useMetagameBreakdown.ts`: add `art_crop_url` to the `archetypes(...)` select and the row type; expose a crop-preferred art URL (`art_crop_url ?? art_image_url`) in the shaped result (keep `artImageUrl` available). Update `useMetagameBreakdown.test.tsx` fixtures.
+- [x] 2.2 (TDD) `src/components/ArchetypeCard.tsx` (+ test): render the crop-preferred URL as the cover art; fall back to normal image, then gradient. Tests: crop shown when present; normal image shown when only it present; gradient when both null.
+- [x] 2.3 `npm run lint`, `npm run type-check`, `npm run test`. Code-review subagent → github-pr.
 
 ## 3. One-time `--backfill` mode (one PR)
 
