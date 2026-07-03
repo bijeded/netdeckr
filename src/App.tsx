@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
-import { useMetagameBreakdown } from './hooks/useMetagameBreakdown'
+import { useMetagame } from './hooks/useMetagame'
 import { useLastUpdated } from './hooks/useLastUpdated'
-import { useDecks } from './hooks/useDecks'
 import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
@@ -54,9 +53,8 @@ function App() {
   const { t, i18n } = useTranslation()
   const { format, setFormat } = useFormatSelection()
   const { window: metaWindow, setWindow } = useWindowSelection()
-  const { data, loading, error } = useMetagameBreakdown(format, metaWindow)
-  const lastUpdated = useLastUpdated(format, metaWindow)
-  const { decksByArchetype } = useDecks(format, metaWindow)
+  const { breakdown, decksByArchetype, loading, error } = useMetagame(format, metaWindow)
+  const lastUpdated = useLastUpdated(format)
 
   // Which archetype card is expanded to show its decklists. Collapses whenever the
   // format or window changes (the decks it showed no longer apply).
@@ -85,7 +83,7 @@ function App() {
 
   const formatName = t(FORMATS.find((f) => f.code === format)!.i18nKey)
   const windowLabel = t(WINDOWS.find((w) => w.code === metaWindow)!.i18nKey)
-  const maxPct = data.length > 0 ? data[0].sharePct : 100
+  const maxPct = breakdown.length > 0 ? breakdown[0].sharePct : 100
   const freshness = lastUpdated ? relativeTimeFromNow(lastUpdated, new Date(), i18n.language) : ''
 
   return (
@@ -192,7 +190,7 @@ function App() {
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
                   <Spinner label={t('dashboard.loading')} />
                 </div>
-              ) : error || data.length === 0 ? (
+              ) : error || breakdown.length === 0 ? (
                 <EmptyState message={t('dashboard.empty')} />
               ) : (
                 <div
@@ -202,7 +200,7 @@ function App() {
                     gap: 'var(--sp-5)',
                   }}
                 >
-                  {data.map((archetype) => {
+                  {breakdown.map((archetype) => {
                     const decks = decksByArchetype[archetype.name] ?? []
                     const expandable = decks.length > 0
                     const expanded = expandable && expandedName === archetype.name

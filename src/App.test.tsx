@@ -4,15 +4,13 @@ import i18n from './i18n'
 import App from './App'
 
 const useFormatSelection = vi.fn()
-const useMetagameBreakdown = vi.fn()
+const useMetagame = vi.fn()
 const useLastUpdated = vi.fn()
-const useDecks = vi.fn()
 const useDeckCards = vi.fn()
 
 vi.mock('./hooks/useFormatSelection', () => ({ useFormatSelection: () => useFormatSelection() }))
-vi.mock('./hooks/useMetagameBreakdown', () => ({ useMetagameBreakdown: () => useMetagameBreakdown() }))
+vi.mock('./hooks/useMetagame', () => ({ useMetagame: () => useMetagame() }))
 vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => useLastUpdated() }))
-vi.mock('./hooks/useDecks', () => ({ useDecks: () => useDecks() }))
 vi.mock('./hooks/useDeckCards', () => ({ useDeckCards: (id: number | null) => useDeckCards(id) }))
 
 const setFormat = vi.fn()
@@ -25,9 +23,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   setUrl('/')
   useFormatSelection.mockReturnValue({ format: 'ST', setFormat })
-  useMetagameBreakdown.mockReturnValue({ data: [], loading: false, error: null })
+  useMetagame.mockReturnValue({ breakdown: [], decksByArchetype: {}, loading: false, error: null })
   useLastUpdated.mockReturnValue(null)
-  useDecks.mockReturnValue({ decksByArchetype: {}, loading: false, error: null })
   useDeckCards.mockReturnValue({ main: [], side: [], mainCount: 0, sideCount: 0, loading: false, error: null })
 })
 
@@ -38,17 +35,18 @@ afterEach(() => {
 
 describe('App dashboard', () => {
   it('shows a spinner while loading', () => {
-    useMetagameBreakdown.mockReturnValue({ data: [], loading: true, error: null })
+    useMetagame.mockReturnValue({ breakdown: [], decksByArchetype: {}, loading: true, error: null })
     render(<App />)
     expect(screen.getByRole('status')).toBeInTheDocument()
   })
 
   it('renders the format title and the archetype grid on success', () => {
-    useMetagameBreakdown.mockReturnValue({
-      data: [
+    useMetagame.mockReturnValue({
+      breakdown: [
         { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 },
         { rank: 2, name: 'Selesnya Aggro', colorIdentity: 'WG', sharePct: 21 },
       ],
+      decksByArchetype: {},
       loading: false,
       error: null,
     })
@@ -71,13 +69,13 @@ describe('App dashboard', () => {
   })
 
   it('shows the empty state when there is no data', () => {
-    useMetagameBreakdown.mockReturnValue({ data: [], loading: false, error: null })
+    useMetagame.mockReturnValue({ breakdown: [], decksByArchetype: {}, loading: false, error: null })
     render(<App />)
     expect(screen.getByTestId('frowny')).toBeInTheDocument()
   })
 
   it('shows the empty state on error', () => {
-    useMetagameBreakdown.mockReturnValue({ data: [], loading: false, error: { message: 'boom' } })
+    useMetagame.mockReturnValue({ breakdown: [], decksByArchetype: {}, loading: false, error: { message: 'boom' } })
     render(<App />)
     expect(screen.getByTestId('frowny')).toBeInTheDocument()
   })
@@ -124,12 +122,8 @@ describe('App dashboard', () => {
   })
 
   it('expands an archetype with decks to show its decklist rows, and collapses again', () => {
-    useMetagameBreakdown.mockReturnValue({
-      data: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
-      loading: false,
-      error: null,
-    })
-    useDecks.mockReturnValue({
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
       decksByArchetype: {
         'Izzet Control': [
           {
@@ -159,12 +153,8 @@ describe('App dashboard', () => {
   })
 
   it('opens the decklist modal when a deck card is clicked', () => {
-    useMetagameBreakdown.mockReturnValue({
-      data: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
-      loading: false,
-      error: null,
-    })
-    useDecks.mockReturnValue({
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
       decksByArchetype: {
         'Izzet Control': [
           {
@@ -202,13 +192,15 @@ describe('App dashboard', () => {
     expect(useDeckCards).toHaveBeenCalledWith(1)
   })
 
-  it('does not make an archetype expandable when it has no decks', () => {
-    useMetagameBreakdown.mockReturnValue({
-      data: [{ rank: 1, name: 'Reanimator', colorIdentity: '', sharePct: 3 }],
+  it('does not make an archetype expandable when it has no decks (defensive guard)', () => {
+    // Derived breakdowns always have decks; this pins the App's defensive guard for
+    // the impossible-in-practice case where a card has a share but no display decks.
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Reanimator', colorIdentity: '', sharePct: 3 }],
+      decksByArchetype: {},
       loading: false,
       error: null,
     })
-    useDecks.mockReturnValue({ decksByArchetype: {}, loading: false, error: null })
     render(<App />)
     // No decks → the card is not a button and cannot expand.
     expect(screen.queryByRole('button', { name: /Reanimator/ })).toBeNull()
