@@ -21,8 +21,9 @@ create table if not exists public.archetypes (
   format_code    text not null references public.formats(code) on delete cascade,
   name           text not null,              -- English archetype name, e.g. "Izzet Cauldron"
   color_identity text not null default '',   -- WUBRG subset, '' = colorless
-  signature_card_name text,                  -- most-played non-land card (null until computed)
-  art_image_url  text,                       -- that card's hotlinked Scryfall image (null on a miss)
+  signature_card_name text,                  -- ranked non-land signature card (null until computed)
+  art_image_url  text,                       -- that card's hotlinked Scryfall normal image (null on a miss)
+  art_crop_url   text,                       -- that card's hotlinked Scryfall art_crop image (null on a miss)
   unique (format_code, name)
 );
 
@@ -181,6 +182,10 @@ create table if not exists public.deck_cards (
   set_code         text,                       -- current non-foil set (null on a miss)
   collector_number text,                       -- printing collector number (null on a miss)
   image_url        text,                       -- hotlinked Scryfall CDN image (normal size; null on a miss)
+  type_line        text,                       -- resolved printing type line, e.g. "Creature — Elf" (null on a miss)
+  rarity           text,                       -- resolved printing rarity: mythic/rare/uncommon/common (null on a miss)
+  cmc              numeric,                     -- resolved printing converted mana cost (null on a miss)
+  released_at      date,                        -- resolved printing's set release date (null on a miss)
   constraint deck_cards_board_check check (board in ('main', 'side'))
 );
 
@@ -196,6 +201,15 @@ create index if not exists events_format_date_idx on public.events (format_code,
 alter table public.deck_cards add column if not exists image_url text;
 alter table public.archetypes add column if not exists signature_card_name text;
 alter table public.archetypes add column if not exists art_image_url text;
+
+-- Card metadata + cropped art for the refined signature-card selection (added to
+-- databases created before it; the create-table definitions above already include
+-- them for a fresh apply). All nullable; art_crop hotlinked from Scryfall's CDN.
+alter table public.deck_cards add column if not exists type_line text;
+alter table public.deck_cards add column if not exists rarity text;
+alter table public.deck_cards add column if not exists cmc numeric;
+alter table public.deck_cards add column if not exists released_at date;
+alter table public.archetypes add column if not exists art_crop_url text;
 
 -- ---------------------------------------------------------------------------
 -- One-time merge: MTGTop8 capitalizes archetype names inconsistently across

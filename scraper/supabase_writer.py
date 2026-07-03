@@ -6,20 +6,27 @@ in pipeline.py is pure and injected with this writer.
 """
 from __future__ import annotations
 
+from datetime import date
 from urllib.parse import quote
 
 import requests
 
 from mtgtop8 import Archetype, DeckCard, DeckResult, Event, color_identity_for
 
-# Basic lands are excluded when choosing an archetype's signature card — they are
-# the most-copied cards but say nothing about the deck's identity. Nonbasic lands
-# are not excluded here (the resolver has no type line); a type-based exclusion is
-# a follow-up. Names are matched case-insensitively.
-_BASIC_LAND_NAMES = frozenset(
-    {"plains", "island", "swamp", "mountain", "forest", "wastes"}
-    | {f"snow-covered {b}" for b in ("plains", "island", "swamp", "mountain", "forest")}
-)
+# Rarity ordering for signature-card ranking; mythic is best. An unknown/null
+# rarity sorts after all of these (see _signature_sort_key), so a resolved card
+# outranks an unresolved one at equal quantity.
+_RARITY_RANK = {"mythic": 0, "rare": 1, "uncommon": 2, "common": 3}
+
+
+def _release_ordinal(released_at: str | None) -> int | None:
+    """Parse an ISO date string to a sortable ordinal, or None if absent/invalid."""
+    if not released_at:
+        return None
+    try:
+        return date.fromisoformat(released_at[:10]).toordinal()
+    except ValueError:
+        return None
 
 
 class SupabaseWriter:
@@ -231,6 +238,10 @@ class SupabaseWriter:
             row["set_code"] = printing.set_code if printing else None
             row["collector_number"] = printing.collector_number if printing else None
             row["image_url"] = printing.image_url if printing else None
+            row["type_line"] = printing.type_line if printing else None
+            row["rarity"] = printing.rarity if printing else None
+            row["cmc"] = printing.cmc if printing else None
+            row["released_at"] = printing.released_at if printing else None
         return row
 
     def backfill_scryfall(self, *, page_size: int = 1000) -> int:
@@ -292,13 +303,15 @@ class SupabaseWriter:
     def refresh_archetype_art(self, fmt: str) -> int:
         """Set each archetype's signature card + art for a format.
 
-        The signature card is the most-played non-basic-land mainboard card across
-        the archetype's stored decks (ties: count desc, then name asc). It is
-        resolved to a printing and stored as ``signature_card_name`` +
-        ``art_image_url``; an archetype with no card (only lands) or whose top card
-        does not resolve is left null. Requires a card_resolver. Idempotent —
-        recomputed from current decks each run. Returns the number of archetypes
-        updated.
+        The signature card is the highest-ranked non-land mainboard card across the
+        archetype's stored decks — ranked by total quantity desc, then rarity desc
+        (mythic>rare>uncommon>common), then set release date desc, then converted
+        mana cost desc, then card name asc (see ``_signature_card``). It is resolved
+        to a printing and stored as ``signature_card_name`` + ``art_image_url`` +
+        ``art_crop_url``; an archetype with no non-land card (only lands) or whose
+        chosen card does not resolve is left null. Requires a card_resolver.
+        Idempotent — recomputed from current decks each run. Returns the number of
+        archetypes updated.
         """
         if self._card_resolver is None:
             raise RuntimeError("refresh_archetype_art requires a card_resolver")
@@ -320,26 +333,50 @@ class SupabaseWriter:
             patch = self._session.patch(
                 f"{self._rest}/archetypes?id=eq.{arch['id']}",
                 headers=self._headers,
-                json={"signature_card_name": signature, "art_image_url": printing.image_url},
+                json={
+                    "signature_card_name": signature,
+                    "art_image_url": printing.image_url,
+                    "art_crop_url": printing.art_crop_url,
+                },
             )
             patch.raise_for_status()
             updated += 1
         return updated
 
+    @staticmethod
+    def _signature_sort_key(name: str, quantity: int, meta: dict) -> tuple:
+        """Ranking key for signature-card selection (``min`` picks the best).
+
+        Priority: total quantity desc, then rarity desc, then set release date
+        desc, then converted mana cost desc, then card name asc. A null/unknown
+        value for any criterion sorts last, so a card with resolved metadata beats
+        one without at equal quantity, and selection stays deterministic.
+        """
+        rarity_rank = _RARITY_RANK.get((meta.get("rarity") or "").lower(), len(_RARITY_RANK))
+        ordinal = _release_ordinal(meta.get("released_at"))
+        release_key = (0, -ordinal) if ordinal is not None else (1, 0)
+        cmc = meta.get("cmc")
+        cmc_key = (0, -cmc) if cmc is not None else (1, 0)
+        return (-quantity, rarity_rank, release_key, cmc_key, name)
+
     def _signature_card(self, archetype_id: int, *, page_size: int = 1000) -> str | None:
-        """Most-played non-basic-land mainboard card across an archetype's decks.
+        """Highest-ranked non-land mainboard card across an archetype's decks.
 
         Sums quantities per card name over the archetype's mainboard deck_cards
-        (paged by ascending id), excludes basic lands, and returns the top name
-        (ties broken by name asc), or None if there is no such card.
+        (paged by ascending id), excludes any card whose ``type_line`` contains
+        "land" (all lands, basic and nonbasic; a null type_line is treated as
+        non-land so an unresolved card can still be a candidate), and returns the
+        top-ranked name via ``_signature_sort_key``, or None if there is no such
+        card.
         """
         totals: dict[str, int] = {}
+        meta: dict[str, dict] = {}
         cursor = 0
         while True:
             resp = self._session.get(
                 f"{self._rest}/deck_cards"
                 f"?board=eq.main&decks.archetype_id=eq.{archetype_id}&id=gt.{cursor}"
-                f"&select=id,card_name,quantity,decks!inner(archetype_id)"
+                f"&select=id,card_name,quantity,type_line,rarity,cmc,released_at,decks!inner(archetype_id)"
                 f"&order=id.asc&limit={page_size}",
                 headers=self._headers,
             )
@@ -348,15 +385,22 @@ class SupabaseWriter:
             if not rows:
                 break
             for row in rows:
-                if row["card_name"].strip().lower() in _BASIC_LAND_NAMES:
+                if "land" in (row.get("type_line") or "").lower():
                     continue
-                totals[row["card_name"]] = totals.get(row["card_name"], 0) + row["quantity"]
+                name = row["card_name"]
+                totals[name] = totals.get(name, 0) + row["quantity"]
+                # Capture the first non-null value seen per field, so a printing
+                # that resolved on one deck row still informs ranking even if
+                # another row for the same name is unresolved.
+                m = meta.setdefault(name, {"rarity": None, "cmc": None, "released_at": None})
+                for field in ("rarity", "cmc", "released_at"):
+                    if m[field] is None and row.get(field) is not None:
+                        m[field] = row[field]
             cursor = rows[-1]["id"]
 
         if not totals:
             return None
-        # Highest total wins; ties broken by name ascending for determinism.
-        return min(totals, key=lambda name: (-totals[name], name))
+        return min(totals, key=lambda name: self._signature_sort_key(name, totals[name], meta[name]))
 
     def existing_event_ids(self, fmt: str) -> set[str]:
         """Return the set of source event ids already stored for a format.
