@@ -14,9 +14,19 @@ def test_format_url_with_meta():
     assert format_url("ST", "50") == "http://mtgtop8.com/format?f=ST&meta=50"
 
 
-def test_windows_are_the_three_universal_logical_keys():
-    # Only these three windows exist (with the same meaning) for every format.
-    assert WINDOWS == ["5days", "2weeks", "2months"]
+def test_format_url_with_cp_paginates():
+    # Page 2+ of a window's events list is the same URL plus &cp=<n>.
+    assert format_url("ST", "50", cp=2) == "http://mtgtop8.com/format?f=ST&meta=50&cp=2"
+
+
+def test_format_url_cp_none_is_page_one():
+    # cp=None (the default) is page 1 — no cp param appended.
+    assert format_url("ST", "50", cp=None) == "http://mtgtop8.com/format?f=ST&meta=50"
+
+
+def test_windows_are_the_two_supported_logical_keys():
+    # The scraper now tracks two windows (5days is a date subset of 2weeks).
+    assert WINDOWS == ["5days", "2weeks"]
 
 
 def test_meta_id_for_maps_per_format():
@@ -25,7 +35,7 @@ def test_meta_id_for_maps_per_format():
     assert meta_id_for("PI", "2weeks") == "194"
     assert meta_id_for("MO", "2weeks") == "54"
     assert meta_id_for("PAU", "5days") == "348"
-    assert meta_id_for("PREM", "2months") == "261"
+    assert meta_id_for("PREM", "2weeks") == "301"
 
 
 def test_window_meta_covers_every_format_and_window():

@@ -21,23 +21,24 @@ FORMATS = {
     "PREM": "premodern",
 }
 
-# The three time windows that exist, with the same meaning, for EVERY format.
-# Stored as format-independent logical keys (also the DB `meta_window` values and
-# the frontend `?w=` codes). MTGTop8's numeric `meta` param is per-format, so we
-# map (format, window) -> that format's meta ID below. Other windows MTGTop8
-# offers ("Large Events", "MTGO/Live Tournaments") are not uniform across formats
-# (Pre-Modern lacks Large Events; MTGO is "Live Tournaments"/3mo elsewhere), so
-# they are intentionally excluded.
-WINDOWS = ["5days", "2weeks", "2months"]
+# The two time windows the scraper tracks, with the same meaning, for EVERY
+# format. Stored as format-independent logical keys (also the DB `meta_window`
+# values and the frontend `?w=` codes). `2weeks` contains `5days` as a date
+# subset, so the decklist pass gathers only the `2weeks` window. MTGTop8's numeric
+# `meta` param is per-format, so we map (format, window) -> that format's meta ID
+# below. Wider MTGTop8 windows ("2 Months", "Large Events", "MTGO/Live") are not
+# tracked: the 2-month scope is too large to scrape fully, and the others are not
+# uniform across formats.
+WINDOWS = ["5days", "2weeks"]
 
 # (format, logical window) -> MTGTop8 `meta` param ID. Verified against the live
 # per-format window dropdowns; regenerate deliberately if MTGTop8 renumbers them.
 WINDOW_META = {
-    "ST":   {"5days": "326", "2weeks": "50",  "2months": "52"},
-    "PI":   {"5days": "305", "2weeks": "194", "2months": "193"},
-    "MO":   {"5days": "304", "2weeks": "54",  "2months": "51"},
-    "PAU":  {"5days": "348", "2weeks": "299", "2months": "145"},
-    "PREM": {"5days": "347", "2weeks": "301", "2months": "261"},
+    "ST":   {"5days": "326", "2weeks": "50"},
+    "PI":   {"5days": "305", "2weeks": "194"},
+    "MO":   {"5days": "304", "2weeks": "54"},
+    "PAU":  {"5days": "348", "2weeks": "299"},
+    "PREM": {"5days": "347", "2weeks": "301"},
 }
 
 
@@ -46,11 +47,16 @@ def meta_id_for(fmt: str, window: str) -> str:
     return WINDOW_META[fmt][window]
 
 
-def format_url(fmt: str, meta: str | None = None) -> str:
-    """Build a format page URL, e.g. /format?f=ST&meta=50."""
+def format_url(fmt: str, meta: str | None = None, cp: int | None = None) -> str:
+    """Build a format page URL, e.g. /format?f=ST&meta=50[&cp=2].
+
+    `cp` is MTGTop8's 1-based events-list page number; page 1 omits it.
+    """
     url = f"{BASE_URL}/format?f={fmt}"
     if meta is not None:
         url += f"&meta={meta}"
+    if cp is not None:
+        url += f"&cp={cp}"
     return url
 
 
