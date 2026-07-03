@@ -30,4 +30,4 @@ Disciplined mode: each `##` group is one branch → PR → human merge. Groups 1
 - [ ] 4.1 Apply `supabase/schema.sql` in the Supabase SQL editor with the service-role key (adds the new columns; idempotent).
 - [ ] 4.2 Run `python scraper/run.py --backfill` once (service-role) to fill new columns and recompute archetype signature cards + art_crop; record how many rows/archetypes updated.
 - [ ] 4.3 Spot-check via anon `curl`/PostgREST that `archetypes.art_crop_url` is populated and that a known archetype's signature card is a non-land payoff (not a manland); confirm the live ArchetypeCard renders the crop.
-- [ ] 4.4 After all groups merged: `/opsx:sync` the deltas into `openspec/specs/`, then `/opsx:archive` (both via a `chore:` PR). Update `docs/HANDOFF.md` (mark deferred item #1 done).
+- [x] 4.4 After all groups merged: `/opsx:sync` the deltas into `openspec/specs/`, then `/opsx:archive` (both via a `chore:` PR). Update `docs/HANDOFF.md` (mark deferred item #1 done).
