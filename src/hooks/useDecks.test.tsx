@@ -57,7 +57,7 @@ describe('useDecks', () => {
       deckRow({ source_deck_id: 'b', placement: '5-8', archetypes: { name: 'Izzet Control', color_identity: 'UR' } }),
       deckRow({ source_deck_id: 'c', placement: '9-16', archetypes: { name: 'Mono Red', color_identity: 'R' }, events: { name: 'MTGO', event_date: '2026-06-19' } }),
     ]
-    const { result } = renderHook(() => useDecks('ST', '2months'))
+    const { result } = renderHook(() => useDecks('ST', '2weeks'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Izzet: only the top-4 deck shown; Mono Red: no top-4 so the deck is kept (latest-4 fallback).

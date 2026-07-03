@@ -28,13 +28,13 @@ describe('useMetagameBreakdown', () => {
     queryResult.data = [
       { rank: 1, share_pct: 23, archetypes: { name: 'Izzet Control', color_identity: 'UR', art_image_url: null, art_crop_url: null } },
     ]
-    const { result } = renderHook(() => useMetagameBreakdown('ST', '2months'))
+    const { result } = renderHook(() => useMetagameBreakdown('ST', '2weeks'))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(from).toHaveBeenCalledWith('metagame_snapshots')
     expect(eq).toHaveBeenCalledWith('format_code', 'ST')
-    expect(eq).toHaveBeenCalledWith('meta_window', '2months')
+    expect(eq).toHaveBeenCalledWith('meta_window', '2weeks')
     expect(order).toHaveBeenCalledWith('rank')
     expect(limit).toHaveBeenCalledWith(20)
     expect(result.current.data).toEqual([
@@ -51,7 +51,7 @@ describe('useMetagameBreakdown', () => {
         archetypes: { name: 'Izzet Control', color_identity: 'UR', art_image_url: 'https://cards.scryfall.io/normal/x.jpg' },
       },
     ]
-    const { result } = renderHook(() => useMetagameBreakdown('ST', '2months'))
+    const { result } = renderHook(() => useMetagameBreakdown('ST', '2weeks'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.data[0].artImageUrl).toBe('https://cards.scryfall.io/normal/x.jpg')
   })
@@ -69,7 +69,7 @@ describe('useMetagameBreakdown', () => {
         },
       },
     ]
-    const { result } = renderHook(() => useMetagameBreakdown('ST', '2months'))
+    const { result } = renderHook(() => useMetagameBreakdown('ST', '2weeks'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.data[0].artCropUrl).toBe('https://cards.scryfall.io/art_crop/x.jpg')
     expect(result.current.data[0].artImageUrl).toBe('https://cards.scryfall.io/normal/x.jpg')

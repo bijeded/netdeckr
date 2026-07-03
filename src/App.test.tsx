@@ -118,9 +118,9 @@ describe('App dashboard', () => {
     render(<App />)
     // The selector option and the header pill are distinct elements.
     act(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Last 2 months' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Last 2 weeks' }))
     })
-    expect(screen.getByTestId('window-pill').textContent).toBe('Last 2 months')
+    expect(screen.getByTestId('window-pill').textContent).toBe('Last 2 weeks')
   })
 
   it('expands an archetype with decks to show its decklist rows, and collapses again', () => {

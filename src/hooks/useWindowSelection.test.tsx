@@ -17,13 +17,19 @@ describe('useWindowSelection', () => {
   })
 
   it('reads a valid window from the ?w= param', () => {
-    setUrl('?w=2months')
+    setUrl('?w=2weeks')
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('2months')
+    expect(result.current.window).toBe('2weeks')
   })
 
   it('falls back to the default for an invalid ?w= param', () => {
     setUrl('?w=999')
+    const { result } = renderHook(() => useWindowSelection())
+    expect(result.current.window).toBe('5days')
+  })
+
+  it('falls back to the default for the retired 2months window', () => {
+    setUrl('?w=2months')
     const { result } = renderHook(() => useWindowSelection())
     expect(result.current.window).toBe('5days')
   })
@@ -38,9 +44,9 @@ describe('useWindowSelection', () => {
   it('keeps the window independent of the ?f= format param', () => {
     setUrl('?f=MO')
     const { result } = renderHook(() => useWindowSelection())
-    act(() => result.current.setWindow('2months'))
+    act(() => result.current.setWindow('2weeks'))
     const params = new URLSearchParams(window.location.search)
-    expect(params.get('w')).toBe('2months')
+    expect(params.get('w')).toBe('2weeks')
     expect(params.get('f')).toBe('MO') // format param is preserved
   })
 
@@ -55,9 +61,9 @@ describe('useWindowSelection', () => {
     const { result } = renderHook(() => useWindowSelection())
     expect(result.current.window).toBe('5days')
     act(() => {
-      window.history.replaceState({}, '', '?w=2months')
+      window.history.replaceState({}, '', '?w=2weeks')
       window.dispatchEvent(new PopStateEvent('popstate'))
     })
-    expect(result.current.window).toBe('2months')
+    expect(result.current.window).toBe('2weeks')
   })
 })

@@ -7,8 +7,8 @@ interface WindowSelectorProps {
 }
 
 /**
- * Sidebar filter: the time-frame selector. One full-width option per universal
- * window (5 days / 2 weeks / 2 months), the active one glowing violet.
+ * Sidebar filter: the time-frame selector. One full-width option per supported
+ * window (5 days / 2 weeks), the active one glowing violet.
  */
 export function WindowSelector({ value, onChange }: WindowSelectorProps) {
   const { t } = useTranslation()
