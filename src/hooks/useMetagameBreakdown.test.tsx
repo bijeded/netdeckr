@@ -26,7 +26,7 @@ describe('useMetagameBreakdown', () => {
 
   it('queries snapshots for the format and window, ordered by rank, limited to 20', async () => {
     queryResult.data = [
-      { rank: 1, share_pct: 23, archetypes: { name: 'Izzet Control', color_identity: 'UR', art_image_url: null } },
+      { rank: 1, share_pct: 23, archetypes: { name: 'Izzet Control', color_identity: 'UR', art_image_url: null, art_crop_url: null } },
     ]
     const { result } = renderHook(() => useMetagameBreakdown('ST', '2months'))
 
@@ -38,7 +38,7 @@ describe('useMetagameBreakdown', () => {
     expect(order).toHaveBeenCalledWith('rank')
     expect(limit).toHaveBeenCalledWith(20)
     expect(result.current.data).toEqual([
-      { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 23, artImageUrl: null },
+      { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 23, artImageUrl: null, artCropUrl: null },
     ])
     expect(result.current.error).toBeNull()
   })
@@ -53,6 +53,25 @@ describe('useMetagameBreakdown', () => {
     ]
     const { result } = renderHook(() => useMetagameBreakdown('ST', '2months'))
     await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.data[0].artImageUrl).toBe('https://cards.scryfall.io/normal/x.jpg')
+  })
+
+  it('exposes the cropped art URL when present', async () => {
+    queryResult.data = [
+      {
+        rank: 1,
+        share_pct: 23,
+        archetypes: {
+          name: 'Izzet Control',
+          color_identity: 'UR',
+          art_image_url: 'https://cards.scryfall.io/normal/x.jpg',
+          art_crop_url: 'https://cards.scryfall.io/art_crop/x.jpg',
+        },
+      },
+    ]
+    const { result } = renderHook(() => useMetagameBreakdown('ST', '2months'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.data[0].artCropUrl).toBe('https://cards.scryfall.io/art_crop/x.jpg')
     expect(result.current.data[0].artImageUrl).toBe('https://cards.scryfall.io/normal/x.jpg')
   })
 

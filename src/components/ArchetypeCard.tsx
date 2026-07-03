@@ -15,8 +15,10 @@ interface ArchetypeCardProps {
   /** WUBRG color-identity string; "" renders a colorless gray pip. */
   colors: string
   sharePct: number
-  /** Signature-card art (hotlinked Scryfall CDN); null falls back to the gradient. */
+  /** Signature-card normal-size art (hotlinked Scryfall CDN); used when no crop. */
   artImageUrl?: string | null
+  /** Signature-card cropped art (hotlinked Scryfall CDN); preferred over the normal image. */
+  artCropUrl?: string | null
   /** Leader's share, so bars scale relative to the top archetype. */
   maxPct?: number
   selected?: boolean
@@ -34,6 +36,7 @@ export function ArchetypeCard({
   colors,
   sharePct,
   artImageUrl = null,
+  artCropUrl = null,
   maxPct = 100,
   selected = false,
   expanded = false,
@@ -47,7 +50,9 @@ export function ArchetypeCard({
   // for a different archetype (the grid keys by rank) doesn't suppress a new,
   // valid image after an earlier one 404'd.
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
-  const showArt = artImageUrl != null && failedUrl !== artImageUrl
+  // Prefer the cropped art; fall back to the normal image, then the gradient.
+  const artUrl = artCropUrl ?? artImageUrl
+  const showArt = artUrl != null && failedUrl !== artUrl
 
   // The header (art + stats) is the interactive region so the expanded deck rows
   // — which are their own buttons — are never nested inside a button.
@@ -71,10 +76,10 @@ export function ArchetypeCard({
         />
         {showArt && (
           <img
-            src={artImageUrl ?? undefined}
+            src={artUrl ?? undefined}
             alt=""
             data-testid="archetype-art"
-            onError={() => setFailedUrl(artImageUrl)}
+            onError={() => setFailedUrl(artUrl)}
             style={{
               position: 'absolute',
               inset: 0,

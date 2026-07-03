@@ -8,14 +8,21 @@ export interface ArchetypeShare {
   name: string
   colorIdentity: string
   sharePct: number
-  /** Signature-card art (hotlinked Scryfall CDN), when computed; else null. */
+  /** Signature-card normal-size art (hotlinked Scryfall CDN), when computed; else null. */
   artImageUrl: string | null
+  /** Signature-card cropped art (hotlinked Scryfall CDN), when computed; else null. */
+  artCropUrl: string | null
 }
 
 interface BreakdownRow {
   rank: number
   share_pct: number
-  archetypes: { name: string; color_identity: string; art_image_url?: string | null } | null
+  archetypes: {
+    name: string
+    color_identity: string
+    art_image_url?: string | null
+    art_crop_url?: string | null
+  } | null
 }
 
 const TOP_N = 20
@@ -36,7 +43,7 @@ export function useMetagameBreakdown(formatCode: FormatCode, metaWindow: WindowC
 
     supabase
       .from('metagame_snapshots')
-      .select('rank, share_pct, archetypes(name, color_identity, art_image_url)')
+      .select('rank, share_pct, archetypes(name, color_identity, art_image_url, art_crop_url)')
       .eq('format_code', formatCode)
       .eq('meta_window', metaWindow)
       .order('rank')
@@ -57,6 +64,7 @@ export function useMetagameBreakdown(formatCode: FormatCode, metaWindow: WindowC
               colorIdentity: row.archetypes?.color_identity ?? '',
               sharePct: row.share_pct,
               artImageUrl: row.archetypes?.art_image_url ?? null,
+              artCropUrl: row.archetypes?.art_crop_url ?? null,
             })),
           )
         }
