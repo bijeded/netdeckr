@@ -24,6 +24,9 @@ on:
           - MO
           - PAU
           - PREM
+          # One-time maintenance passes (re-resolve existing rows, no scrape):
+          - backfill            # fill card metadata (type_line/rarity/cmc/released_at) + art_crop
+          - backfill-scryfall   # fill Scryfall identity/image on rows still missing it
 
 # The job only checks out code; it needs no write access to the repo.
 permissions:
@@ -100,8 +103,9 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FMT: ${{ steps.fmt.outputs.format }}
         run: |
-          if [ "$FMT" = "all" ]; then
-            python scraper/run.py
-          else
-            python scraper/run.py "$FMT"
-          fi
+          case "$FMT" in
+            all)               python scraper/run.py ;;
+            backfill)          python scraper/run.py --backfill ;;
+            backfill-scryfall) python scraper/run.py --backfill-scryfall ;;
+            *)                 python scraper/run.py "$FMT" ;;
+          esac
