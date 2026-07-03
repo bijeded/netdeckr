@@ -10,13 +10,13 @@ which gracefully hides the freshness line — no broken state.
 
 ## 1. Frontend: derive the breakdown from decks
 
-- [ ] 1.1 Write tests first: a `useMetagame(format, window)` hook that, given mocked deck rows (archetype name/color/art + event_date), returns `breakdown` (group by archetype → `share = count/total*100`, ranked by count desc, top 20, carrying colorIdentity + art) and `decksByArchetype` (existing `selectDisplayDecks` per archetype); empty breakdown + empty map when there are no decks; error surfaced.
-- [ ] 1.2 Implement `src/hooks/useMetagame.ts`: one Supabase fetch of the window's decks (`decks` join `archetypes(name,color_identity,art_image_url,art_crop_url)` + `events!inner(event_date,format_code)`, `format_code` eq + `event_date >= windowStartISO(window)`), then derive both outputs from the same rows. Reuse `selectDisplayDecks` and the `ArchetypeShare` shape.
-- [ ] 1.3 Repoint `src/hooks/useLastUpdated.ts` to read `formats.last_updated_at` by `format_code` (drop the `format_window_freshness`/`meta_window` query); return null (indicator hidden) when absent.
-- [ ] 1.4 Update `src/App.tsx` to use the merged hook (breakdown + decksByArchetype from one call); every shown archetype is expandable; keep loading/empty/error states; derive `maxPct` from the breakdown.
-- [ ] 1.5 Bump `DISPLAY_COUNT` 4 → 6 in `src/lib/deckSelection.ts` (update its test).
-- [ ] 1.6 Remove `src/hooks/useMetagameBreakdown.ts` (+ test) and any remaining `metagame_snapshots` read; update `useDecks`/App tests (fold `useDecks` into `useMetagame` or keep `useDecks` for the modal path — pick one and keep it consistent).
-- [ ] 1.7 `npm run lint`, `npm run type-check`, `npm run test` — all green; no `metagame_snapshots`/`format_window_freshness`/`meta_window` references remain in `src/`.
+- [x] 1.1 Write tests first: a `useMetagame(format, window)` hook that, given mocked deck rows (archetype name/color/art + event_date), returns `breakdown` (group by archetype → `share = count/total*100`, ranked by count desc, top 20, carrying colorIdentity + art) and `decksByArchetype` (existing `selectDisplayDecks` per archetype); empty breakdown + empty map when there are no decks; error surfaced.
+- [x] 1.2 Implement `src/hooks/useMetagame.ts`: one Supabase fetch of the window's decks (`decks` join `archetypes(name,color_identity,art_image_url,art_crop_url)` + `events!inner(event_date,format_code)`, `format_code` eq + `event_date >= windowStartISO(window)`), then derive both outputs from the same rows. Reuse `selectDisplayDecks` and the `ArchetypeShare` shape.
+- [x] 1.3 Repoint `src/hooks/useLastUpdated.ts` to read `formats.last_updated_at` by `format_code` (drop the `format_window_freshness`/`meta_window` query); return null (indicator hidden) when absent.
+- [x] 1.4 Update `src/App.tsx` to use the merged hook (breakdown + decksByArchetype from one call); every shown archetype is expandable; keep loading/empty/error states; derive `maxPct` from the breakdown.
+- [x] 1.5 Bump `DISPLAY_COUNT` 4 → 6 in `src/lib/deckSelection.ts` (update its test).
+- [x] 1.6 Remove `src/hooks/useMetagameBreakdown.ts` (+ test) and any remaining `metagame_snapshots` read; update `useDecks`/App tests (fold `useDecks` into `useMetagame` or keep `useDecks` for the modal path — pick one and keep it consistent).
+- [x] 1.7 `npm run lint`, `npm run type-check`, `npm run test` — all green; no `metagame_snapshots`/`format_window_freshness`/`meta_window` references remain in `src/`.
 
 ## 2. Scraper: retire the breakdown pass, stamp per-format freshness
 

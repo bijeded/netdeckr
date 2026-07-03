@@ -3,7 +3,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from mtgtop8 import FORMATS, WINDOWS, format_url, meta_id_for  # noqa: E402
+from mtgtop8 import FORMATS, format_url, meta_id_for  # noqa: E402
+
+# The logical windows the scraper resolves to per-format MTGTop8 meta ids.
+WINDOWS = ["5days", "2weeks"]
 
 
 def test_format_url_without_meta():
@@ -22,11 +25,6 @@ def test_format_url_with_cp_paginates():
 def test_format_url_cp_none_is_page_one():
     # cp=None (the default) is page 1 — no cp param appended.
     assert format_url("ST", "50", cp=None) == "http://mtgtop8.com/format?f=ST&meta=50"
-
-
-def test_windows_are_the_two_supported_logical_keys():
-    # The scraper now tracks two windows (5days is a date subset of 2weeks).
-    assert WINDOWS == ["5days", "2weeks"]
 
 
 def test_meta_id_for_maps_per_format():

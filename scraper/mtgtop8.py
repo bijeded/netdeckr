@@ -21,18 +21,12 @@ FORMATS = {
     "PREM": "premodern",
 }
 
-# The two time windows the scraper tracks, with the same meaning, for EVERY
-# format. Stored as format-independent logical keys (also the DB `meta_window`
-# values and the frontend `?w=` codes). `2weeks` contains `5days` as a date
-# subset, so the decklist pass gathers only the `2weeks` window. MTGTop8's numeric
-# `meta` param is per-format, so we map (format, window) -> that format's meta ID
-# below. Wider MTGTop8 windows ("2 Months", "Large Events", "MTGO/Live") are not
-# tracked: the 2-month scope is too large to scrape fully, and the others are not
-# uniform across formats.
-WINDOWS = ["5days", "2weeks"]
-
-# (format, logical window) -> MTGTop8 `meta` param ID. Verified against the live
-# per-format window dropdowns; regenerate deliberately if MTGTop8 renumbers them.
+# (format, logical window) -> MTGTop8 `meta` param ID. The logical keys (`5days`,
+# `2weeks`) are format-independent; MTGTop8's numeric `meta` param is per-format, so
+# the same window has a different id per format. The decklist pass resolves only the
+# `2weeks` window (which contains `5days` as a date subset). Verified against the
+# live per-format window dropdowns; regenerate deliberately if MTGTop8 renumbers them.
+# Wider MTGTop8 windows ("2 Months", "Large Events", "MTGO/Live") are not tracked.
 WINDOW_META = {
     "ST":   {"5days": "326", "2weeks": "50"},
     "PI":   {"5days": "305", "2weeks": "194"},
@@ -166,61 +160,6 @@ def color_identity_for(name: str) -> str:
         return _canonical(found)
 
     return ""
-
-
-# ---------------------------------------------------------------------------
-# Metagame breakdown parsing
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class Archetype:
-    """One archetype in a format's metagame breakdown."""
-
-    name: str
-    share_pct: float
-    color_identity: str
-    rank: int | None = None
-
-
-def parse_meta_breakdown(html: str) -> list[Archetype]:
-    """Parse a MTGTop8 `meta=50` format page into archetypes.
-
-    Each archetype block links to `archetype?a=...`; its share is the first
-    "N %" in the block (absent for the low-share tail → 0.0). Category headers
-    (e.g. "AGGRO 51%") are not archetype links and are naturally excluded.
-    """
-    soup = BeautifulSoup(html, "html.parser")
-    archetypes: list[Archetype] = []
-
-    for anchor in soup.find_all("a", href=re.compile(r"^archetype\?a=")):
-        name = anchor.get_text(strip=True)
-        if not name:
-            continue
-        # Cap name length — anchor text comes from untrusted HTML.
-        name = name[:200]
-        # The share lives in the archetype's `hover_tr` block. If MTGTop8 ever
-        # renames that class, the block is missing and share falls back to 0.0.
-        block = anchor.find_parent("div", class_="hover_tr")
-        share = 0.0
-        if block is not None:
-            match = re.search(r"(\d+(?:\.\d+)?)\s*%", block.get_text(" ", strip=True))
-            if match:
-                # Clamp to a sane percentage range against malformed input.
-                share = max(0.0, min(100.0, float(match.group(1))))
-        archetypes.append(
-            Archetype(name=name, share_pct=share, color_identity=color_identity_for(name))
-        )
-
-    return archetypes
-
-
-def rank_archetypes(archetypes: list[Archetype]) -> list[Archetype]:
-    """Return archetypes sorted by descending share with a 1-based rank set."""
-    ordered = sorted(archetypes, key=lambda a: a.share_pct, reverse=True)
-    for index, archetype in enumerate(ordered, start=1):
-        archetype.rank = index
-    return ordered
 
 
 # ---------------------------------------------------------------------------

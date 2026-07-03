@@ -1,9 +1,8 @@
 """MetaStack scraper entry point.
 
-Fetches the metagame breakdown for every format and every logical time window
-(the three universal windows: 5 days / 2 weeks / 2 months) and writes each slice
-to Supabase. The window is a format-independent logical key; MTGTop8's numeric
-`meta` param is per-format, so it's resolved via `meta_id_for` at fetch time. Run
+Scrapes every format's recent decklists (the two-week window) into Supabase and
+stamps each format's freshness on success. The metagame breakdown is derived
+frontend-side from these decks, so the scraper stores no separate breakdown. Run
 daily by GitHub Actions; can also be run locally with SUPABASE_URL and
 SUPABASE_SERVICE_ROLE_KEY set.
 
@@ -23,8 +22,7 @@ from datetime import datetime, timedelta, timezone
 import requests
 
 from decklist_pipeline import sync_decklists
-from mtgtop8 import FORMATS, WINDOWS, event_url, format_url, meta_id_for
-from pipeline import sync_all
+from mtgtop8 import FORMATS, event_url, format_url, meta_id_for
 from scryfall import sync_bulk
 from supabase_writer import SupabaseWriter
 
@@ -33,7 +31,7 @@ REQUEST_DELAY_SECONDS = 2  # respectful rate limiting between requests (fair use
 REQUEST_TIMEOUT_SECONDS = 30
 RETENTION_DAYS = 30  # data older than this is pruned each run
 # The decklist pass gathers only the two-week window (which contains the last five
-# days by date); the metagame breakdown still uses both logical windows (WINDOWS).
+# days by date). This is the only window the scraper resolves via `meta_id_for`.
 DECKLIST_WINDOWS = ["2weeks"]
 SCRYFALL_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "scryfall")
 
@@ -159,41 +157,31 @@ def main(argv: list[str] | None = None) -> int:
     writer = SupabaseWriter(url, key, card_resolver=build_card_resolver())
     now = datetime.now(timezone.utc).isoformat()
 
-    def on_error(fmt: str, window: str, exc: Exception) -> None:
-        print(f"[error] {fmt}/{window}: {exc}", file=sys.stderr)
-
-    results = sync_all(
-        formats,
-        WINDOWS,
-        fetch=fetch,
-        writer=writer,
-        now=now,
-        on_error=on_error,
-    )
-
-    for (fmt, window), count in results.items():
-        status = "FAILED" if count is None else f"{count} archetypes"
-        print(f"{fmt}/{window}: {status}")
-
-    # Decklist pass: for each format, gather events across the windows and store
-    # every NEW deck + its cards. Runs after the breakdown so archetypes exist.
-    # Incremental — events already stored are skipped, so only the first backfill
-    # is expensive; daily runs fetch just new events.
+    # Decklist pass: for each format, gather the two-week window's events and store
+    # every NEW deck + its cards, then refresh archetype art and stamp the format's
+    # freshness. Incremental — events already stored are skipped, so only the first
+    # backfill is expensive; daily runs fetch just new events. A failure in one
+    # format does not abort the rest.
+    succeeded = 0
     for fmt in formats:
         try:
             known = writer.existing_event_ids(fmt)
         except Exception as exc:  # noqa: BLE001 — fall back to a full pass on lookup failure
             print(f"[error] {fmt}/existing-events: {exc}", file=sys.stderr)
             known = set()
-        deck_count = sync_decklists(
-            fmt,
-            DECKLIST_WINDOWS,
-            fetch_format_page=fetch,
-            fetch_event_page=fetch_event,
-            writer=writer,
-            skip_event_ids=known,
-            on_error=lambda f, ctx, exc: print(f"[error] {f}/decklists/{ctx}: {exc}", file=sys.stderr),
-        )
+        try:
+            deck_count = sync_decklists(
+                fmt,
+                DECKLIST_WINDOWS,
+                fetch_format_page=fetch,
+                fetch_event_page=fetch_event,
+                writer=writer,
+                skip_event_ids=known,
+                on_error=lambda f, ctx, exc: print(f"[error] {f}/decklists/{ctx}: {exc}", file=sys.stderr),
+            )
+        except Exception as exc:  # noqa: BLE001 — one bad format must not stop the rest
+            print(f"[error] {fmt}/decklists: {exc}", file=sys.stderr)
+            continue
         print(f"{fmt}/decklists: {deck_count} new decks")
 
         # Refresh each archetype's signature-card art from its current decks.
@@ -204,6 +192,15 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:  # noqa: BLE001
             print(f"[error] {fmt}/archetype-art: {exc}", file=sys.stderr)
 
+        # Stamp the format's freshness after a successful scrape (drives the
+        # "Updated X ago" indicator). Best-effort — a stamp failure must not fail
+        # the run, which already refreshed the format's decks.
+        try:
+            writer.stamp_format_updated(fmt, now)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[error] {fmt}/stamp: {exc}", file=sys.stderr)
+        succeeded += 1
+
     # Retention: drop events (and, via cascade, their decks/cards) older than the
     # retention window. Best-effort — a prune failure must not fail the run.
     cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).date().isoformat()
@@ -213,9 +210,9 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"[error] prune before {cutoff}: {exc}", file=sys.stderr)
 
-    # Fail the run only if every (format, window) breakdown pair failed (a single
-    # flaky slice is tolerated).
-    if all(count is None for count in results.values()):
+    # Fail the run only if every format's scrape failed (a single flaky format is
+    # tolerated).
+    if succeeded == 0:
         return 1
     return 0
 

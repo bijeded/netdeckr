@@ -3,7 +3,7 @@
 Pure control flow for the decklist pass: gather a format's events (deduped across
 the logical windows), then for each event store its decks and their cards. Network
 (fetch) and DB (writer) are injected so this module is unit-testable without the
-wire. Complements pipeline.py, which handles the metagame breakdown.
+wire. The metagame breakdown is derived frontend-side from these stored decks.
 
 Every event and every deck (all finishes) is stored — the frontend selects what to
 display (top finishes, else the latest lists), and later event/archetype filters

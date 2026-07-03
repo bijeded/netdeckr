@@ -1,8 +1,8 @@
 """Supabase writer for the scraper.
 
 Talks to Supabase's PostgREST API with the service-role key (which bypasses RLS).
-Kept dependency-light: only `requests`. Network I/O lives here; the orchestration
-in pipeline.py is pure and injected with this writer.
+Kept dependency-light: only `requests`. Network I/O lives here; the scrape
+orchestration (run.py / decklist_pipeline.py) is pure and injected with this writer.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from urllib.parse import quote
 
 import requests
 
-from mtgtop8 import Archetype, DeckCard, DeckResult, Event, color_identity_for
+from mtgtop8 import DeckCard, DeckResult, Event, color_identity_for
 
 # Rarity ordering for signature-card ranking; mythic is best. An unknown/null
 # rarity sorts after all of these (see _signature_sort_key), so a resolved card
@@ -30,7 +30,12 @@ def _release_ordinal(released_at: str | None) -> int | None:
 
 
 class SupabaseWriter:
-    """Replace-on-run writer, scoped per (format, meta_window) snapshot slice."""
+    """Writer for the decklist corpus (events/decks/deck_cards) and archetype art.
+
+    The metagame breakdown is derived frontend-side from the stored decks, so this
+    writer no longer stores a separate breakdown — it upserts scraped events/decks/
+    cards, refreshes archetype signature-card art, and stamps each format's freshness.
+    """
 
     def __init__(
         self,
@@ -57,65 +62,19 @@ class SupabaseWriter:
             "Content-Type": "application/json",
         }
 
-    def replace_breakdown(self, fmt: str, meta_window: str, archetypes: list[Archetype]) -> None:
-        """Replace one (format, meta_window) snapshot slice.
+    def stamp_format_updated(self, fmt: str, now_iso: str) -> None:
+        """Stamp a format's `last_updated_at` after a successful scrape.
 
-        Deletes only that window's snapshots — archetypes are shared across
-        windows, so they are upserted (get-or-create) rather than deleted. Then
-        inserts this window's ranked snapshots. Leaves other windows untouched.
+        Freshness is per-format now (the breakdown is derived from decks, so there
+        is no per-window snapshot to stamp). PATCHes the single `formats` row by its
+        `code` primary key, driving the "Updated X ago" indicator.
         """
-        delete = self._session.delete(
-            f"{self._rest}/metagame_snapshots"
-            f"?format_code=eq.{quote(fmt)}&meta_window=eq.{quote(meta_window)}",
+        patch = self._session.patch(
+            f"{self._rest}/formats?code=eq.{quote(fmt)}",
             headers=self._headers,
+            json={"last_updated_at": now_iso},
         )
-        delete.raise_for_status()
-
-        if not archetypes:
-            return
-
-        # Upsert archetypes on their (format_code, name) unique key so ids are
-        # stable across windows; return the rows to map name -> id.
-        upsert_archetypes = self._session.post(
-            f"{self._rest}/archetypes?on_conflict=format_code,name",
-            headers={
-                **self._headers,
-                "Prefer": "resolution=merge-duplicates,return=representation",
-            },
-            json=[
-                {"format_code": fmt, "name": a.name, "color_identity": a.color_identity}
-                for a in archetypes
-            ],
-        )
-        upsert_archetypes.raise_for_status()
-
-        id_by_name = {row["name"]: row["id"] for row in upsert_archetypes.json()}
-        snapshots = [
-            {
-                "archetype_id": id_by_name[a.name],
-                "format_code": fmt,
-                "meta_window": meta_window,
-                "share_pct": a.share_pct,
-                "rank": a.rank,
-            }
-            for a in archetypes
-        ]
-
-        insert_snapshots = self._session.post(
-            f"{self._rest}/metagame_snapshots",
-            headers=self._headers,
-            json=snapshots,
-        )
-        insert_snapshots.raise_for_status()
-
-    def stamp_updated(self, fmt: str, meta_window: str, now_iso: str) -> None:
-        """Upsert the (format, meta_window) freshness timestamp."""
-        upsert = self._session.post(
-            f"{self._rest}/format_window_freshness?on_conflict=format_code,meta_window",
-            headers={**self._headers, "Prefer": "resolution=merge-duplicates"},
-            json={"format_code": fmt, "meta_window": meta_window, "last_updated_at": now_iso},
-        )
-        upsert.raise_for_status()
+        patch.raise_for_status()
 
     # -- Decklists ----------------------------------------------------------
     # events/decks/deck_cards are upserted on their unique keys so daily re-runs
@@ -142,12 +101,12 @@ class SupabaseWriter:
     def upsert_archetype(self, fmt: str, name: str) -> int:
         """Get-or-create an archetype for a format, matching case-insensitively.
 
-        MTGTop8 capitalizes archetype names inconsistently across pages (the
-        breakdown spells "UW Control", the decklist results table "Uw Control").
-        Matching on the exact name would create a duplicate archetype row that has
-        no metagame snapshot and strands its decks, so we resolve against a
-        per-format `lower(name) -> id` map and only insert on a true miss (keeping
-        the first-seen display name). Colour identity is derived from the name.
+        MTGTop8 capitalizes archetype names inconsistently across pages (one page
+        spells "UW Control", another "Uw Control"). Matching on the exact name would
+        create a duplicate archetype row that splits an archetype's decks in two, so
+        we resolve against a per-format `lower(name) -> id` map and only insert on a
+        true miss (keeping the first-seen display name). Colour identity is derived
+        from the name.
         """
         cache = self._archetype_ids(fmt)
         existing = cache.get(name.lower())
@@ -167,12 +126,11 @@ class SupabaseWriter:
     def _archetype_ids(self, fmt: str) -> dict[str, int]:
         """Lazily load and cache a format's `lower(name) -> id` archetype map.
 
-        Assumes the breakdown pass (which POSTs archetypes directly, bypassing
-        this cache) is complete before any decklist `upsert_archetype` for the
-        format — true in run.py, where the decklist pass follows all breakdowns —
-        so the first lazy load sees the canonical breakdown names. In-run inserts
-        update the cache. Archetype counts per format are well under PostgREST's
-        default 1000-row page cap, so a single GET returns them all.
+        The first lazy load sees the archetypes already stored (from prior runs);
+        in-run inserts update the cache, so within a run each distinct name is
+        inserted once and its first-seen spelling becomes canonical. Archetype
+        counts per format are well under PostgREST's default 1000-row page cap, so
+        a single GET returns them all.
         """
         if fmt not in self._archetype_ids_by_format:
             resp = self._session.get(
