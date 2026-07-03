@@ -5,19 +5,25 @@ import { WindowSelector } from './WindowSelector'
 
 afterEach(() => i18n.changeLanguage('en'))
 
-const LABELS = ['Last 5 days', 'Last 2 weeks', 'Last 2 months']
+const LABELS = ['Last 5 days', 'Last 2 weeks']
 
 describe('WindowSelector', () => {
-  it('renders an option for each of the three windows with localized labels', () => {
+  it('renders an option for each of the two windows with localized labels', () => {
     render(<WindowSelector value="5days" onChange={() => {}} />)
     for (const name of LABELS) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument()
     }
   })
 
+  it('offers only the two supported windows (no Last 2 months)', () => {
+    render(<WindowSelector value="5days" onChange={() => {}} />)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: 'Last 2 months' })).not.toBeInTheDocument()
+  })
+
   it('marks the active window as pressed', () => {
-    render(<WindowSelector value="2months" onChange={() => {}} />)
-    expect(screen.getByRole('button', { name: 'Last 2 months' })).toHaveAttribute(
+    render(<WindowSelector value="2weeks" onChange={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Last 2 weeks' })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
@@ -30,8 +36,8 @@ describe('WindowSelector', () => {
   it('calls onChange with the selected window code', () => {
     const onChange = vi.fn()
     render(<WindowSelector value="5days" onChange={onChange} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Last 2 months' }))
-    expect(onChange).toHaveBeenCalledWith('2months')
+    fireEvent.click(screen.getByRole('button', { name: 'Last 2 weeks' }))
+    expect(onChange).toHaveBeenCalledWith('2weeks')
   })
 
   it('shows a localized group heading', async () => {

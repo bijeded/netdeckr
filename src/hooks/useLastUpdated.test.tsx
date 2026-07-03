@@ -24,12 +24,12 @@ describe('useLastUpdated', () => {
 
   it('reads the (format, window) freshness row and returns its last_updated_at', async () => {
     queryResult.data = { last_updated_at: '2026-07-01T12:00:00Z' }
-    const { result } = renderHook(() => useLastUpdated('ST', '2months'))
+    const { result } = renderHook(() => useLastUpdated('ST', '2weeks'))
 
     await waitFor(() => expect(result.current).toBe('2026-07-01T12:00:00Z'))
     expect(from).toHaveBeenCalledWith('format_window_freshness')
     expect(eq).toHaveBeenCalledWith('format_code', 'ST')
-    expect(eq).toHaveBeenCalledWith('meta_window', '2months')
+    expect(eq).toHaveBeenCalledWith('meta_window', '2weeks')
     expect(single).toHaveBeenCalled()
   })
 
