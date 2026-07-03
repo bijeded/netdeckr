@@ -17,9 +17,9 @@ MetaStack tracks Magic: The Gathering metagames across Standard, Pioneer, Modern
 - Hosting: Vercel
 
 ## Architecture
-- Data pipeline (Python, GitHub Actions cron): scrapes MTGTop8 formats/events/decklists/top-cards, syncs Scryfall bulk data, writes to Supabase using the service-role key, and prunes any data older than 6 months at the end of each run.
+- Data pipeline (Python, GitHub Actions cron): scrapes MTGTop8 formats/events/decklists/top-cards (following every page of a window's events list), syncs Scryfall bulk data, writes to Supabase using the service-role key, and prunes any data older than 30 days at the end of each run.
 - Database (Supabase/Postgres): normalized tables for formats, events, decks, cards, archetypes, and metagame snapshots per time window; RLS grants public read-only.
-- Frontend (React SPA on Vercel): reads directly from Supabase, applies format and time-frame filters (event/archetype filters planned), renders metagame + trending charts, shows decklist pop-ups with MTG Arena export. `meta_window` is a format-independent logical key (`5days`/`2weeks`/`2months`); the scraper maps it to each format's per-format MTGTop8 meta ID.
+- Frontend (React SPA on Vercel): reads directly from Supabase, applies format and time-frame filters (event/archetype filters planned), renders metagame + trending charts, shows decklist pop-ups with MTG Arena export. `meta_window` is a format-independent logical key (`5days`/`2weeks`); the scraper maps it to each format's per-format MTGTop8 meta ID.
 - Boundary: browser is strictly read-only; all writes happen in CI. No secrets beyond the Supabase anon key reach the client.
 
 ## Conventions
@@ -36,4 +36,4 @@ MetaStack tracks Magic: The Gathering metagames across Standard, Pioneer, Modern
 - No paid features, ads, or monetization.
 - No redistribution of raw MTGTop8 data — only derived metagame statistics.
 - No staging environment.
-- No long-term historical archive — data older than 6 months is deleted, not retained.
+- No long-term historical archive — data older than 30 days is deleted, not retained.

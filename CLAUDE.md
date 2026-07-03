@@ -1,7 +1,7 @@
 # MetaStack
 
 ## Project overview
-MetaStack is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and a time frame (Last 5 Days / 2 Weeks / 2 Months) to explore the metagame; planned filters (event, archetype) and features (archetype decklists, trending/top cards, MTG Arena export) extend from there. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
+MetaStack is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and a time frame (Last 5 Days / 2 Weeks) to explore the metagame; planned filters (event, archetype) and features (archetype decklists, trending/top cards, MTG Arena export) extend from there. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
 
 Shipped so far: format switcher, the metagame archetype breakdown, and the time-frame filter (in a filter sidebar). See `openspec/specs/` for living specs and `openspec/changes/archive/` for completed changes.
 
@@ -80,12 +80,12 @@ web (responsive)
 - Seed command: `python scraper/run.py` (populates from MTGTop8 + Scryfall)
 
 ## Data pipeline
-- Schedule: GitHub Actions daily, one job per format on staggered crons (12:00–13:00 UTC, 15 min apart); `workflow_dispatch` can run a single format or `all`. Decklist scraping is incremental (events already stored are skipped), so only the first backfill is slow.
+- Schedule: GitHub Actions daily, one job per format on staggered crons (12:00–13:00 UTC, 15 min apart); `workflow_dispatch` can run a single format or `all`. Decklist scraping is incremental (events already stored are skipped) and follows **every page** of a window's events list (`&cp=2`, `&cp=3`, … until a page yields no new events, capped at ~20), so only the first backfill is slow.
 - Source: MTGTop8 (requests + BeautifulSoup4), base `http://mtgtop8.com`
-- Time windows: stored as format-independent logical keys `5days`, `2weeks`, `2months` (the three windows MTGTop8 offers with the same meaning for every format). **MTGTop8's numeric `meta` param is per-format** — the same window has a different ID per format — so the scraper maps each logical window to that format's ID via `WINDOW_META`/`meta_id_for` in `scraper/mtgtop8.py`. The non-universal "Large Events" / "MTGO/Live" windows were intentionally dropped (Pre-Modern lacks Large Events; MTGO is "Live Tournaments"/3mo elsewhere).
+- Time windows: stored as format-independent logical keys `5days`, `2weeks` (the two windows the dashboard offers, with the same meaning for every format). **MTGTop8's numeric `meta` param is per-format** — the same window has a different ID per format — so the scraper maps each logical window to that format's ID via `WINDOW_META`/`meta_id_for` in `scraper/mtgtop8.py`. The decklist pass gathers only the `2weeks` window (which contains `5days` by date); the breakdown pass runs both. Wider MTGTop8 windows ("2 Months", "Large Events", "MTGO/Live") are not tracked (2 months is too large to fully paginate; the others aren't uniform across formats).
 - Fair use: respectful rate limiting, cache aggressively, no redistribution beyond derived metagame stats
 - Card data: Scryfall bulk download once/day; hotlink `image_uris`; Arena export uses current/latest non-foil set printing, no special art
-- Retention: data older than 6 months is not kept — the daily job prunes events (and their decks/snapshots) older than 6 months from Supabase after each run
+- Retention: data older than 30 days is not kept — the daily job prunes events (and their decks/cards) older than 30 days from Supabase after each run
 
 ## Error tracking
 - Platform: none (v1) — Sentry candidate later

@@ -26,11 +26,11 @@ two-month scope is the ~13.9k-deck explosion this change avoids (design D2).
 
 ## 3. Docs
 
-- [ ] 3.1 `CLAUDE.md` → Data pipeline: windows are now `5days`/`2weeks`, decklist scrape is paginated and scoped to the two-week window, retention is 30 days.
-- [ ] 3.2 `openspec/project.md` → update the retention out-of-scope line (six months → ~1 month / 30 days).
-- [ ] 3.3 `docs/HANDOFF.md` → note the two-window scope, pagination, and 30-day retention; flag that `derive-metagame-from-decks` is the queued follow-up.
+- [x] 3.1 `CLAUDE.md` → Data pipeline: windows are now `5days`/`2weeks`, decklist scrape is paginated and scoped to the two-week window, retention is 30 days.
+- [x] 3.2 `openspec/project.md` → update the retention out-of-scope line (six months → ~1 month / 30 days).
+- [x] 3.3 `docs/HANDOFF.md` → note the two-window scope, pagination, and 30-day retention; flag that `derive-metagame-from-decks` is the queued follow-up.
 
 ## 4. Sync + archive (after all groups merged)
 
-- [ ] 4.1 `/opsx:sync` the delta specs into `openspec/specs/metagame-data-pipeline` and `openspec/specs/metagame-breakdown-view`.
-- [ ] 4.2 `/opsx:archive` the change (lands via a `chore:` PR since `main` is protected).
+- [x] 4.1 `/opsx:sync` the delta specs into `openspec/specs/metagame-data-pipeline` and `openspec/specs/metagame-breakdown-view`.
+- [x] 4.2 `/opsx:archive` the change (lands via a `chore:` PR since `main` is protected).
