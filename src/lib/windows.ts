@@ -1,8 +1,8 @@
 // The two time windows the dashboard offers, with the same meaning, for every
-// format. `code` is a format-independent logical key (also the DB `meta_window`
-// value and the `?w=` param); `i18nKey` resolves the localized label via
-// react-i18next. The scraper maps each logical window to that format's per-format
-// MTGTop8 meta ID. Last 2 Weeks contains Last 5 Days as a date subset.
+// format. `code` is a format-independent logical key (the `?w=` param) that
+// selects a client-side date range over the decks (see WINDOW_DAYS); `i18nKey`
+// resolves the localized label via react-i18next. Last 2 Weeks contains Last 5
+// Days as a date subset.
 export const WINDOWS = [
   { code: '5days', i18nKey: 'windows.last5Days', isDefault: true },
   { code: '2weeks', i18nKey: 'windows.last2Weeks', isDefault: false },

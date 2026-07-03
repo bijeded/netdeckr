@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
-import type { WindowCode } from '../lib/windows'
 
-/** Read the selected format + window's `last_updated_at` timestamp (or null). */
-export function useLastUpdated(formatCode: FormatCode, metaWindow: WindowCode): string | null {
+/**
+ * Read the selected format's `last_updated_at` timestamp (or null). Freshness is
+ * per-format: the scraper stamps it after a successful run, and the metagame is
+ * derived from that format's decks regardless of window, so there is no per-window
+ * timestamp. Returns null when absent or on error (the indicator is then hidden).
+ */
+export function useLastUpdated(formatCode: FormatCode): string | null {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
 
     supabase
-      .from('format_window_freshness')
+      .from('formats')
       .select('last_updated_at')
-      .eq('format_code', formatCode)
-      .eq('meta_window', metaWindow)
+      .eq('code', formatCode)
       .single()
       .then(({ data, error }) => {
         if (!active) return
@@ -24,7 +27,7 @@ export function useLastUpdated(formatCode: FormatCode, metaWindow: WindowCode): 
     return () => {
       active = false
     }
-  }, [formatCode, metaWindow])
+  }, [formatCode])
 
   return lastUpdated
 }

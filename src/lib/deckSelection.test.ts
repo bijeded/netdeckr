@@ -47,29 +47,34 @@ describe('selectDisplayDecks', () => {
     expect(result.map((r) => r.sourceDeckId)).toEqual(['b', 'c'])
   })
 
-  it('caps the top-4 branch at the 4 most recent finishes', () => {
+  it('caps the top-4 branch at the 6 most recent finishes', () => {
     const rows = [
-      row({ sourceDeckId: 'v', placement: '1', eventDate: '2026-06-01' }),
-      row({ sourceDeckId: 'w', placement: '2', eventDate: '2026-06-02' }),
-      row({ sourceDeckId: 'x', placement: '1', eventDate: '2026-06-03' }),
-      row({ sourceDeckId: 'y', placement: '3-4', eventDate: '2026-06-04' }),
-      row({ sourceDeckId: 'z', placement: '1', eventDate: '2026-06-05' }),
+      row({ sourceDeckId: 't', placement: '1', eventDate: '2026-06-01' }),
+      row({ sourceDeckId: 'u', placement: '2', eventDate: '2026-06-02' }),
+      row({ sourceDeckId: 'v', placement: '1', eventDate: '2026-06-03' }),
+      row({ sourceDeckId: 'w', placement: '3-4', eventDate: '2026-06-04' }),
+      row({ sourceDeckId: 'x', placement: '1', eventDate: '2026-06-05' }),
+      row({ sourceDeckId: 'y', placement: '2', eventDate: '2026-06-06' }),
+      row({ sourceDeckId: 'z', placement: '1', eventDate: '2026-06-07' }),
     ]
     const result = selectDisplayDecks(rows)
-    expect(result.map((r) => r.sourceDeckId)).toEqual(['z', 'y', 'x', 'w'])
+    // Most recent six; the oldest (t) is dropped.
+    expect(result.map((r) => r.sourceDeckId)).toEqual(['z', 'y', 'x', 'w', 'v', 'u'])
   })
 
-  it('falls back to the latest 4 by event date when no top-4 finish exists', () => {
+  it('falls back to the latest 6 by event date when no top-4 finish exists', () => {
     const rows = [
       row({ sourceDeckId: 'a', placement: '5-8', eventDate: '2026-06-01' }),
       row({ sourceDeckId: 'b', placement: '5-8', eventDate: '2026-06-10' }),
       row({ sourceDeckId: 'c', placement: '9-16', eventDate: '2026-06-05' }),
       row({ sourceDeckId: 'd', placement: '5-8', eventDate: '2026-06-20' }),
       row({ sourceDeckId: 'e', placement: '9-16', eventDate: '2026-06-15' }),
+      row({ sourceDeckId: 'f', placement: '5-8', eventDate: '2026-06-25' }),
+      row({ sourceDeckId: 'g', placement: '9-16', eventDate: '2026-06-02' }),
     ]
     const result = selectDisplayDecks(rows)
-    // Latest four by date, most recent first: d(20), e(15), b(10), c(05)
-    expect(result.map((r) => r.sourceDeckId)).toEqual(['d', 'e', 'b', 'c'])
+    // Latest six by date, most recent first: f(25), d(20), e(15), b(10), c(05), g(02); a(01) dropped.
+    expect(result.map((r) => r.sourceDeckId)).toEqual(['f', 'd', 'e', 'b', 'c', 'g'])
   })
 
   it('returns an empty list for no decks', () => {

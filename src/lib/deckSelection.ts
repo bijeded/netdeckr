@@ -19,7 +19,7 @@ export interface DeckRow {
 
 // How many decklists an expanded archetype shows, in both the top-finish and the
 // latest-lists branches.
-const DISPLAY_COUNT = 4
+const DISPLAY_COUNT = 6
 
 /** First integer in a placement label, or null if there is none. */
 function placementNumber(placement: string): number | null {
@@ -34,8 +34,8 @@ export function isTopFour(placement: string): boolean {
 }
 
 /**
- * Choose the decks to display for one archetype: its 4 most recent Top 4 finishes
- * (1st, 2nd, Top 4), or — when it has none — its 4 most recent decks overall.
+ * Choose the decks to display for one archetype: its 6 most recent Top 4 finishes
+ * (1st, 2nd, Top 4), or — when it has none — its 6 most recent decks overall.
  * Both branches are ordered most-recent-first and capped at `DISPLAY_COUNT`.
  */
 export function selectDisplayDecks(rows: DeckRow[]): DeckRow[] {
