@@ -100,6 +100,18 @@ export function ArchetypeCard({
             }}
           />
         )}
+        {/* Elliptical vignette: near-transparent through the center so the art stays
+            vivid, darkening toward the corners where the pips/badges sit so they stay
+            legible over bright art. Non-interactive, above the art, below the badges. */}
+        <div
+          data-testid="art-vignette"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: 'radial-gradient(ellipse at center, transparent 0 45%, rgba(0,0,0,.5) 100%)',
+          }}
+        />
         <div style={{ position: 'absolute', left: 11, top: 10 }}>
           <ManaPips colors={colors} size={16} />
         </div>

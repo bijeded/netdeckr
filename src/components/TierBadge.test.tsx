@@ -18,4 +18,10 @@ describe('TierBadge', () => {
     expect(screen.getByText('Rogue')).toBeInTheDocument()
     expect(screen.queryByText('Otros')).toBeNull()
   })
+
+  it('carries a glow so it reads as self-lit over art', () => {
+    render(<TierBadge tier="T1" />)
+    // Structure, not exact color — the glow value stays tunable.
+    expect(screen.getByText('T1').style.boxShadow).not.toBe('')
+  })
 })

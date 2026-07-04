@@ -5,11 +5,13 @@ import type { Trend } from '../lib/powerScore'
 // Arrow-only variant of the design system's ChangeIndicator: it conveys the
 // direction of an archetype's window-over-window performance change with a glyph
 // and semantic color only — never the raw Power Score or a numeric delta.
-const TRENDS: Record<Trend, { color: string; bg: string; border: string; glyph: string; key: string }> = {
-  up: { color: 'var(--up)', bg: 'var(--up-tint)', border: 'var(--up-border)', glyph: '▲', key: 'trend.up' },
-  down: { color: 'var(--down)', bg: 'var(--down-tint)', border: 'var(--down-border)', glyph: '▼', key: 'trend.down' },
+// `glow` is a hue-matched box-shadow so the arrow reads as self-lit against any art,
+// matching the tier badge's treatment (up green / down red / flat amber).
+const TRENDS: Record<Trend, { color: string; bg: string; border: string; glyph: string; key: string; glow: string }> = {
+  up: { color: 'var(--up)', bg: 'var(--up-tint)', border: 'var(--up-border)', glyph: '▲', key: 'trend.up', glow: '0 0 10px rgba(47,230,160,.4)' },
+  down: { color: 'var(--down)', bg: 'var(--down-tint)', border: 'var(--down-border)', glyph: '▼', key: 'trend.down', glow: '0 0 10px rgba(255,84,112,.4)' },
   // '–' is an en-dash (U+2013), matching the design glyph set — not a hyphen.
-  flat: { color: 'var(--flat)', bg: 'var(--flat-tint)', border: 'var(--flat-border)', glyph: '–', key: 'trend.flat' },
+  flat: { color: 'var(--flat)', bg: 'var(--flat-tint)', border: 'var(--flat-border)', glyph: '–', key: 'trend.flat', glow: '0 0 8px rgba(255,203,69,.35)' },
 }
 
 interface TrendIndicatorProps {
@@ -38,6 +40,7 @@ export function TrendIndicator({ trend, style }: TrendIndicatorProps) {
         color: c.color,
         background: c.bg,
         border: `1px solid ${c.border}`,
+        boxShadow: c.glow,
         backdropFilter: 'blur(4px)',
         ...style,
       }}
