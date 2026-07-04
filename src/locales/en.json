@@ -26,6 +26,11 @@
   "tiers": {
     "rogue": "Rogue"
   },
+  "trend": {
+    "up": "Performance trending up",
+    "down": "Performance trending down",
+    "flat": "Performance steady"
+  },
   "decks": {
     "heading": "Recent decklists",
     "count": "{{count}} lists",

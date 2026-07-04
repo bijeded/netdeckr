@@ -43,8 +43,8 @@ describe('App dashboard', () => {
   it('renders the format title and the archetype grid on success', () => {
     useMetagame.mockReturnValue({
       breakdown: [
-        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 },
-        { rank: 2, name: 'Selesnya Aggro', colorIdentity: 'WG', sharePct: 21 },
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null },
+        { rank: 2, name: 'Selesnya Aggro', colorIdentity: 'WG', sharePct: 21, tier: 'T2', trend: null },
       ],
       decksByArchetype: {},
       loading: false,
@@ -123,7 +123,7 @@ describe('App dashboard', () => {
 
   it('expands an archetype with decks to show its decklist rows, and collapses again', () => {
     useMetagame.mockReturnValue({
-      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
       decksByArchetype: {
         'Izzet Control': [
           {
@@ -154,7 +154,7 @@ describe('App dashboard', () => {
 
   it('opens the decklist modal when a deck card is clicked', () => {
     useMetagame.mockReturnValue({
-      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24 }],
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
       decksByArchetype: {
         'Izzet Control': [
           {
@@ -196,7 +196,7 @@ describe('App dashboard', () => {
     // Derived breakdowns always have decks; this pins the App's defensive guard for
     // the impossible-in-practice case where a card has a share but no display decks.
     useMetagame.mockReturnValue({
-      breakdown: [{ rank: 1, name: 'Reanimator', colorIdentity: '', sharePct: 3 }],
+      breakdown: [{ rank: 1, name: 'Reanimator', colorIdentity: '', sharePct: 3, tier: 'Otros', trend: null }],
       decksByArchetype: {},
       loading: false,
       error: null,

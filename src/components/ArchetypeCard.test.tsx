@@ -4,7 +4,7 @@ import { ArchetypeCard } from './ArchetypeCard'
 
 describe('ArchetypeCard', () => {
   it('renders a #-prefixed rank, name, one-decimal share, and pips', () => {
-    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" />)
     expect(screen.getByText('#1')).toBeInTheDocument()
     expect(screen.getByText('Izzet Control')).toBeInTheDocument()
     expect(screen.getByText('24.0%')).toBeInTheDocument()
@@ -18,6 +18,7 @@ describe('ArchetypeCard', () => {
         name="Izzet Control"
         colors="UR"
         sharePct={24}
+        tier="T1"
         artImageUrl="https://cards.scryfall.io/normal/fable.jpg"
       />,
     )
@@ -34,6 +35,7 @@ describe('ArchetypeCard', () => {
         name="Izzet Control"
         colors="UR"
         sharePct={24}
+        tier="T1"
         artImageUrl="https://cards.scryfall.io/normal/fable.jpg"
         artCropUrl="https://cards.scryfall.io/art_crop/fable.jpg"
       />,
@@ -51,6 +53,7 @@ describe('ArchetypeCard', () => {
         name="Izzet Control"
         colors="UR"
         sharePct={24}
+        tier="T1"
         artImageUrl="https://cards.scryfall.io/normal/fable.jpg"
       />,
     )
@@ -61,30 +64,49 @@ describe('ArchetypeCard', () => {
   })
 
   it('renders no image (gradient placeholder) when there is no art URL', () => {
-    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" />)
     expect(screen.queryByTestId('archetype-art')).toBeNull()
   })
 
   it('falls back to the placeholder if the art image fails to load', () => {
     render(
-      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} artImageUrl="https://x/broken.jpg" />,
+      <ArchetypeCard
+        rank={1}
+        name="Izzet Control"
+        colors="UR"
+        sharePct={24}
+        tier="T1"
+        artImageUrl="https://x/broken.jpg"
+      />,
     )
     fireEvent.error(screen.getByTestId('archetype-art'))
     expect(screen.queryByTestId('archetype-art')).toBeNull()
   })
 
-  it('shows the tier badge derived from the share %', () => {
-    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
-    expect(screen.getByText('T1')).toBeInTheDocument()
+  it('shows the tier badge from the tier prop, not the share %', () => {
+    // A 24% share would have been T1 under the old share rule; the badge follows `tier`.
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T3" />)
+    expect(screen.getByText('T3')).toBeInTheDocument()
+    expect(screen.queryByText('T1')).toBeNull()
+  })
+
+  it('renders the trend arrow when a trend is provided', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" trend="up" />)
+    expect(screen.getByRole('img', { name: 'Performance trending up' })).toBeInTheDocument()
+  })
+
+  it('renders no trend arrow when trend is null (baseline window)', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" trend={null} />)
+    expect(screen.queryByRole('img')).toBeNull()
   })
 
   it('formats a fractional share to one decimal', () => {
-    render(<ArchetypeCard rank={2} name="Selesnya Aggro" colors="WG" sharePct={14.2} />)
+    render(<ArchetypeCard rank={2} name="Selesnya Aggro" colors="WG" sharePct={14.2} tier="T2" />)
     expect(screen.getByText('14.2%')).toBeInTheDocument()
   })
 
   it('shows a single gray pip for a colorless archetype', () => {
-    render(<ArchetypeCard rank={12} name="Reanimator" colors="" sharePct={1.2} />)
+    render(<ArchetypeCard rank={12} name="Reanimator" colors="" sharePct={1.2} tier="Otros" />)
     const pips = screen.getAllByTestId('mana-pip')
     expect(pips).toHaveLength(1)
     expect(pips[0].dataset.color).toBe('C')
@@ -93,14 +115,18 @@ describe('ArchetypeCard', () => {
 
   it('calls onClick when the card is activated', () => {
     const onClick = vi.fn()
-    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} onClick={onClick} />)
+    render(
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" onClick={onClick} />,
+    )
     fireEvent.click(screen.getByText('Izzet Control'))
     expect(onClick).toHaveBeenCalledOnce()
   })
 
   it('is a native, keyboard-accessible button when clickable', () => {
     const onClick = vi.fn()
-    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} onClick={onClick} />)
+    render(
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" onClick={onClick} />,
+    )
     // A native <button> is focusable and Enter/Space-activatable without extra ARIA.
     const card = screen.getByRole('button', { name: /Izzet Control/ })
     expect(card.tagName).toBe('BUTTON')
@@ -109,20 +135,20 @@ describe('ArchetypeCard', () => {
   })
 
   it('is not a button when not clickable', () => {
-    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} />)
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" />)
     expect(screen.queryByRole('button')).toBeNull()
   })
 
   it('renders children only when expanded', () => {
     const { rerender } = render(
-      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} onClick={vi.fn()}>
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" onClick={vi.fn()}>
         <div>deck rows</div>
       </ArchetypeCard>,
     )
     expect(screen.queryByText('deck rows')).toBeNull()
 
     rerender(
-      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} expanded onClick={vi.fn()}>
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" expanded onClick={vi.fn()}>
         <div>deck rows</div>
       </ArchetypeCard>,
     )
@@ -131,7 +157,7 @@ describe('ArchetypeCard', () => {
 
   it('reflects the expanded state via aria-expanded on the clickable card', () => {
     render(
-      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} expanded onClick={vi.fn()} />,
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" expanded onClick={vi.fn()} />,
     )
     expect(screen.getByRole('button', { name: /Izzet Control/ })).toHaveAttribute('aria-expanded', 'true')
   })

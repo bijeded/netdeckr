@@ -1,6 +1,9 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ManaPips } from './ManaPips'
 import { TierBadge } from './TierBadge'
+import { TrendIndicator } from './TrendIndicator'
+import type { Tier } from '../lib/tiers'
+import type { Trend } from '../lib/powerScore'
 
 // A stable hue (0-360) derived from the name, so placeholder art varies per card.
 function hueFromName(name: string): number {
@@ -15,6 +18,10 @@ interface ArchetypeCardProps {
   /** WUBRG color-identity string; "" renders a colorless gray pip. */
   colors: string
   sharePct: number
+  /** Performance tier (from the archetype's 2-week Power Score), shown as the badge. */
+  tier: Tier
+  /** Recent-window momentum vs the 2-week baseline; null on the baseline window (no arrow). */
+  trend?: Trend | null
   /** Signature-card normal-size art (hotlinked Scryfall CDN); used when no crop. */
   artImageUrl?: string | null
   /** Signature-card cropped art (hotlinked Scryfall CDN); preferred over the normal image. */
@@ -35,6 +42,8 @@ export function ArchetypeCard({
   name,
   colors,
   sharePct,
+  tier,
+  trend = null,
   artImageUrl = null,
   artCropUrl = null,
   maxPct = 100,
@@ -94,7 +103,10 @@ export function ArchetypeCard({
         <div style={{ position: 'absolute', left: 11, top: 10 }}>
           <ManaPips colors={colors} size={16} />
         </div>
-        <TierBadge pct={sharePct} style={{ position: 'absolute', right: 10, top: 10 }} />
+        <div style={{ position: 'absolute', right: 10, top: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+          {trend && <TrendIndicator trend={trend} />}
+          <TierBadge tier={tier} />
+        </div>
       </div>
       <div style={{ padding: '13px 14px 15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
