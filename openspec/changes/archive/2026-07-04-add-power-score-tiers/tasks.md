@@ -30,4 +30,4 @@
 ## 5. Verification & close
 
 - [x] 5.1 Full frontend suite green: `npm run test`; `npm run type-check`; `npm run lint`.
-- [ ] 5.2 Manual sanity check against live data: badges are stable when toggling 5days⇄2weeks; deep-finishing archetypes out-rank popular-but-shallow ones; on Last 5 Days the ▲/▼ arrows point sensibly (and low-recent-count cards read flat), while Last 2 Weeks shows no arrows; no card renders a blank/erroring badge.
+- [x] 5.2 Manual sanity check against live data: badges are stable when toggling 5days⇄2weeks; deep-finishing archetypes out-rank popular-but-shallow ones; on Last 5 Days the ▲/▼ arrows point sensibly (and low-recent-count cards read flat), while Last 2 Weeks shows no arrows; no card renders a blank/erroring badge.
