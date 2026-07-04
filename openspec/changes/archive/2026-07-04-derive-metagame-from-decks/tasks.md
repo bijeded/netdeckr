@@ -28,15 +28,15 @@ which gracefully hides the freshness line — no broken state.
 
 ## 3. Schema: drop the snapshot + freshness tables and meta_window
 
-- [ ] 3.1 In `supabase/schema.sql`: remove the `metagame_snapshots` and `format_window_freshness` create/migration/remap/RLS/grant blocks, and add idempotent `drop table if exists public.metagame_snapshots cascade;` / `... format_window_freshness cascade;` so applying the schema removes them from the live DB. `meta_window` disappears with the tables.
-- [ ] 3.2 Rework the one-time archetype-dedupe block that references `metagame_snapshots` (`has_snapshot`): pick the canonical row by lowest id and drop the snapshot move/delete steps (keep the deck re-point + orphan delete + the `(format_code, lower(name))` unique index).
-- [ ] 3.3 Validate `schema.sql` with `pglast` (parses clean, no reserved-word-as-identifier, idempotent/re-runnable). Note in the PR that a human applies it with the service-role key **after** merge (safe — nothing reads/writes the tables by then).
+- [x] 3.1 In `supabase/schema.sql`: remove the `metagame_snapshots` and `format_window_freshness` create/migration/remap/RLS/grant blocks, and add idempotent `drop table if exists public.metagame_snapshots cascade;` / `... format_window_freshness cascade;` so applying the schema removes them from the live DB. `meta_window` disappears with the tables.
+- [x] 3.2 Rework the one-time archetype-dedupe block that references `metagame_snapshots` (`has_snapshot`): pick the canonical row by lowest id and drop the snapshot move/delete steps (keep the deck re-point + orphan delete + the `(format_code, lower(name))` unique index).
+- [x] 3.3 Validate `schema.sql` with `pglast` (parses clean, no reserved-word-as-identifier, idempotent/re-runnable). Note in the PR that a human applies it with the service-role key **after** merge (safe — nothing reads/writes the tables by then).
 
 ## 4. Docs, memory, sync + archive
 
-- [ ] 4.1 `CLAUDE.md` → the metagame breakdown is derived from the scraped decks; freshness is per-format (`formats.last_updated_at`); no `metagame_snapshots`/`format_window_freshness`/`meta_window`.
-- [ ] 4.2 `openspec/project.md` → architecture: breakdown derived from decks; remove the `meta_window` logical-key sentence.
-- [ ] 4.3 `docs/HANDOFF.md` → data model (drop the snapshot/freshness tables + `meta_window`), gotchas (the `meta_window` note is now obsolete), and a shipped entry for this change.
-- [ ] 4.4 Update the `meta-window` auto-memory (the column no longer exists — rewrite or delete) and its `MEMORY.md` pointer.
-- [ ] 4.5 `/opsx:sync` the deltas into `openspec/specs/metagame-breakdown-view` + `openspec/specs/metagame-data-pipeline`.
-- [ ] 4.6 `/opsx:archive` the change (lands via a `chore:` PR since `main` is protected).
+- [x] 4.1 `CLAUDE.md` → the metagame breakdown is derived from the scraped decks; freshness is per-format (`formats.last_updated_at`); no `metagame_snapshots`/`format_window_freshness`/`meta_window`.
+- [x] 4.2 `openspec/project.md` → architecture: breakdown derived from decks; remove the `meta_window` logical-key sentence.
+- [x] 4.3 `docs/HANDOFF.md` → data model (drop the snapshot/freshness tables + `meta_window`), gotchas (the `meta_window` note is now obsolete), and a shipped entry for this change.
+- [x] 4.4 Update the `meta-window` auto-memory (the column no longer exists — rewrite or delete) and its `MEMORY.md` pointer.
+- [x] 4.5 `/opsx:sync` the deltas into `openspec/specs/metagame-breakdown-view` + `openspec/specs/metagame-data-pipeline`.
+- [x] 4.6 `/opsx:archive` the change (lands via a `chore:` PR since `main` is protected).

@@ -18,8 +18,8 @@ MetaStack tracks Magic: The Gathering metagames across Standard, Pioneer, Modern
 
 ## Architecture
 - Data pipeline (Python, GitHub Actions cron): scrapes MTGTop8 formats/events/decklists/top-cards (following every page of a window's events list), syncs Scryfall bulk data, writes to Supabase using the service-role key, and prunes any data older than 30 days at the end of each run.
-- Database (Supabase/Postgres): normalized tables for formats, events, decks, cards, archetypes, and metagame snapshots per time window; RLS grants public read-only.
-- Frontend (React SPA on Vercel): reads directly from Supabase, applies format and time-frame filters (event/archetype filters planned), renders metagame + trending charts, shows decklist pop-ups with MTG Arena export. `meta_window` is a format-independent logical key (`5days`/`2weeks`); the scraper maps it to each format's per-format MTGTop8 meta ID.
+- Database (Supabase/Postgres): normalized tables for formats, events, decks, cards, and archetypes (each format stamped with a per-format `last_updated_at`); RLS grants public read-only. There is no stored metagame breakdown — the share per archetype is derived at read time from the decks.
+- Frontend (React SPA on Vercel): reads directly from Supabase, applies format and time-frame filters (event/archetype filters planned), **derives the metagame breakdown from the window's decks** (grouped by archetype), renders metagame + trending charts, shows decklist pop-ups with MTG Arena export. The time windows (`5days`/`2weeks`) are format-independent logical keys applied as client-side date filters over the decks; the scraper reuses them only to resolve each format's per-format MTGTop8 meta ID.
 - Boundary: browser is strictly read-only; all writes happen in CI. No secrets beyond the Supabase anon key reach the client.
 
 ## Conventions
