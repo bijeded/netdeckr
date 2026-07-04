@@ -26,6 +26,11 @@
   "tiers": {
     "rogue": "Otros"
   },
+  "trend": {
+    "up": "Rendimiento en alza",
+    "down": "Rendimiento en baja",
+    "flat": "Rendimiento estable"
+  },
   "decks": {
     "heading": "Listas recientes",
     "count": "{{count}} listas",

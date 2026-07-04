@@ -211,6 +211,8 @@ function App() {
                         name={archetype.name}
                         colors={archetype.colorIdentity}
                         sharePct={archetype.sharePct}
+                        tier={archetype.tier}
+                        trend={archetype.trend}
                         artImageUrl={archetype.artImageUrl}
                         artCropUrl={archetype.artCropUrl}
                         maxPct={maxPct}

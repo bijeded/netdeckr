@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tierFor, type Tier } from '../lib/tiers'
+import type { Tier } from '../lib/tiers'
 
 const TIERS: Record<Tier, { color: string; bg: string; border: string }> = {
   T1: { color: 'var(--tier-1)', bg: 'var(--neon-tint-16)', border: 'rgba(177,75,255,.55)' },
@@ -10,19 +10,17 @@ const TIERS: Record<Tier, { color: string; bg: string; border: string }> = {
 }
 
 interface TierBadgeProps {
-  /** Explicit tier; or pass `pct` to auto-classify. */
-  tier?: Tier
-  pct?: number
+  /** The archetype's performance tier (assigned from its Power Score). */
+  tier: Tier
   style?: CSSProperties
 }
 
 /** Mono chip marking an archetype's tier (T1/T2/T3/Otros). */
-export function TierBadge({ tier, pct, style }: TierBadgeProps) {
+export function TierBadge({ tier, style }: TierBadgeProps) {
   const { t } = useTranslation()
-  const resolved = tier ?? (pct != null ? tierFor(pct) : 'T3')
-  const c = TIERS[resolved]
+  const c = TIERS[tier]
   // T1/T2/T3 are universal; only the fringe tier is localized (EN "Rogue" / ES "Otros").
-  const label = resolved === 'Otros' ? t('tiers.rogue') : resolved
+  const label = tier === 'Otros' ? t('tiers.rogue') : tier
   return (
     <span
       style={{
