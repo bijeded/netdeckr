@@ -7,9 +7,12 @@ an index straight from a saved bulk fixture and never hit live Scryfall.
 
 Scryfall's `default_cards` bulk export holds one row per printing (multiple per
 card). We keep, per canonical card name, the best non-foil *paper* printing —
-preferring a standard (non-promo, non-crossover) printing over a special one,
-then the most recent — and index it under the full name plus each face name so
-split/DFC front-face names (what MTGTop8 emits) still resolve.
+ranking by plain treatment first (a plain printing beats any special-treatment
+one: promo, crossover, full-art, textless, borderless, or showcase/extended/
+inverted frame — even in a newer set), then a preferred set type (expansion/
+core/masters over commander/draft-innovation), then the most recent — and index
+it under the full name plus each face name so split/DFC front-face names (what
+MTGTop8 emits) still resolve.
 """
 from __future__ import annotations
 
@@ -63,21 +66,54 @@ def _is_paper_nonfoil(row: dict) -> bool:
     return bool(row.get("nonfoil", True))
 
 
+# Frame effects that mark an alternate treatment we avoid when a plain printing
+# exists (Scryfall vocabulary). Borderless is handled via `border_color`.
+_SPECIAL_FRAME_EFFECTS = frozenset({"showcase", "extendedart", "inverted"})
+
+# Set types whose printings we prefer (a clean expansion/core/masters printing)
+# and demote (bonus reprints in Commander / draft-innovation products). Anything
+# else is neutral.
+_PREFERRED_SET_TYPES = frozenset({"expansion", "core", "masters"})
+_DEMOTED_SET_TYPES = frozenset({"commander", "draft_innovation"})
+
+
 def _is_special_printing(row: dict) -> bool:
-    """True for promo or Universes Beyond crossover printings — alternate
-    treatments (odd collector numbers, different art) that we avoid when a plain
-    standard printing of the same card exists."""
+    """True for a special-treatment printing — promo, Universes Beyond crossover,
+    full-art, textless, borderless, or a showcase/extended/inverted frame — the
+    alternate treatments (odd collector numbers, different art) we avoid when a
+    plain printing of the same card exists. Border colors other than
+    ``borderless`` (black, white, silver, gold) are NOT special by themselves."""
     if row.get("promo"):
         return True
-    return "universesbeyond" in (row.get("promo_types") or [])
+    if "universesbeyond" in (row.get("promo_types") or []):
+        return True
+    if row.get("full_art") or row.get("textless"):
+        return True
+    if row.get("border_color") == "borderless":
+        return True
+    return bool(_SPECIAL_FRAME_EFFECTS.intersection(row.get("frame_effects") or []))
 
 
-def _selection_key(row: dict) -> tuple[int, str, str]:
-    """Sort key choosing the best printing. Prefer a standard (non-promo,
-    non-crossover) printing over a special one, then the most recent, then set
-    code as a stable tiebreak. Greater is better."""
+def _set_type_tier(row: dict) -> int:
+    """Preference tier for a printing's set type: 2 for expansion/core/masters,
+    0 for commander/draft-innovation reprints, 1 for anything else. Greater is
+    better."""
+    set_type = row.get("set_type")
+    if set_type in _PREFERRED_SET_TYPES:
+        return 2
+    if set_type in _DEMOTED_SET_TYPES:
+        return 0
+    return 1
+
+
+def _selection_key(row: dict) -> tuple[int, int, str, str]:
+    """Sort key choosing the best printing (greater is better). Plain treatment
+    is the top priority — a plain printing beats any special-treatment one even
+    in a newer set — then the preferred set type, then the most recent release,
+    then set code as a stable tiebreak."""
     return (
         0 if _is_special_printing(row) else 1,
+        _set_type_tier(row),
         row.get("released_at", ""),
         str(row.get("set", "")),
     )
@@ -132,8 +168,8 @@ class CardIndex:
 
     @classmethod
     def from_bulk_rows(cls, rows) -> "CardIndex":
-        # Per canonical name, keep the best paper non-foil printing: a standard
-        # (non-promo, non-crossover) printing is preferred over a special one,
+        # Per canonical name, keep the best paper non-foil printing: plain
+        # treatment beats any special-treatment one, then the preferred set type,
         # then the most recent, with set code as a stable tiebreak so selection
         # is deterministic regardless of bulk-file ordering.
         best: dict[str, dict] = {}

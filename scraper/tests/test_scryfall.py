@@ -131,6 +131,123 @@ def test_foil_only_card_is_a_miss():
     assert _index().resolve("Foil Only Card") is None
 
 
+# -- printing selection (treatment / set-type / recency) -------------------
+
+def _printing_row(name, set_code, num, *, released_at, set_type="expansion", **extra):
+    """A minimal paper non-foil bulk row for selection tests."""
+    row = {
+        "name": name,
+        "set": set_code,
+        "set_type": set_type,
+        "collector_number": num,
+        "released_at": released_at,
+        "games": ["paper", "arena"],
+        "finishes": ["nonfoil", "foil"],
+        "border_color": "black",
+        "image_uris": {
+            "normal": f"https://cards.scryfall.io/normal/{set_code}-{num}.jpg",
+            "art_crop": f"https://cards.scryfall.io/art_crop/{set_code}-{num}.jpg",
+        },
+    }
+    row.update(extra)
+    return row
+
+
+def test_plain_printing_preferred_over_borderless_same_set():
+    # A plain and a borderless printing from the same set: plain wins, not the
+    # arbitrary set-code tiebreak.
+    plain = _printing_row("Opt", "aaa", "60", released_at="2024-01-01")
+    borderless = _printing_row(
+        "Opt", "aab", "300", released_at="2024-01-01", border_color="borderless"
+    )
+    index = CardIndex.from_bulk_rows([borderless, plain])
+    printing = index.resolve("Opt")
+    assert printing.set_code == "AAA"
+    assert printing.collector_number == "60"
+
+
+def test_plain_treatment_beats_recency():
+    # The only newer printing is a showcase; the older plain printing wins.
+    old_plain = _printing_row("Stock Up", "old", "10", released_at="2023-01-01")
+    new_showcase = _printing_row(
+        "Stock Up", "new", "270", released_at="2025-01-01", frame_effects=["showcase"]
+    )
+    index = CardIndex.from_bulk_rows([new_showcase, old_plain])
+    assert index.resolve("Stock Up").set_code == "OLD"
+
+
+def test_full_art_printing_is_demoted():
+    plain = _printing_row("Island", "set", "5", released_at="2024-01-01")
+    full = _printing_row("Island", "fal", "260", released_at="2024-06-01", full_art=True)
+    index = CardIndex.from_bulk_rows([full, plain])
+    assert index.resolve("Island").set_code == "SET"
+
+
+def test_textless_printing_is_demoted():
+    plain = _printing_row("Cut Down", "set", "90", released_at="2024-01-01")
+    textless = _printing_row("Cut Down", "txt", "1", released_at="2024-06-01", textless=True)
+    index = CardIndex.from_bulk_rows([textless, plain])
+    assert index.resolve("Cut Down").set_code == "SET"
+
+
+def test_extended_art_frame_effect_is_demoted():
+    plain = _printing_row("Sheoldred", "set", "107", released_at="2024-01-01")
+    extended = _printing_row(
+        "Sheoldred", "ext", "301", released_at="2024-06-01", frame_effects=["extendedart"]
+    )
+    index = CardIndex.from_bulk_rows([extended, plain])
+    assert index.resolve("Sheoldred").set_code == "SET"
+
+
+def test_non_borderless_border_colors_stay_plain():
+    # White/silver/gold borders are legitimate plain printings; only "borderless"
+    # is demoted. A white-bordered older printing should still be treated as plain.
+    white = _printing_row("Old Card", "whi", "12", released_at="1998-01-01", border_color="white")
+    gold = _printing_row("Old Card", "gld", "5", released_at="1999-01-01", border_color="gold")
+    index = CardIndex.from_bulk_rows([white, gold])
+    printing = index.resolve("Old Card")
+    # Neither is demoted for its border; recency picks the gold-bordered one.
+    assert printing.set_code == "GLD"
+
+
+def test_preferred_set_type_beats_commander_reprint():
+    expansion = _printing_row("Swords", "exp", "3", released_at="2023-01-01", set_type="expansion")
+    commander = _printing_row(
+        "Swords", "cmd", "50", released_at="2025-01-01", set_type="commander"
+    )
+    index = CardIndex.from_bulk_rows([commander, expansion])
+    assert index.resolve("Swords").set_code == "EXP"
+
+
+def test_masters_preferred_over_draft_innovation():
+    masters = _printing_row("Force", "mas", "40", released_at="2023-01-01", set_type="masters")
+    draft = _printing_row(
+        "Force", "drf", "20", released_at="2025-01-01", set_type="draft_innovation"
+    )
+    index = CardIndex.from_bulk_rows([draft, masters])
+    assert index.resolve("Force").set_code == "MAS"
+
+
+def test_selection_is_deterministic_regardless_of_row_order():
+    plain = _printing_row("Card X", "aaa", "1", released_at="2024-01-01")
+    borderless = _printing_row(
+        "Card X", "bbb", "2", released_at="2024-01-01", border_color="borderless"
+    )
+    forward = CardIndex.from_bulk_rows([plain, borderless]).resolve("Card X")
+    backward = CardIndex.from_bulk_rows([borderless, plain]).resolve("Card X")
+    assert forward.set_code == backward.set_code == "AAA"
+
+
+def test_only_special_printing_still_resolves():
+    # A card available only as a showcase printing still resolves (least-bad),
+    # rather than nulling out.
+    showcase = _printing_row(
+        "Rare Drop", "srl", "1", released_at="2024-01-01", frame_effects=["showcase"]
+    )
+    index = CardIndex.from_bulk_rows([showcase])
+    assert index.resolve("Rare Drop").set_code == "SRL"
+
+
 # -- bulk sync / cache -----------------------------------------------------
 
 def test_load_bulk_index_reads_a_file_into_an_index():
