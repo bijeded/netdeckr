@@ -21,6 +21,12 @@ describe('TrendIndicator', () => {
     expect(screen.getByRole('img', { name: 'Performance steady' }).textContent).toContain('–')
   })
 
+  it('carries a glow so it reads as self-lit over art', () => {
+    render(<TrendIndicator trend="up" />)
+    // Structure, not exact color — the glow value stays tunable.
+    expect(screen.getByRole('img', { name: 'Performance trending up' }).style.boxShadow).not.toBe('')
+  })
+
   it('localizes the accessible label in Spanish', async () => {
     await i18n.changeLanguage('es')
     try {

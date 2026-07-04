@@ -90,6 +90,34 @@ describe('ArchetypeCard', () => {
     expect(screen.queryByText('T1')).toBeNull()
   })
 
+  it('renders a non-interactive vignette above the art but below the badges', () => {
+    render(
+      <ArchetypeCard
+        rank={1}
+        name="Izzet Control"
+        colors="UR"
+        sharePct={24}
+        tier="T1"
+        trend="up"
+        artImageUrl="https://cards.scryfall.io/normal/fable.jpg"
+      />,
+    )
+    const vignette = screen.getByTestId('art-vignette')
+    // Cosmetic only — must never intercept the card's click/expand.
+    expect(vignette.style.pointerEvents).toBe('none')
+
+    const art = screen.getByTestId('archetype-art')
+    const badge = screen.getByText('T1')
+    // Overlay sits after the art (so it dims it) and before the badges (so they stay lit).
+    expect(art.compareDocumentPosition(vignette) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(vignette.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('renders the vignette even on the gradient placeholder (no art)', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" />)
+    expect(screen.getByTestId('art-vignette')).toBeInTheDocument()
+  })
+
   it('renders the trend arrow when a trend is provided', () => {
     render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" trend="up" />)
     expect(screen.getByRole('img', { name: 'Performance trending up' })).toBeInTheDocument()
