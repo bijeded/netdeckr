@@ -20,11 +20,11 @@ which gracefully hides the freshness line — no broken state.
 
 ## 2. Scraper: retire the breakdown pass, stamp per-format freshness
 
-- [ ] 2.1 Write tests first: `run.py main` no longer calls the breakdown pass (`sync_all` not invoked) and stamps each format's `formats.last_updated_at` on success; a `writer.stamp_format_updated(fmt, now)` writes `formats.last_updated_at`.
-- [ ] 2.2 Remove the breakdown pass: delete `scraper/pipeline.py` (`sync_format`/`sync_all`) and its `run.py` wiring; remove `parse_meta_breakdown`/`rank_archetypes` from `scraper/mtgtop8.py` and `replace_breakdown`/`stamp_updated` from `scraper/supabase_writer.py` (now unused). Delete their dead tests (`test_pipeline.py`, `test_parse_meta.py`, breakdown cases in `test_mtgtop8.py`).
-- [ ] 2.3 Add `writer.stamp_format_updated` and call it per format after a successful scrape in `run.py`.
-- [ ] 2.4 Clean up the now-unused `WINDOWS` list (breakdown-only); keep `WINDOW_META`/`meta_id_for` (the decklist pass still resolves the 2-week meta id per format). Confirm `upsert_archetype` still sets `color_identity` (it does).
-- [ ] 2.5 `cd scraper && ./venv/bin/pytest` — all green; no test hits live network.
+- [x] 2.1 Write tests first: `run.py main` no longer calls the breakdown pass (`sync_all` not invoked) and stamps each format's `formats.last_updated_at` on success; a `writer.stamp_format_updated(fmt, now)` writes `formats.last_updated_at`.
+- [x] 2.2 Remove the breakdown pass: delete `scraper/pipeline.py` (`sync_format`/`sync_all`) and its `run.py` wiring; remove `parse_meta_breakdown`/`rank_archetypes` from `scraper/mtgtop8.py` and `replace_breakdown`/`stamp_updated` from `scraper/supabase_writer.py` (now unused). Delete their dead tests (`test_pipeline.py`, `test_parse_meta.py`, breakdown cases in `test_mtgtop8.py`).
+- [x] 2.3 Add `writer.stamp_format_updated` and call it per format after a successful scrape in `run.py`.
+- [x] 2.4 Clean up the now-unused `WINDOWS` list (breakdown-only); keep `WINDOW_META`/`meta_id_for` (the decklist pass still resolves the 2-week meta id per format). Confirm `upsert_archetype` still sets `color_identity` (it does).
+- [x] 2.5 `cd scraper && ./venv/bin/pytest` — all green; no test hits live network.
 
 ## 3. Schema: drop the snapshot + freshness tables and meta_window
 
