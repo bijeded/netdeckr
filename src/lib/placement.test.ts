@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { placementBadge } from './placement'
+import { placementBadge, placementSortKey } from './placement'
 
 describe('placementBadge', () => {
   it('labels 1st and 2nd distinctly', () => {
@@ -20,5 +20,17 @@ describe('placementBadge', () => {
   it('falls back to the raw label when unparseable', () => {
     expect(placementBadge('')).toEqual({ label: '—', kind: 'other' })
     expect(placementBadge('DNF')).toEqual({ label: 'DNF', kind: 'other' })
+  })
+})
+
+describe('placementSortKey', () => {
+  it('ranks by the first integer, best (lowest) first', () => {
+    const order = ['5-8', '1', '3-4', '2'].sort((a, b) => placementSortKey(a) - placementSortKey(b))
+    expect(order).toEqual(['1', '2', '3-4', '5-8'])
+  })
+
+  it('sorts unparseable finishes last', () => {
+    expect(placementSortKey('DNF')).toBe(Number.POSITIVE_INFINITY)
+    expect(placementSortKey('')).toBe(Number.POSITIVE_INFINITY)
   })
 })
