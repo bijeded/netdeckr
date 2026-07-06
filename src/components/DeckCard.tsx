@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { placementBadge, type PlacementKind } from '../lib/placement'
+import { formatShortDate } from '../lib/formatDate'
 import type { DeckRow } from '../lib/deckSelection'
 
 interface DeckCardProps {
@@ -17,18 +18,11 @@ const BADGE: Record<PlacementKind, { color: string; bg: string }> = {
   other: { color: 'var(--text-faint)', bg: 'rgba(255,255,255,.06)' },
 }
 
-function formatDate(isoDate: string, locale: string): string {
-  if (!isoDate) return ''
-  const date = new Date(`${isoDate}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
-}
-
 export function DeckCard({ deck, onSelect }: DeckCardProps) {
   const { t, i18n } = useTranslation()
   const badge = placementBadge(deck.placement)
   const badgeColors = BADGE[badge.kind]
-  const dateLabel = formatDate(deck.eventDate, i18n.language)
+  const dateLabel = formatShortDate(deck.eventDate, i18n.language)
   const label = t('decks.rowLabel', {
     placement: badge.label,
     player: deck.player,
