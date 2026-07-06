@@ -12,7 +12,12 @@
   },
   "filters": {
     "timeFrame": "Periodo",
-    "toggle": "Alternar filtros"
+    "toggle": "Alternar filtros",
+    "event": "Evento",
+    "allEvents": "Todos los eventos",
+    "archetype": "Arquetipo",
+    "allArchetypes": "Todos los arquetipos",
+    "clear": "Limpiar filtros"
   },
   "windows": {
     "last5Days": "Últimos 5 días",

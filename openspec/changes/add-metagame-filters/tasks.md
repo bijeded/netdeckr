@@ -1,10 +1,10 @@
 ## 1. Filter logic in the metagame hook
 
-- [ ] 1.1 Extend the `useMetagame` deck query to also select `events.id`, and thread an `eventId` (nullable = "All") filter param into the hook signature. (The archetype filter is display-only — applied in App, task group 3 — so it does not distort the event-share %.)
-- [ ] 1.2 Apply the event predicate alongside the existing window date filter before deriving the breakdown/decks, so each archetype's share is recomputed within the event; tiers/trends stay computed from the full 2-week corpus (unchanged reference field).
-- [ ] 1.3 Return `events` from the hook: distinct `{ id, name, eventDate }` present in the window-filtered corpus, date-desc. (Archetype options are the returned `breakdown` names.)
-- [ ] 1.4 Return `fullDecksByArchetype` (uncapped, date-desc) so the isolated, auto-expanded card can list every deck of the selected archetype.
-- [ ] 1.5 Write/extend `useMetagame` tests: event filter narrows the derived breakdown and recomputes each archetype's share within the event (shares sum to 100% over the event); `events` option list reflects the window corpus; `fullDecksByArchetype` returns all of an archetype's decks date-desc (cap lifted); event filter ANDs with the window; tiers remain 2-week-anchored under filtering.
+- [x] 1.1 Extend the `useMetagame` deck query to also select `events.id`, and thread an `eventId` (nullable = "All") filter param into the hook signature. (The archetype filter is display-only — applied in App, task group 3 — so it does not distort the event-share %.)
+- [x] 1.2 Apply the event predicate alongside the existing window date filter before deriving the breakdown/decks, so each archetype's share is recomputed within the event; tiers/trends stay computed from the full 2-week corpus (unchanged reference field).
+- [x] 1.3 Return `events` from the hook: distinct `{ id, name, eventDate }` present in the window-filtered corpus, date-desc. (Archetype options are the returned `breakdown` names.)
+- [x] 1.4 Return `fullDecksByArchetype` (uncapped, date-desc) so the isolated, auto-expanded card can list every deck of the selected archetype.
+- [x] 1.5 Write/extend `useMetagame` tests: event filter narrows the derived breakdown and recomputes each archetype's share within the event (shares sum to 100% over the event); `events` option list reflects the window corpus; `fullDecksByArchetype` returns all of an archetype's decks date-desc (cap lifted); event filter ANDs with the window; tiers remain 2-week-anchored under filtering.
 
 ## 2. Sidebar filter components
 

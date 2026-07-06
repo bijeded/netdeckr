@@ -12,7 +12,12 @@
   },
   "filters": {
     "timeFrame": "Time Frame",
-    "toggle": "Toggle filters"
+    "toggle": "Toggle filters",
+    "event": "Event",
+    "allEvents": "All events",
+    "archetype": "Archetype",
+    "allArchetypes": "All archetypes",
+    "clear": "Clear filters"
   },
   "windows": {
     "last5Days": "Last 5 days",
