@@ -12,10 +12,10 @@
 
 ## 3. Render on the archetype card
 
-- [ ] 3.1 Add a `wins?: number` prop (default 0) to `ArchetypeCard` and render `<WinTrophy>` inline after the name span in the `#rank · name` row, smaller font.
-- [ ] 3.2 Ensure the name still truncates with an ellipsis while the trophy stays fully visible (`flex-shrink: 0` on the trophy).
-- [ ] 3.3 Pass `archetype.wins` from `App.tsx` to `ArchetypeCard`.
-- [ ] 3.4 Card/App test: a card with wins shows the trophy after the name; a long-named card keeps the trophy visible.
+- [x] 3.1 Add a `wins?: number` prop (default 0) to `ArchetypeCard` and render `<WinTrophy>` inline after the name span in the `#rank · name` row, smaller font.
+- [x] 3.2 Ensure the name still truncates with an ellipsis while the trophy stays fully visible (`flex-shrink: 0` on the trophy).
+- [x] 3.3 Pass `archetype.wins` from `App.tsx` to `ArchetypeCard`.
+- [x] 3.4 Card/App test: a card with wins shows the trophy after the name; a long-named card keeps the trophy visible.
 
 ## 4. Record the emoji exception
 
