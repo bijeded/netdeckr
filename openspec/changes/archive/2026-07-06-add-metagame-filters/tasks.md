@@ -28,5 +28,5 @@
 
 ## 5. Verify
 
-- [ ] 5.1 Run `npm run test`, `npm run type-check`, `npm run lint` — all green.
-- [ ] 5.2 Manual read-only check against live Supabase across formats: event filter narrows correctly, archetype filter isolates, clear + auto-reset behave, ES/EN both correct.
+- [x] 5.1 Run `npm run test`, `npm run type-check`, `npm run lint` — all green.
+- [x] 5.2 Manual read-only check against live Supabase across formats: event filter narrows correctly, archetype filter isolates, clear + auto-reset behave, ES/EN both correct.
