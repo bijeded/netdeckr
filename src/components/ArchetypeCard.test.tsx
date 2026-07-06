@@ -11,6 +11,41 @@ describe('ArchetypeCard', () => {
     expect(screen.getAllByTestId('mana-pip')).toHaveLength(2)
   })
 
+  it('renders a win trophy after the name when the archetype has wins', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" wins={3} />)
+    const trophy = screen.getByRole('img', { name: '3 event wins' })
+    expect(trophy).toBeInTheDocument()
+    // The trophy follows the archetype name in DOM order.
+    const name = screen.getByText('Izzet Control')
+    expect(name.compareDocumentPosition(trophy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('renders no win trophy when the archetype has no wins', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" wins={0} />)
+    expect(screen.queryByRole('img', { name: /event win/ })).toBeNull()
+  })
+
+  it('renders no win trophy when wins is omitted', () => {
+    render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" />)
+    expect(screen.queryByRole('img', { name: /event win/ })).toBeNull()
+  })
+
+  it('keeps the trophy present alongside a very long archetype name', () => {
+    render(
+      <ArchetypeCard
+        rank={1}
+        name="Extremely Long Five Color Domain Ramp Control Brew"
+        colors="WUBRG"
+        sharePct={24}
+        tier="T1"
+        wins={2}
+      />,
+    )
+    // Both the (ellipsizing) name and the trophy render; the trophy is not dropped.
+    expect(screen.getByText(/Extremely Long/)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '2 event wins' })).toBeInTheDocument()
+  })
+
   it('renders the archetype art image when a URL is provided', () => {
     render(
       <ArchetypeCard

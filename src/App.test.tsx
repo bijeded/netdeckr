@@ -65,6 +65,24 @@ describe('App dashboard', () => {
     expect(within(main).getByText('Selesnya Aggro')).toBeInTheDocument()
   })
 
+  it('passes each archetype win count through to its card trophy', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 2 },
+        { rank: 2, name: 'Selesnya Aggro', colorIdentity: 'WG', sharePct: 21, tier: 'T2', trend: null, wins: 0 },
+      ],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    // The winning archetype shows a trophy; the winless one does not.
+    expect(screen.getByRole('img', { name: '2 event wins' })).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: /event win/ })).toHaveLength(1)
+  })
+
   it('shows the freshness indicator when a timestamp exists', () => {
     useLastUpdated.mockReturnValue('2026-07-01T10:00:00Z')
     render(<App />)
