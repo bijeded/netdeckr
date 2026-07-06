@@ -8,23 +8,23 @@
 
 ## 2. Sidebar filter components
 
-- [ ] 2.1 Build `EventSelector` (select group headed "Event" with an "All events" default; options labelled name + abbreviated date), mirroring `WindowSelector` styling/tokens.
-- [ ] 2.2 Build `ArchetypeSelector` (select group headed "Archetype" with an "All archetypes" default; archetype names verbatim/English).
-- [ ] 2.3 Build `ClearFiltersButton` that resets event + archetype at once (localized label).
-- [ ] 2.4 Component tests for each: default entry present, onChange fires with the selected id/name, "All" clears, labels localized.
+- [x] 2.1 Build `EventSelector` (select group headed "Event" with an "All events" default; options labelled name + abbreviated date), mirroring `WindowSelector` styling/tokens.
+- [x] 2.2 Build `ArchetypeSelector` (select group headed "Archetype" with an "All archetypes" default; archetype names verbatim/English).
+- [x] 2.3 Build `ClearFiltersButton` that resets event + archetype at once (localized label).
+- [x] 2.4 Component tests for each: default entry present, onChange fires with the selected id/name, "All" clears, labels localized.
 
 ## 3. Wire filters into the dashboard
 
-- [ ] 3.1 Add `eventId` + `archetypeName` state in `App.tsx`; pass to `useMetagame`; mount the three new controls in `.sidebar-inner` beside `WindowSelector`.
-- [ ] 3.2 Add an effect that auto-resets event/archetype to `null` when the hook's returned option lists no longer contain the current selection (on format/window/other-filter change).
-- [ ] 3.3 When an archetype is selected, auto-expand its card and show **all** its decks under the combined filters (lift the display cap for that archetype), ordered most-recent-first by event date.
-- [ ] 3.4 Render a localized empty state when a selected archetype has no decks under the combined filters (distinct from auto-reset).
-- [ ] 3.5 Ensure filters are in-memory only (no URL param) and reset to defaults on reload.
+- [x] 3.1 Add `eventId` + `archetypeName` state in `App.tsx`; pass to `useMetagame`; mount the three new controls in `.sidebar-inner` beside `WindowSelector`.
+- [x] 3.2 Add an effect that auto-resets event/archetype to `null` when the hook's returned option lists no longer contain the current selection (on format/window/other-filter change).
+- [x] 3.3 When an archetype is selected, auto-expand its card and show **all** its decks under the combined filters (lift the display cap for that archetype), ordered most-recent-first by event date.
+- [x] 3.4 Render a localized empty state when a selected archetype has no decks under the combined filters (distinct from auto-reset).
+- [x] 3.5 Ensure filters are in-memory only (no URL param) and reset to defaults on reload.
 
 ## 4. Localization & responsive
 
-- [ ] 4.1 Add `filters.*` keys (Event, All events, Archetype, All archetypes, Clear filters, empty-state text) to `src/locales/es` and `en`; no hardcoded strings.
-- [ ] 4.2 Verify the new groups render and are usable inside the collapsible sidebar/drawer at narrow widths.
+- [x] 4.1 Add `filters.*` keys (Event, All events, Archetype, All archetypes, Clear filters, empty-state text) to `src/locales/es` and `en`; no hardcoded strings.
+- [x] 4.2 Verify the new groups render and are usable inside the collapsible sidebar/drawer at narrow widths.
 
 ## 5. Verify
 
