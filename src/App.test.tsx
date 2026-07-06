@@ -278,6 +278,35 @@ describe('App dashboard', () => {
     expect(screen.getByText('Player 7')).toBeInTheDocument()
   })
 
+  it('shows all decks (uncapped) when expanding a card while an event is selected', () => {
+    const fullDecks = Array.from({ length: 8 }, (_, i) => ({
+      id: i,
+      sourceDeckId: `d${i}`,
+      player: `Player ${i}`,
+      placement: '5-8',
+      eventName: 'RCQ',
+      eventDate: '2026-07-05',
+      archetypeName: 'Izzet Control',
+      colorIdentity: 'UR',
+    }))
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 60, tier: 'T1', trend: null }],
+      decksByArchetype: { 'Izzet Control': fullDecks.slice(0, 6) },
+      fullDecksByArchetype: { 'Izzet Control': fullDecks },
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05' }],
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    // Select an event, then expand the card.
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    act(() => fireEvent.click(screen.getByRole('button', { name: /Izzet Control/ })))
+    // All 8 event decks show, not just the capped 6.
+    expect(screen.getByText('Player 7')).toBeInTheDocument()
+  })
+
   it('enables Clear filters only when a filter is active and resets on click', () => {
     useMetagame.mockReturnValue({
       breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],

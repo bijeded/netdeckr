@@ -184,4 +184,27 @@ describe('useMetagame', () => {
     // The capped display list still respects the 6-deck cap.
     expect(result.current.decksByArchetype['Izzet Lesson']).toHaveLength(6)
   })
+
+  it('orders full decks by date desc then placement (best finish first within an event)', async () => {
+    queryResult.data = [
+      // Same event/date, out-of-order placements.
+      deckRow({ source_deck_id: 'p58', placement: '5-8', events: { id: 40, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'p1', placement: '1', events: { id: 40, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'p34', placement: '3-4', events: { id: 40, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'p2', placement: '2', events: { id: 40, name: 'RCQ', event_date: daysAgo(1) } }),
+      // An older event's deck sorts after all of the recent event's decks.
+      deckRow({ source_deck_id: 'old1', placement: '1', events: { id: 41, name: 'PTQ', event_date: daysAgo(5) } }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // Within the recent event: 1 → 2 → 3-4 → 5-8; the older event's deck last.
+    expect(result.current.fullDecksByArchetype['Izzet Lesson'].map((d) => d.sourceDeckId)).toEqual([
+      'p1',
+      'p2',
+      'p34',
+      'p58',
+      'old1',
+    ])
+  })
 })

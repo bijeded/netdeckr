@@ -19,6 +19,10 @@ The dashboard SHALL provide a sidebar filter group, headed "Event" (localized), 
 - **WHEN** the Event filter is set to "All events"
 - **THEN** the breakdown is derived from every deck in the active (format, window) with no event restriction
 
+#### Scenario: Expanding a card under an event filter shows all its decks
+- **WHEN** an event is selected and the user expands an archetype card
+- **THEN** every one of that archetype's decks in the event is shown (the broad-view display cap is not applied), ordered best finish first
+
 ### Requirement: Archetype filter
 The dashboard SHALL provide a sidebar filter group, headed "Archetype" (localized), that lets the user collapse the grid to a single archetype. The group SHALL offer an "All archetypes" default entry plus one entry per archetype present in the current filtered view. Selecting an archetype SHALL collapse the grid to show only that archetype's card, and SHALL auto-expand that card to list **all** of the archetype's decks under the combined active filters — not just the limited display set — each shown by event and date, in descending date order. The default state SHALL be "All archetypes". Archetype proper nouns SHALL stay in English in both locales; the heading and default entry SHALL be localized.
 

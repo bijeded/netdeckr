@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
 import { windowStartISO, type WindowCode } from '../lib/windows'
 import { selectDisplayDecks, type DeckRow } from '../lib/deckSelection'
+import { placementSortKey } from '../lib/placement'
 import {
   deriveBreakdown,
   attachPowerTiers,
@@ -173,8 +174,14 @@ export function useMetagame(
         const full: DecksByArchetype = {}
         for (const [name, rowsForArchetype] of Object.entries(selectedGrouped)) {
           display[name] = selectDisplayDecks(rowsForArchetype)
-          // Full list for the auto-expanded isolated card: uncapped, most-recent-first.
-          full[name] = [...rowsForArchetype].sort((a, b) => b.eventDate.localeCompare(a.eventDate))
+          // Full list for the auto-expanded / event-filtered card: uncapped, most-
+          // recent-first, with best finish first within a date (so a single event's
+          // decks read 1st → 2nd → Top 4 → …).
+          full[name] = [...rowsForArchetype].sort(
+            (a, b) =>
+              b.eventDate.localeCompare(a.eventDate) ||
+              placementSortKey(a.placement) - placementSortKey(b.placement),
+          )
         }
 
         // Sort explicitly (not relying on the query order) so the options are

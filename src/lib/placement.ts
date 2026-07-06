@@ -9,6 +9,15 @@ export interface PlacementBadge {
   kind: PlacementKind
 }
 
+/**
+ * Sort key for a finish label: the first integer it contains ("3-4" → 3), or
+ * +Infinity when there is none, so unplaced decks sort last. Lower = better.
+ */
+export function placementSortKey(placement: string): number {
+  const match = placement.match(/\d+/)
+  return match ? Number(match[0]) : Number.POSITIVE_INFINITY
+}
+
 export function placementBadge(placement: string): PlacementBadge {
   const nums = placement.match(/\d+/g)?.map(Number) ?? []
   if (nums.length === 0) return { label: placement || '—', kind: 'other' }

@@ -260,11 +260,14 @@ function App() {
                 >
                   {visibleBreakdown.map((archetype) => {
                     const isolated = archetypeFiltered && archetype.name === archetypeName
-                    // Isolated card: uncapped decks, auto-expanded. Otherwise the
-                    // capped display set, expanded on click.
-                    const decks = isolated
-                      ? (fullDecksByArchetype[archetype.name] ?? [])
-                      : (decksByArchetype[archetype.name] ?? [])
+                    // Use the uncapped list when the card is isolated (archetype
+                    // filter) or the corpus is already narrowed to one event — in
+                    // both cases the scope is small enough to show every deck. The
+                    // capped display set is only for the broad, multi-event view.
+                    const decks =
+                      isolated || eventId !== null
+                        ? (fullDecksByArchetype[archetype.name] ?? [])
+                        : (decksByArchetype[archetype.name] ?? [])
                     const expandable = decks.length > 0
                     const expanded = isolated ? true : expandable && expandedName === archetype.name
                     return (
