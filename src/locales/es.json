@@ -32,6 +32,10 @@
   "tiers": {
     "rogue": "Otros"
   },
+  "wins": {
+    "label_one": "{{count}} victoria",
+    "label_other": "{{count}} victorias"
+  },
   "trend": {
     "up": "Rendimiento en alza",
     "down": "Rendimiento en baja",

@@ -32,6 +32,10 @@
   "tiers": {
     "rogue": "Rogue"
   },
+  "wins": {
+    "label_one": "{{count}} event win",
+    "label_other": "{{count}} event wins"
+  },
   "trend": {
     "up": "Performance trending up",
     "down": "Performance trending down",

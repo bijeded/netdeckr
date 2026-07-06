@@ -1,8 +1,8 @@
 ## 1. Win count in the breakdown
 
-- [ ] 1.1 Add a `wins: number` field to `RankedArchetype` (and thus `ArchetypeShare`) in `src/lib/metagame.ts`.
-- [ ] 1.2 Tally `wins` per archetype in `deriveBreakdown`'s grouping loop via `placementBadge(deck.placement).kind === 'first'`; carry it through the mapped/ranked output.
-- [ ] 1.3 Extend `metagame` tests: wins counted only for 1st-place decks; count reflects the (filtered) input list; zero when no firsts.
+- [x] 1.1 Add a `wins: number` field to `RankedArchetype` (and thus `ArchetypeShare`) in `src/lib/metagame.ts`.
+- [x] 1.2 Tally `wins` per archetype in `deriveBreakdown`'s grouping loop via `placementBadge(deck.placement).kind === 'first'`; carry it through the mapped/ranked output.
+- [x] 1.3 Extend `metagame` tests: wins counted only for 1st-place decks; count reflects the (filtered) input list; zero when no firsts.
 
 ## 2. WinTrophy component
 
