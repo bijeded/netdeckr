@@ -6,6 +6,7 @@
 
 import type { Tier } from './tiers'
 import { archetypePowerScore, assignTiers, windowTrend, type Trend } from './powerScore'
+import { placementBadge } from './placement'
 
 /** The popularity-ranked shape `deriveBreakdown` produces (before performance is attached). */
 export interface RankedArchetype {
@@ -13,6 +14,8 @@ export interface RankedArchetype {
   name: string
   colorIdentity: string
   sharePct: number
+  /** Number of first-place decks in the (filtered) view — drives the win trophy. */
+  wins: number
   /** Signature-card normal-size art (hotlinked Scryfall CDN), when computed; else null. */
   artImageUrl: string | null
   /** Signature-card cropped art (hotlinked Scryfall CDN), when computed; else null. */
@@ -60,12 +63,17 @@ const TOP_N = 20
  * archetype (identical across its decks). Decks with no archetype name are ignored.
  */
 export function deriveBreakdown(decks: DeckForBreakdown[]): RankedArchetype[] {
-  const groups = new Map<string, { count: number; sample: DeckForBreakdown }>()
+  const groups = new Map<string, { count: number; wins: number; sample: DeckForBreakdown }>()
   for (const deck of decks) {
     if (!deck.archetypeName) continue
+    const isWin = placementBadge(deck.placement).kind === 'first'
     const group = groups.get(deck.archetypeName)
-    if (group) group.count += 1
-    else groups.set(deck.archetypeName, { count: 1, sample: deck })
+    if (group) {
+      group.count += 1
+      if (isWin) group.wins += 1
+    } else {
+      groups.set(deck.archetypeName, { count: 1, wins: isWin ? 1 : 0, sample: deck })
+    }
   }
 
   const total = [...groups.values()].reduce((sum, g) => sum + g.count, 0)
@@ -74,6 +82,7 @@ export function deriveBreakdown(decks: DeckForBreakdown[]): RankedArchetype[] {
     .map(([name, g]) => ({
       name,
       count: g.count,
+      wins: g.wins,
       colorIdentity: g.sample.colorIdentity,
       artImageUrl: g.sample.artImageUrl,
       artCropUrl: g.sample.artCropUrl,
@@ -86,6 +95,7 @@ export function deriveBreakdown(decks: DeckForBreakdown[]): RankedArchetype[] {
       name: s.name,
       colorIdentity: s.colorIdentity,
       sharePct: s.sharePct,
+      wins: s.wins,
       artImageUrl: s.artImageUrl,
       artCropUrl: s.artCropUrl,
     }))

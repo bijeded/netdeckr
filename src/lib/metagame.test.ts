@@ -11,7 +11,7 @@ function d(archetypeName: string, over: Partial<DeckForBreakdown> = {}): DeckFor
 }
 
 function ranked(name: string, over: Partial<RankedArchetype> = {}): RankedArchetype {
-  return { rank: 1, name, colorIdentity: '', sharePct: 0, artImageUrl: null, artCropUrl: null, ...over }
+  return { rank: 1, name, colorIdentity: '', sharePct: 0, wins: 0, artImageUrl: null, artCropUrl: null, ...over }
 }
 
 describe('deriveBreakdown', () => {
@@ -62,6 +62,25 @@ describe('deriveBreakdown', () => {
 
   it('returns an empty breakdown for no decks', () => {
     expect(deriveBreakdown([])).toEqual([])
+  })
+
+  it('counts first-place decks per archetype as wins', () => {
+    const b = deriveBreakdown([
+      d('Izzet Lesson', { placement: '1' }),
+      d('Izzet Lesson', { placement: '1' }),
+      d('Izzet Lesson', { placement: '3-4' }),
+      d('Mono Red', { placement: '2' }),
+    ])
+    const izzet = b.find((x) => x.name === 'Izzet Lesson')!
+    const mono = b.find((x) => x.name === 'Mono Red')!
+    // Only exact 1st-place finishes count; "3-4" and "2" do not.
+    expect(izzet.wins).toBe(2)
+    expect(mono.wins).toBe(0)
+  })
+
+  it('reports zero wins when an archetype never finished first', () => {
+    const b = deriveBreakdown([d('Control', { placement: '5-8' }), d('Control', { placement: '9-16' })])
+    expect(b[0].wins).toBe(0)
   })
 })
 
