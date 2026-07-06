@@ -223,6 +223,34 @@ describe('App dashboard', () => {
     expect(within(sidebar).getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
   })
 
+  it('keeps the filter controls usable inside the mobile drawer', () => {
+    // Simulate a narrow viewport so the sidebar renders as a drawer, restoring
+    // the default (desktop) stub afterwards so later tests are unaffected.
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia
+    try {
+      render(<App />)
+      const sidebar = screen.getByTestId('sidebar')
+      // The drawer variant is applied and still contains every filter control.
+      expect(sidebar.className).toContain('sidebar--drawer')
+      expect(within(sidebar).getByText('Time Frame')).toBeInTheDocument()
+      expect(within(sidebar).getByRole('combobox', { name: 'Event' })).toBeInTheDocument()
+      expect(within(sidebar).getByRole('combobox', { name: 'Archetype' })).toBeInTheDocument()
+      expect(within(sidebar).getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
+  })
+
   it('passes the selected event id to useMetagame', () => {
     useMetagame.mockReturnValue({
       breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
@@ -391,8 +419,11 @@ describe('App dashboard', () => {
     render(<App />)
     // Format name is an MTG proper noun — English in both locales.
     expect(screen.getByRole('heading', { name: 'Standard' })).toBeInTheDocument()
-    // Surrounding UI copy is localized: the filter heading and the window pill.
+    // Surrounding UI copy is localized: the filter headings, controls, and pill.
     expect(screen.getByText('Periodo')).toBeInTheDocument()
+    expect(screen.getByText('Evento')).toBeInTheDocument()
+    expect(screen.getByText('Arquetipo')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
     expect(screen.getByTestId('window-pill').textContent).toBe('Últimos 5 días')
   })
 })
