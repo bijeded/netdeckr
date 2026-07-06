@@ -6,9 +6,9 @@
 
 ## 2. WinTrophy component
 
-- [ ] 2.1 Build `src/components/WinTrophy.tsx`: renders nothing for `wins <= 0`, a bare 🏆 for `wins === 1`, and `🏆 ×N` (the `×N` in mono) for `wins > 1`, with a localized pluralized aria-label.
-- [ ] 2.2 Add pluralized `wins.label_one`/`wins.label_other` keys to `src/locales/en` + `es` (EN "{{count}} event win"/"wins"; ES "{{count}} victoria"/"victorias").
-- [ ] 2.3 Component tests: hidden at 0, bare trophy at 1, `×N` at >1, aria-label localized + count-aware in both locales.
+- [x] 2.1 Build `src/components/WinTrophy.tsx`: renders nothing for `wins <= 0`, a bare 🏆 for `wins === 1`, and `🏆 ×N` (the `×N` in mono) for `wins > 1`, with a localized pluralized aria-label.
+- [x] 2.2 Add pluralized `wins.label_one`/`wins.label_other` keys to `src/locales/en` + `es` (EN "{{count}} event win"/"wins"; ES "{{count}} victoria"/"victorias").
+- [x] 2.3 Component tests: hidden at 0, bare trophy at 1, `×N` at >1, aria-label localized + count-aware in both locales.
 
 ## 3. Render on the archetype card
 

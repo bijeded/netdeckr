@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ManaPips } from './ManaPips'
 import { TierBadge } from './TierBadge'
 import { TrendIndicator } from './TrendIndicator'
+import { WinTrophy } from './WinTrophy'
 import type { Tier } from '../lib/tiers'
 import type { Trend } from '../lib/powerScore'
 
@@ -18,6 +19,8 @@ interface ArchetypeCardProps {
   /** WUBRG color-identity string; "" renders a colorless gray pip. */
   colors: string
   sharePct: number
+  /** Number of first-place decks in the view; renders a 🏆 (×N) after the name when > 0. */
+  wins?: number
   /** Performance tier (from the archetype's 2-week Power Score), shown as the badge. */
   tier: Tier
   /** Recent-window momentum vs the 2-week baseline; null on the baseline window (no arrow). */
@@ -42,6 +45,7 @@ export function ArchetypeCard({
   name,
   colors,
   sharePct,
+  wins = 0,
   tier,
   trend = null,
   artImageUrl = null,
@@ -137,6 +141,10 @@ export function ArchetypeCard({
               fontWeight: 'var(--fw-semibold)',
               fontSize: 'var(--fs-md)',
               letterSpacing: 'var(--track-snug)',
+              // minWidth:0 makes the truncation contract explicit (a flex item's
+              // default min-width:auto would otherwise block shrinking): the name
+              // ellipsizes while the pinned trophy stays visible right after it.
+              minWidth: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -144,6 +152,8 @@ export function ArchetypeCard({
           >
             {name}
           </span>
+          {/* Win trophy: stays pinned (never truncates) while the name ellipsizes. */}
+          <WinTrophy wins={wins} style={{ flexShrink: 0, fontSize: 'var(--fs-2xs)' }} />
         </div>
         <div
           style={{

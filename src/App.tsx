@@ -277,6 +277,7 @@ function App() {
                         name={archetype.name}
                         colors={archetype.colorIdentity}
                         sharePct={archetype.sharePct}
+                        wins={archetype.wins}
                         tier={archetype.tier}
                         trend={archetype.trend}
                         artImageUrl={archetype.artImageUrl}
