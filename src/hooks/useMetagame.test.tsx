@@ -118,4 +118,70 @@ describe('useMetagame', () => {
     expect(result.current.breakdown).toEqual([])
     expect(result.current.decksByArchetype).toEqual({})
   })
+
+  it('lists the distinct events in the window corpus, most-recent-first', async () => {
+    queryResult.data = [
+      deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'b', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'c', events: { id: 20, name: 'PTQ', event_date: daysAgo(4) } }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // Distinct events (deduped by id), ordered most-recent-first.
+    expect(result.current.events).toEqual([
+      { id: 10, name: 'RCQ', eventDate: daysAgo(1) },
+      { id: 20, name: 'PTQ', eventDate: daysAgo(4) },
+    ])
+  })
+
+  it('restricts the breakdown to the selected event and recomputes share within it', async () => {
+    queryResult.data = [
+      // Event 10: Izzet x2, Mono Red x1  → within-event shares 2/3 and 1/3.
+      deckRow({ source_deck_id: 'a', placement: '1', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'b', placement: '2', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({
+        source_deck_id: 'c',
+        placement: '1',
+        archetypes: { name: 'Mono Red', color_identity: 'R', art_image_url: null, art_crop_url: null },
+        events: { id: 10, name: 'RCQ', event_date: daysAgo(1) },
+      }),
+      // Event 20: only Mono Red — must be excluded when event 10 is selected.
+      deckRow({
+        source_deck_id: 'd',
+        placement: '1',
+        archetypes: { name: 'Mono Red', color_identity: 'R', art_image_url: null, art_crop_url: null },
+        events: { id: 20, name: 'PTQ', event_date: daysAgo(4) },
+      }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks', { eventId: 10 }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.breakdown.map((a) => a.name)).toEqual(['Izzet Lesson', 'Mono Red'])
+    // Shares are within the selected event (3 decks total): 2/3 and 1/3, summing to 100%.
+    expect(result.current.breakdown[0].sharePct).toBeCloseTo(66.67, 1)
+    expect(result.current.breakdown[1].sharePct).toBeCloseTo(33.33, 1)
+    const total = result.current.breakdown.reduce((s, a) => s + a.sharePct, 0)
+    expect(total).toBeCloseTo(100, 1)
+    // Decks are limited to the selected event.
+    expect(result.current.decksByArchetype['Mono Red'].map((d) => d.sourceDeckId)).toEqual(['c'])
+  })
+
+  it('exposes every deck per archetype uncapped and date-desc in fullDecksByArchetype', async () => {
+    queryResult.data = Array.from({ length: 8 }, (_, i) =>
+      deckRow({
+        source_deck_id: `d${i}`,
+        placement: '5-8', // not Top 4 → capped branch would otherwise limit to 6
+        events: { id: 30, name: 'League', event_date: daysAgo(i + 1) },
+      }),
+    )
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const full = result.current.fullDecksByArchetype['Izzet Lesson']
+    // All 8 decks (cap lifted), most-recent-first.
+    expect(full.map((d) => d.sourceDeckId)).toEqual(['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7'])
+    // The capped display list still respects the 6-deck cap.
+    expect(result.current.decksByArchetype['Izzet Lesson']).toHaveLength(6)
+  })
 })
