@@ -19,9 +19,9 @@
 
 ## 4. Record the emoji exception
 
-- [ ] 4.1 Amend the `CLAUDE.md` design section: emoji disallowed *except* the 🏆 trophy, used solely to mark event wins.
+- [x] 4.1 Amend the `CLAUDE.md` design section: emoji disallowed *except* the 🏆 trophy, used solely to mark event wins.
 
 ## 5. Verify
 
-- [ ] 5.1 Run `npm run test`, `npm run type-check`, `npm run lint` — all green.
-- [ ] 5.2 Manual read-only check against live Supabase: trophies appear on archetypes with 1st-place decks, `×N` matches deck counts, correct under an event filter, ES/EN aria-labels correct.
+- [x] 5.1 Run `npm run test`, `npm run type-check`, `npm run lint` — all green.
+- [x] 5.2 Manual read-only check against live Supabase: trophies appear on archetypes with 1st-place decks, `×N` matches deck counts, correct under an event filter, ES/EN aria-labels correct.
