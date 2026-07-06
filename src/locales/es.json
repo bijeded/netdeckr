@@ -17,7 +17,8 @@
     "allEvents": "Todos los eventos",
     "archetype": "Arquetipo",
     "allArchetypes": "Todos los arquetipos",
-    "clear": "Limpiar filtros"
+    "clear": "Limpiar filtros",
+    "noResults": "Ningún mazo coincide con estos filtros."
   },
   "windows": {
     "last5Days": "Últimos 5 días",

@@ -17,7 +17,8 @@
     "allEvents": "All events",
     "archetype": "Archetype",
     "allArchetypes": "All archetypes",
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "noResults": "No decks match these filters."
   },
   "windows": {
     "last5Days": "Last 5 days",

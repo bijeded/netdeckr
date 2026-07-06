@@ -9,7 +9,7 @@ const useLastUpdated = vi.fn()
 const useDeckCards = vi.fn()
 
 vi.mock('./hooks/useFormatSelection', () => ({ useFormatSelection: () => useFormatSelection() }))
-vi.mock('./hooks/useMetagame', () => ({ useMetagame: () => useMetagame() }))
+vi.mock('./hooks/useMetagame', () => ({ useMetagame: (...args: unknown[]) => useMetagame(...args) }))
 vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => useLastUpdated() }))
 vi.mock('./hooks/useDeckCards', () => ({ useDeckCards: (id: number | null) => useDeckCards(id) }))
 
@@ -23,7 +23,14 @@ beforeEach(() => {
   vi.clearAllMocks()
   setUrl('/')
   useFormatSelection.mockReturnValue({ format: 'ST', setFormat })
-  useMetagame.mockReturnValue({ breakdown: [], decksByArchetype: {}, loading: false, error: null })
+  useMetagame.mockReturnValue({
+    breakdown: [],
+    decksByArchetype: {},
+    fullDecksByArchetype: {},
+    events: [],
+    loading: false,
+    error: null,
+  })
   useLastUpdated.mockReturnValue(null)
   useDeckCards.mockReturnValue({ main: [], side: [], mainCount: 0, sideCount: 0, loading: false, error: null })
 })
@@ -52,8 +59,10 @@ describe('App dashboard', () => {
     })
     render(<App />)
     expect(screen.getByRole('heading', { name: 'Standard' })).toBeInTheDocument()
-    expect(screen.getByText('Izzet Control')).toBeInTheDocument()
-    expect(screen.getByText('Selesnya Aggro')).toBeInTheDocument()
+    // Scope to the grid (main) — archetype names also appear as filter <option>s.
+    const main = screen.getByRole('main')
+    expect(within(main).getByText('Izzet Control')).toBeInTheDocument()
+    expect(within(main).getByText('Selesnya Aggro')).toBeInTheDocument()
   })
 
   it('shows the freshness indicator when a timestamp exists', () => {
@@ -204,6 +213,148 @@ describe('App dashboard', () => {
     render(<App />)
     // No decks → the card is not a button and cannot expand.
     expect(screen.queryByRole('button', { name: /Reanimator/ })).toBeNull()
+  })
+
+  it('renders the Event, Archetype, and Clear filters controls in the sidebar', () => {
+    render(<App />)
+    const sidebar = screen.getByTestId('sidebar')
+    expect(within(sidebar).getByRole('combobox', { name: 'Event' })).toBeInTheDocument()
+    expect(within(sidebar).getByRole('combobox', { name: 'Archetype' })).toBeInTheDocument()
+    expect(within(sidebar).getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+  })
+
+  it('passes the selected event id to useMetagame', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05' }],
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    const lastCall = useMetagame.mock.calls.at(-1)
+    expect(lastCall?.[2]).toEqual({ eventId: 10 })
+  })
+
+  it('collapses the grid to a single archetype and auto-expands all its decks', () => {
+    const fullDecks = Array.from({ length: 8 }, (_, i) => ({
+      id: i,
+      sourceDeckId: `d${i}`,
+      player: `Player ${i}`,
+      placement: '5-8',
+      eventName: 'League',
+      eventDate: `2026-07-0${(i % 9) + 1}`,
+      archetypeName: 'Izzet Control',
+      colorIdentity: 'UR',
+    }))
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null },
+        { rank: 2, name: 'Mono Red', colorIdentity: 'R', sharePct: 21, tier: 'T2', trend: null },
+      ],
+      decksByArchetype: { 'Izzet Control': fullDecks.slice(0, 6), 'Mono Red': [] },
+      fullDecksByArchetype: { 'Izzet Control': fullDecks },
+      events: [],
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), {
+        target: { value: 'Izzet Control' },
+      })
+    })
+    // Only the selected archetype's card remains in the grid (names also appear
+    // as filter <option>s, so scope to main).
+    const main = screen.getByRole('main')
+    expect(within(main).getByText('Izzet Control')).toBeInTheDocument()
+    expect(within(main).queryByText('Mono Red')).toBeNull()
+    // Auto-expanded, listing all 8 decks (cap lifted).
+    expect(screen.getByTestId('deck-list')).toBeInTheDocument()
+    expect(screen.getByText('Player 7')).toBeInTheDocument()
+  })
+
+  it('enables Clear filters only when a filter is active and resets on click', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
+      decksByArchetype: { 'Izzet Control': [] },
+      fullDecksByArchetype: { 'Izzet Control': [] },
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05' }],
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    const clear = screen.getByRole('button', { name: 'Clear filters' })
+    expect(clear).toBeDisabled()
+
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    expect(clear).toBeEnabled()
+
+    act(() => fireEvent.click(clear))
+    expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('')
+  })
+
+  it('auto-resets the event filter when the selected event leaves the corpus', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
+      decksByArchetype: { 'Izzet Control': [] },
+      fullDecksByArchetype: { 'Izzet Control': [] },
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05' }],
+      loading: false,
+      error: null,
+    })
+    const { rerender } = render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('10')
+
+    // The corpus no longer contains event 10 (e.g. after a window change).
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
+      decksByArchetype: { 'Izzet Control': [] },
+      fullDecksByArchetype: { 'Izzet Control': [] },
+      events: [{ id: 20, name: 'PTQ', eventDate: '2026-07-01' }],
+      loading: false,
+      error: null,
+    })
+    act(() => rerender(<App />))
+    expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('')
+  })
+
+  it('shows an empty state when the archetype filter matches no decks', () => {
+    // Select an archetype, then it vanishes from the breakdown (combined filters).
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
+      decksByArchetype: { 'Izzet Control': [] },
+      fullDecksByArchetype: { 'Izzet Control': [] },
+      events: [],
+      loading: false,
+      error: null,
+    })
+    const { rerender } = render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), {
+        target: { value: 'Izzet Control' },
+      })
+    })
+    // Breakdown still lists it but with no decks under the (now combined) filters.
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      loading: false,
+      error: null,
+    })
+    act(() => rerender(<App />))
+    expect(screen.getByTestId('frowny')).toBeInTheDocument()
   })
 
   it('localizes UI copy in Spanish but keeps MTG format names in English', () => {
