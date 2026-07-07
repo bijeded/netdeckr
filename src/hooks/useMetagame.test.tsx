@@ -135,8 +135,9 @@ describe('useMetagame', () => {
     expect(result.current.totals).toEqual({ events: 2, archetypes: 2, decks: 3 })
   })
 
-  it('counts the distinct archetype total uncapped, beyond the grid top-N', async () => {
-    // 25 archetypes -> breakdown caps at 20 but the total reports all 25.
+  it('exposes the full uncapped breakdown, matching the distinct archetype total', async () => {
+    // 25 archetypes -> the breakdown is uncapped (display slicing happens in the
+    // grid, not the hook), so it reports all 25, matching the distinct total.
     queryResult.data = Array.from({ length: 25 }, (_, i) =>
       deckRow({
         source_deck_id: `d${i}`,
@@ -146,7 +147,7 @@ describe('useMetagame', () => {
     )
     const { result } = renderHook(() => useMetagame('ST', '2weeks'))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.breakdown).toHaveLength(20)
+    expect(result.current.breakdown).toHaveLength(25)
     expect(result.current.totals.archetypes).toBe(25)
     expect(result.current.totals.decks).toBe(25)
   })

@@ -52,17 +52,23 @@ export interface PowerContext {
   isBaseline: boolean
 }
 
-// How many archetypes the breakdown grid shows.
-const TOP_N = 20
+/**
+ * How many archetypes the default (unfiltered, time-frame-only) grid shows. This
+ * is only a **display** cap applied by the caller — it is intentionally decoupled
+ * from the tier reference field, which spans the whole corpus (see `deriveBreakdown`).
+ */
+export const GRID_DISPLAY_CAP = 12
 
 /**
  * Group the window's decks by archetype and rank them into a breakdown: each
  * archetype's share is its deck count over the total number of (named) decks.
  * Ranked by deck count descending, then archetype name ascending for a stable
- * tiebreak, capped at the top 20. Color identity and art are taken from the
- * archetype (identical across its decks). Decks with no archetype name are ignored.
+ * tiebreak. Returns **every** archetype uncapped by default (so the tier field and
+ * the archetype filter can see the whole corpus); pass `cap` to slice to the top N
+ * for display. Color identity and art are taken from the archetype (identical
+ * across its decks). Decks with no archetype name are ignored.
  */
-export function deriveBreakdown(decks: DeckForBreakdown[]): RankedArchetype[] {
+export function deriveBreakdown(decks: DeckForBreakdown[], cap?: number): RankedArchetype[] {
   const groups = new Map<string, { count: number; wins: number; sample: DeckForBreakdown }>()
   for (const deck of decks) {
     if (!deck.archetypeName) continue
@@ -89,7 +95,7 @@ export function deriveBreakdown(decks: DeckForBreakdown[]): RankedArchetype[] {
       sharePct: total > 0 ? (g.count / total) * 100 : 0,
     }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, TOP_N)
+    .slice(0, cap ?? Infinity)
     .map((s, index) => ({
       rank: index + 1,
       name: s.name,
