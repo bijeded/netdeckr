@@ -69,7 +69,7 @@ The dashboard SHALL apply the event, archetype, tier, and time-frame filters tog
 - **THEN** the grid shows that tier's archetypes present in the event, with shares recomputed within the event
 
 ### Requirement: Auto-reset of invalid filter selections
-When a selected event, archetype, or tier is no longer present after a change to the format, time-frame, or another filter, the dashboard SHALL silently reset that filter group to its "All" default rather than showing a stale selection or an error.
+When a selected event or archetype is no longer present after a change to the format, time-frame, or another filter, the dashboard SHALL silently reset that filter group to its "All" default rather than showing a stale selection or an error. (The Tier filter's four options are always selectable regardless of data, so it is never auto-reset for absence — a tier that matches no archetypes shows an empty state instead; see the Tier filter requirement. The Tier filter is only reset by the archetype-precedence rule and by "Clear filters".)
 
 #### Scenario: Selected event disappears after switching format
 - **WHEN** an event is selected and the user switches to a format or window in which that event does not exist
@@ -78,10 +78,6 @@ When a selected event, archetype, or tier is no longer present after a change to
 #### Scenario: Selected archetype disappears after a filter change
 - **WHEN** an archetype is selected and a format, window, or event change removes that archetype from the view
 - **THEN** the Archetype filter silently resets to "All archetypes"
-
-#### Scenario: Selected tier matches nothing after a change
-- **WHEN** a tier is selected and a format, window, or event change leaves that tier with no matching archetypes
-- **THEN** the Tier filter silently resets to "All tiers"
 
 ### Requirement: Clearing filters
 The dashboard SHALL let the user clear filters both per-group and globally. Each filter group SHALL expose its "All" default entry that unfilters that group alone. The dashboard SHALL additionally provide a "Clear filters" control (localized) that resets the event, archetype, and tier filters to their "All" defaults at once. Filter selections SHALL be in-memory only and reset to their defaults on reload; they SHALL NOT be persisted in the URL.
@@ -101,11 +97,11 @@ The dashboard SHALL let the user clear filters both per-group and globally. Each
 ## ADDED Requirements
 
 ### Requirement: Tier filter
-The dashboard SHALL provide a sidebar filter group, headed "Tiers" (localized), placed after the Archetype filter, that lets the user restrict the grid to archetypes of a single performance tier. The group SHALL offer an "All tiers" default entry plus one entry per tier: Tier 1, Tier 2, Tier 3, and Rogue/Otros (localized labels), mapping to the existing T1/T2/T3/Otros tiers. Selecting a tier SHALL show **all** archetypes of that tier (uncapped) as normal collapsible cards — each click-to-expand for its decks, not auto-expanded — and SHALL hide the "Top N most popular archetypes" popularity caption (the view is no longer a popularity top-N). The tier grouping SHALL use the same whole-2-week-corpus tier assignment as the tier badges. The default state SHALL be "All tiers"; the heading, default entry, and tier labels SHALL be localized.
+The dashboard SHALL provide a sidebar filter group, headed "Tiers" (localized), placed after the Archetype filter, that lets the user restrict the grid to archetypes of a single performance tier. The group SHALL offer an "All tiers" default entry plus one entry per tier: Tier 1, Tier 2, Tier 3, and Rogue/Otros (localized labels), mapping to the existing T1/T2/T3/Otros tiers. Selecting a tier SHALL show **all** archetypes of that tier (uncapped) as normal collapsible cards — each click-to-expand for its decks, not auto-expanded — and SHALL replace the "Top N most popular archetypes" popularity caption (in the same position, above the freshness line) with a localized caption naming the selected tier and the count of archetypes shown (e.g. "Tier 1 — 13 archetypes"; the fringe tier uses the "Rogue"/"Otros" label). The tier grouping SHALL use the same whole-2-week-corpus tier assignment as the tier badges. The default state SHALL be "All tiers"; the heading, default entry, and tier labels SHALL be localized.
 
 #### Scenario: Selecting a tier shows all its archetypes uncapped
 - **WHEN** the user selects Tier 1 (or 2/3/Rogue-Otros) from the Tier filter
-- **THEN** the grid shows every archetype assigned to that tier as a collapsible card, with no top-12 cap, and the popularity caption is hidden
+- **THEN** the grid shows every archetype assigned to that tier as a collapsible card, with no top-12 cap, and the caption names the tier and count (e.g. "Tier 1 — 13 archetypes")
 
 #### Scenario: Tier cards are collapsible, not auto-expanded
 - **WHEN** a tier is selected
