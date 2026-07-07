@@ -12,10 +12,10 @@ Disciplined mode: one task group per branch → TDD → code-review subagent →
 
 ## 2. Expose the full tiered breakdown + uncapped names from the hook
 
-- [ ] 2.1 Add failing `useMetagame` tests: `breakdown` contains every archetype in the corpus, each with a tier; existing top consumers still work.
-- [ ] 2.2 Update `useMetagame` so `twoWeekTopNames` → full 2-week corpus names and `attachPowerTiers` runs over the full `deriveBreakdown` output (uncapped `breakdown`).
-- [ ] 2.3 Confirm `totals.archetypes` (distinct count) and `fullDecksByArchetype` are unaffected; add/adjust tests as needed.
-- [ ] 2.4 Run test/type-check/lint; code-review subagent; PR.
+- [x] 2.1 Add failing `useMetagame` tests: `breakdown` contains every archetype in the corpus, each with a tier; existing top consumers still work.
+- [x] 2.2 Update `useMetagame` so `twoWeekTopNames` → full 2-week corpus names and `attachPowerTiers` runs over the full `deriveBreakdown` output (uncapped `breakdown`).
+- [x] 2.3 Confirm `totals.archetypes` (distinct count) and `fullDecksByArchetype` are unaffected; add/adjust tests as needed.
+- [x] 2.4 Run test/type-check/lint; code-review subagent; PR.
 
 ## 3. Top-12 default grid + popularity caption (App + i18n)
 

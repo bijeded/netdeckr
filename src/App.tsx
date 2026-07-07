@@ -16,6 +16,7 @@ import { StatCard } from './components/StatCard'
 import { ArchetypeCard } from './components/ArchetypeCard'
 import { DeckCard } from './components/DeckCard'
 import { DecklistModal } from './components/DecklistModal'
+import { GRID_DISPLAY_CAP } from './lib/metagame'
 import type { DeckRow } from './lib/deckSelection'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
@@ -121,10 +122,15 @@ function App() {
   const freshness = lastUpdated ? relativeTimeFromNow(lastUpdated, new Date(), i18n.language) : ''
 
   // Archetype filter is display-only: collapse the grid to the selected archetype.
+  // Otherwise the default (popularity) grid shows only the top N by share; the
+  // full corpus is still reachable via the StatCard total and the filters.
   const archetypeFiltered = archetypeName !== null
   const visibleBreakdown = archetypeFiltered
     ? breakdown.filter((a) => a.name === archetypeName)
-    : breakdown
+    : breakdown.slice(0, GRID_DISPLAY_CAP)
+  // The "Top N most popular archetypes" caption belongs to the popularity view —
+  // hidden once an archetype is isolated (a single card is not a ranking).
+  const showGridCaption = !archetypeFiltered
   // The isolated archetype auto-expands its full (uncapped) deck list; with no
   // matching decks under the combined filters, fall through to the empty state.
   const isolatedDecks = archetypeFiltered ? (fullDecksByArchetype[archetypeName] ?? []) : []
@@ -253,6 +259,22 @@ function App() {
                 <StatCard value={stat(stripTotals.decks)} label={t('stats.decks')} />
               </div>
             </div>
+            {showGridCaption && (
+              <div
+                data-testid="grid-caption"
+                style={{
+                  marginTop: 'var(--sp-2)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--fs-xs)',
+                  fontWeight: 'var(--fw-bold)',
+                  letterSpacing: 'var(--track-wide)',
+                  textTransform: 'uppercase',
+                  color: 'var(--neon-text-soft)',
+                }}
+              >
+                {t('dashboard.topCaption', { count: visibleBreakdown.length })}
+              </div>
+            )}
             {freshness && (
               <div
                 data-testid="freshness"

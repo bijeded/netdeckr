@@ -165,6 +165,101 @@ describe('App dashboard', () => {
     expect(screen.getAllByRole('img', { name: /event win/ })).toHaveLength(1)
   })
 
+  it('caps the default grid at 12 archetypes and captions the shown count', () => {
+    const breakdown = Array.from({ length: 15 }, (_, i) => ({
+      rank: i + 1,
+      name: `Arch ${String(i).padStart(2, '0')}`,
+      colorIdentity: '',
+      sharePct: 20 - i,
+      tier: 'Otros',
+      trend: null,
+      wins: 0,
+    }))
+    useMetagame.mockReturnValue({
+      breakdown,
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 3, archetypes: 15, decks: 40 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    const main = screen.getByRole('main')
+    // Only the top 12 cards render; the 13th+ are omitted.
+    expect(within(main).getByText('Arch 00')).toBeInTheDocument()
+    expect(within(main).getByText('Arch 11')).toBeInTheDocument()
+    expect(within(main).queryByText('Arch 12')).toBeNull()
+    expect(within(main).queryByText('Arch 14')).toBeNull()
+    // The caption reflects the shown count.
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 most popular archetypes')
+  })
+
+  it('captions the actual count when fewer than the cap exist', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 },
+        { rank: 2, name: 'Mono Red', colorIdentity: 'R', sharePct: 20, tier: 'T2', trend: null, wins: 0 },
+        { rank: 3, name: 'Selesnya Aggro', colorIdentity: 'WG', sharePct: 18, tier: 'T2', trend: null, wins: 0 },
+      ],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 3, archetypes: 3, decks: 40 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 3 most popular archetypes')
+  })
+
+  it('hides the popularity caption while an archetype is isolated', () => {
+    const decks = [
+      {
+        id: 1,
+        sourceDeckId: 'd1',
+        player: 'P',
+        placement: '1',
+        eventName: 'RCQ',
+        eventDate: '2026-07-05',
+        archetypeName: 'Izzet Control',
+        colorIdentity: 'UR',
+      },
+    ]
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 }],
+      decksByArchetype: { 'Izzet Control': decks },
+      fullDecksByArchetype: { 'Izzet Control': decks },
+      events: [],
+      totals: { events: 1, archetypes: 1, decks: 1 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    expect(screen.getByTestId('grid-caption')).toBeInTheDocument()
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), {
+        target: { value: 'Izzet Control' },
+      })
+    })
+    expect(screen.queryByTestId('grid-caption')).toBeNull()
+  })
+
+  it('localizes the popularity caption in Spanish', () => {
+    i18n.changeLanguage('es')
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 1, archetypes: 1, decks: 1 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 1 arquetipo más popular')
+  })
+
   it('shows the freshness indicator when a timestamp exists', () => {
     useLastUpdated.mockReturnValue('2026-07-01T10:00:00Z')
     render(<App />)
