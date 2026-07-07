@@ -49,6 +49,15 @@ export interface MetagameFilters {
   eventId?: number | null
 }
 
+/** Aggregate counts over the displayed corpus, for the header StatCard strip. */
+export interface MetagameTotals {
+  events: number
+  archetypes: number
+  decks: number
+}
+
+const EMPTY_TOTALS: MetagameTotals = { events: 0, archetypes: 0, decks: 0 }
+
 /**
  * The metagame for a format, derived from one fetch of the **2-week** corpus
  * (the selected window is a client-side date subset, since 2 weeks contains 5
@@ -75,6 +84,7 @@ export function useMetagame(
   const [decksByArchetype, setDecksByArchetype] = useState<DecksByArchetype>({})
   const [fullDecksByArchetype, setFullDecksByArchetype] = useState<DecksByArchetype>({})
   const [events, setEvents] = useState<EventOption[]>([])
+  const [totals, setTotals] = useState<MetagameTotals>(EMPTY_TOTALS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
 
@@ -98,6 +108,7 @@ export function useMetagame(
           setDecksByArchetype({})
           setFullDecksByArchetype({})
           setEvents([])
+          setTotals(EMPTY_TOTALS)
           setLoading(false)
           return
         }
@@ -119,6 +130,8 @@ export function useMetagame(
         const selectedGrouped: Record<string, DeckRow[]> = {}
         const selectedForBreakdown: DeckForBreakdown[] = []
         const selectedPlacements = new Map<string, string[]>()
+        // Distinct event ids in the filtered set, for the StatCard "Events" total.
+        const selectedEventIds = new Set<number>()
 
         for (const row of (rows as unknown as DeckQueryRow[] | null) ?? []) {
           const archetypeName = row.archetypes?.name ?? ''
@@ -159,7 +172,14 @@ export function useMetagame(
             ;(selectedGrouped[archetypeName] ??= []).push(deck)
             selectedForBreakdown.push({ archetypeName, colorIdentity, placement, artImageUrl, artCropUrl })
             pushToMap(selectedPlacements, archetypeName, placement)
+            if (row.events?.id != null) selectedEventIds.add(row.events.id)
           }
+        }
+
+        const totals: MetagameTotals = {
+          events: selectedEventIds.size,
+          archetypes: Object.keys(selectedGrouped).length,
+          decks: selectedForBreakdown.length,
         }
 
         const twoWeekTopNames = deriveBreakdown(twoWeekForBreakdown).map((a) => a.name)
@@ -192,6 +212,7 @@ export function useMetagame(
         setDecksByArchetype(display)
         setFullDecksByArchetype(full)
         setEvents(eventOptions)
+        setTotals(totals)
         setLoading(false)
       })
 
@@ -200,5 +221,5 @@ export function useMetagame(
     }
   }, [formatCode, metaWindow, eventId])
 
-  return { breakdown, decksByArchetype, fullDecksByArchetype, events, loading, error }
+  return { breakdown, decksByArchetype, fullDecksByArchetype, events, totals, loading, error }
 }
