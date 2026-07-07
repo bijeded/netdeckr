@@ -110,7 +110,7 @@ describe('attachPowerTiers', () => {
     ])
     const out = attachPowerTiers([ranked('Dominant', { rank: 1 }), ranked('Weak', { rank: 2 })], {
       twoWeekPlacements,
-      twoWeekTopNames: ['Dominant', 'Weak'],
+      twoWeekFieldNames: ['Dominant', 'Weak'],
       selectedPlacements: twoWeekPlacements,
       isBaseline: true,
     })
@@ -130,13 +130,13 @@ describe('attachPowerTiers', () => {
     const displayed = topNames.map((n, i) => ranked(n, { rank: i + 1 }))
     const baseline = attachPowerTiers(displayed, {
       twoWeekPlacements,
-      twoWeekTopNames: topNames,
+      twoWeekFieldNames: topNames,
       selectedPlacements: twoWeekPlacements,
       isBaseline: true,
     })
     const fiveDay = attachPowerTiers(displayed, {
       twoWeekPlacements,
-      twoWeekTopNames: topNames,
+      twoWeekFieldNames: topNames,
       selectedPlacements: new Map([['A', Array(4).fill('9-16')]]),
       isBaseline: false,
     })
@@ -149,7 +149,7 @@ describe('attachPowerTiers', () => {
     const tw = new Map<string, string[]>([['A', Array(5).fill('1')]])
     const out = attachPowerTiers([ranked('A')], {
       twoWeekPlacements: tw,
-      twoWeekTopNames: ['A'],
+      twoWeekFieldNames: ['A'],
       selectedPlacements: tw,
       isBaseline: true,
     })
@@ -167,7 +167,7 @@ describe('attachPowerTiers', () => {
     ])
     const out = attachPowerTiers([ranked('Rising'), ranked('Falling')], {
       twoWeekPlacements: tw,
-      twoWeekTopNames: ['Rising', 'Falling'],
+      twoWeekFieldNames: ['Rising', 'Falling'],
       selectedPlacements: sel,
       isBaseline: false,
     })
@@ -188,7 +188,7 @@ describe('attachPowerTiers', () => {
     const displayed = names.map((n, i) => ranked(n, { rank: i + 1 }))
     const out = attachPowerTiers(displayed, {
       twoWeekPlacements,
-      twoWeekTopNames: names, // whole corpus is the reference field
+      twoWeekFieldNames: names, // whole corpus is the reference field
       selectedPlacements: twoWeekPlacements,
       isBaseline: true,
     })
@@ -203,7 +203,7 @@ describe('attachPowerTiers', () => {
       [ranked('X', { rank: 3, sharePct: 12.5, colorIdentity: 'UR', artCropUrl: 'https://crop/x.jpg' })],
       {
         twoWeekPlacements: new Map([['X', ['1', '1', '1']]]),
-        twoWeekTopNames: ['X'],
+        twoWeekFieldNames: ['X'],
         selectedPlacements: new Map([['X', ['1', '1', '1']]]),
         isBaseline: true,
       },

@@ -4,11 +4,11 @@ Disciplined mode: one task group per branch → TDD → code-review subagent →
 
 ## 1. Decouple the display cap from the tier reference field (lib)
 
-- [ ] 1.1 Add failing tests: `deriveBreakdown` returns the full ranked list when no cap is passed, and slices when a cap is passed; ranking/tiebreak unchanged.
-- [ ] 1.2 Replace `TOP_N = 20` with `GRID_DISPLAY_CAP = 12`; make `deriveBreakdown` uncapped by default with an optional cap param (display slicing moves to the caller).
-- [ ] 1.3 Add failing tests: `attachPowerTiers` attaches a tier to **every** archetype in the passed breakdown (not just a top slice) using the whole-corpus reference field.
-- [ ] 1.4 Update `attachPowerTiers`/callers so the reference field is the full 2-week corpus; keep tier assignment/trend behavior otherwise identical.
-- [ ] 1.5 Run `npm run test`, `npm run type-check`, `npm run lint`; code-review subagent; PR.
+- [x] 1.1 Add failing tests: `deriveBreakdown` returns the full ranked list when no cap is passed, and slices when a cap is passed; ranking/tiebreak unchanged.
+- [x] 1.2 Replace `TOP_N = 20` with `GRID_DISPLAY_CAP = 12`; make `deriveBreakdown` uncapped by default with an optional cap param (display slicing moves to the caller).
+- [x] 1.3 Add failing tests: `attachPowerTiers` attaches a tier to **every** archetype in the passed breakdown (not just a top slice) using the whole-corpus reference field.
+- [x] 1.4 Update `attachPowerTiers`/callers so the reference field is the full 2-week corpus; keep tier assignment/trend behavior otherwise identical.
+- [x] 1.5 Run `npm run test`, `npm run type-check`, `npm run lint`; code-review subagent; PR.
 
 ## 2. Expose the full tiered breakdown + uncapped names from the hook
 
