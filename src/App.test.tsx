@@ -446,6 +446,36 @@ describe('App dashboard', () => {
     }
   })
 
+  it('lists every archetype in the dropdown, including those past the top-12 grid', () => {
+    // 15 archetypes: the grid caps at 12 but the Archetype filter must offer all 15.
+    const breakdown = Array.from({ length: 15 }, (_, i) => ({
+      rank: i + 1,
+      name: `Arch ${String(i).padStart(2, '0')}`,
+      colorIdentity: '',
+      sharePct: 20 - i,
+      tier: 'Otros',
+      trend: null,
+      wins: 0,
+    }))
+    useMetagame.mockReturnValue({
+      breakdown,
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 3, archetypes: 15, decks: 40 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    const dropdown = screen.getByRole('combobox', { name: 'Archetype' })
+    // "Arch 14" is beyond the grid's top-12 slice but still a selectable option.
+    const options = within(dropdown).getAllByRole('option').map((o) => o.textContent)
+    expect(options).toContain('Arch 12')
+    expect(options).toContain('Arch 14')
+    // All 15 archetypes plus the "All archetypes" default entry.
+    expect(options).toHaveLength(16)
+  })
+
   it('passes the selected event id to useMetagame', () => {
     useMetagame.mockReturnValue({
       breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
