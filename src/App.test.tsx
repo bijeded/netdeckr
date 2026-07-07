@@ -28,6 +28,7 @@ beforeEach(() => {
     decksByArchetype: {},
     fullDecksByArchetype: {},
     events: [],
+    totals: { events: 0, archetypes: 0, decks: 0 },
     loading: false,
     error: null,
   })
@@ -63,6 +64,87 @@ describe('App dashboard', () => {
     const main = screen.getByRole('main')
     expect(within(main).getByText('Izzet Control')).toBeInTheDocument()
     expect(within(main).getByText('Selesnya Aggro')).toBeInTheDocument()
+  })
+
+  it('renders the header StatCard strip from the corpus totals', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 34, archetypes: 12, decks: 1284 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    expect(screen.getByText('34')).toBeInTheDocument()
+    expect(screen.getByText('12')).toBeInTheDocument()
+    // Thousands separator applied.
+    expect(screen.getByText('1,284')).toBeInTheDocument()
+    // Localized labels.
+    expect(screen.getByText('Events')).toBeInTheDocument()
+    expect(screen.getByText('Archetypes')).toBeInTheDocument()
+    expect(screen.getByText('Decks')).toBeInTheDocument()
+  })
+
+  it('narrows the strip to the event totals under an event filter', () => {
+    // Under an event filter the hook returns event-narrowed totals; the strip
+    // renders them directly (no App-side override for events).
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 60, tier: 'T1', trend: null, wins: 0 }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05' }],
+      totals: { events: 1, archetypes: 5, decks: 42 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    const strip = screen.getByTestId('stat-strip')
+    expect(within(strip).getByText('1')).toBeInTheDocument()
+    expect(within(strip).getByText('5')).toBeInTheDocument()
+    expect(within(strip).getByText('42')).toBeInTheDocument()
+  })
+
+  it('overrides the strip to the isolated archetype under an archetype filter', () => {
+    const decks = Array.from({ length: 3 }, (_, i) => ({
+      id: i,
+      sourceDeckId: `d${i}`,
+      player: `P${i}`,
+      placement: '1',
+      eventName: i < 2 ? 'RCQ' : 'PTQ', // 2 distinct events among 3 decks
+      eventDate: '2026-07-05',
+      archetypeName: 'Izzet Control',
+      colorIdentity: 'UR',
+    }))
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 },
+        { rank: 2, name: 'Mono Red', colorIdentity: 'R', sharePct: 20, tier: 'T2', trend: null, wins: 0 },
+      ],
+      decksByArchetype: { 'Izzet Control': decks },
+      fullDecksByArchetype: { 'Izzet Control': decks },
+      events: [],
+      totals: { events: 34, archetypes: 12, decks: 1284 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), {
+        target: { value: 'Izzet Control' },
+      })
+    })
+    // Strip reflects the isolated archetype: 1 archetype, its 3 decks, 2 events.
+    const strip = screen.getByTestId('stat-strip')
+    expect(within(strip).getByText('1')).toBeInTheDocument()
+    expect(within(strip).getByText('3')).toBeInTheDocument()
+    expect(within(strip).getByText('2')).toBeInTheDocument()
+    // The window-level totals are no longer shown.
+    expect(within(strip).queryByText('1,284')).toBeNull()
   })
 
   it('passes each archetype win count through to its card trophy', () => {

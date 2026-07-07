@@ -12,6 +12,7 @@ import { WindowSelector } from './components/WindowSelector'
 import { EventSelector } from './components/EventSelector'
 import { ArchetypeSelector } from './components/ArchetypeSelector'
 import { ClearFiltersButton } from './components/ClearFiltersButton'
+import { StatCard } from './components/StatCard'
 import { ArchetypeCard } from './components/ArchetypeCard'
 import { DeckCard } from './components/DeckCard'
 import { DecklistModal } from './components/DecklistModal'
@@ -66,6 +67,7 @@ function App() {
     decksByArchetype,
     fullDecksByArchetype = {},
     events = [],
+    totals = { events: 0, archetypes: 0, decks: 0 },
     loading,
     error,
   } = useMetagame(format, metaWindow, { eventId })
@@ -130,6 +132,20 @@ function App() {
   const gridIsEmpty = visibleBreakdown.length === 0 || noArchetypeResults
   const emptyMessage = noArchetypeResults ? t('filters.noResults') : t('dashboard.empty')
   const filtersActive = eventId !== null || archetypeName !== null
+
+  // Header StatCard strip: the hook's totals reflect the format/window/event
+  // corpus. The archetype filter is display-only, so override the strip from the
+  // isolated archetype's decks when one is selected.
+  const stripTotals = archetypeFiltered
+    ? {
+        // DeckRow carries no event id, so distinct events are keyed by name+date
+        // (a safe proxy within one format/window).
+        events: new Set(isolatedDecks.map((d) => `${d.eventName} ${d.eventDate}`)).size,
+        archetypes: 1,
+        decks: isolatedDecks.length,
+      }
+    : totals
+  const stat = (n: number) => n.toLocaleString(i18n.language)
 
   return (
     <div className="app-shell">
@@ -227,6 +243,15 @@ function App() {
               >
                 {windowLabel}
               </span>
+              {/* StatCard strip: right-aligned on the title row (title stays left). */}
+              <div
+                data-testid="stat-strip"
+                style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--sp-3)', flexWrap: 'wrap' }}
+              >
+                <StatCard value={stat(stripTotals.events)} label={t('stats.events')} />
+                <StatCard value={stat(stripTotals.archetypes)} label={t('stats.archetypes')} />
+                <StatCard value={stat(stripTotals.decks)} label={t('stats.decks')} />
+              </div>
             </div>
             {freshness && (
               <div

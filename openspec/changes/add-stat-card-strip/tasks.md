@@ -6,9 +6,9 @@
 
 ## 2. StatCard component
 
-- [ ] 2.1 Port `design/components/data/StatCard.jsx` to `src/components/StatCard.tsx` (typed `value`/`label`/`color?`/`style?`), right-aligned box with the design tokens; value in mono, uppercase micro-label.
-- [ ] 2.2 Add `stats.*` i18n keys (Events/Archetypes/Decks) to `src/locales/en` + `es`.
-- [ ] 2.3 Component tests: renders value + localized label; formats large numbers with thousands separators.
+- [x] 2.1 Port `design/components/data/StatCard.jsx` to `src/components/StatCard.tsx` (typed `value`/`label`/`color?`/`style?`), right-aligned box with the design tokens; value in mono, uppercase micro-label.
+- [x] 2.2 Add `stats.*` i18n keys (Events/Archetypes/Decks) to `src/locales/en` + `es`.
+- [x] 2.3 Component tests: renders value + localized label; formats large numbers with thousands separators.
 
 ## 3. Render the strip in the header
 
