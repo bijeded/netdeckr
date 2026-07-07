@@ -36,6 +36,11 @@
     "label_one": "{{count}} victoria",
     "label_other": "{{count}} victorias"
   },
+  "stats": {
+    "events": "Eventos",
+    "archetypes": "Arquetipos",
+    "decks": "Decks"
+  },
   "trend": {
     "up": "Rendimiento en alza",
     "down": "Rendimiento en baja",
