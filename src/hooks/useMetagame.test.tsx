@@ -119,6 +119,65 @@ describe('useMetagame', () => {
     expect(result.current.decksByArchetype).toEqual({})
   })
 
+  it('reports totals (events, distinct archetypes, decks) over the corpus', async () => {
+    queryResult.data = [
+      deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'b', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({
+        source_deck_id: 'c',
+        archetypes: { name: 'Mono Red', color_identity: 'R', art_image_url: null, art_crop_url: null },
+        events: { id: 20, name: 'PTQ', event_date: daysAgo(3) },
+      }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    // 3 decks, 2 distinct archetypes (Izzet Lesson + Mono Red), 2 distinct events.
+    expect(result.current.totals).toEqual({ events: 2, archetypes: 2, decks: 3 })
+  })
+
+  it('counts the distinct archetype total uncapped, beyond the grid top-N', async () => {
+    // 25 archetypes -> breakdown caps at 20 but the total reports all 25.
+    queryResult.data = Array.from({ length: 25 }, (_, i) =>
+      deckRow({
+        source_deck_id: `d${i}`,
+        archetypes: { name: `Arch ${String(i).padStart(2, '0')}`, color_identity: '', art_image_url: null, art_crop_url: null },
+        events: { id: 1, name: 'E', event_date: daysAgo(1) },
+      }),
+    )
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.breakdown).toHaveLength(20)
+    expect(result.current.totals.archetypes).toBe(25)
+    expect(result.current.totals.decks).toBe(25)
+  })
+
+  it('narrows the totals to the selected event', async () => {
+    queryResult.data = [
+      deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({
+        source_deck_id: 'b',
+        archetypes: { name: 'Mono Red', color_identity: 'R', art_image_url: null, art_crop_url: null },
+        events: { id: 20, name: 'PTQ', event_date: daysAgo(3) },
+      }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks', { eventId: 10 }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.totals).toEqual({ events: 1, archetypes: 1, decks: 1 })
+  })
+
+  it('zeroes the totals on the empty and error paths', async () => {
+    queryResult.data = []
+    const { result: empty } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(empty.current.loading).toBe(false))
+    expect(empty.current.totals).toEqual({ events: 0, archetypes: 0, decks: 0 })
+
+    queryResult.data = null
+    queryResult.error = { message: 'boom' }
+    const { result: errored } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(errored.current.loading).toBe(false))
+    expect(errored.current.totals).toEqual({ events: 0, archetypes: 0, decks: 0 })
+  })
+
   it('lists the distinct events in the window corpus, most-recent-first', async () => {
     queryResult.data = [
       deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
