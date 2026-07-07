@@ -152,6 +152,32 @@ describe('useMetagame', () => {
     expect(result.current.totals.decks).toBe(25)
   })
 
+  it('tiers every archetype in the uncapped breakdown against the whole 2-week corpus', async () => {
+    // 15 archetypes (beyond the 12 grid cap): strong finishers first, weak last.
+    queryResult.data = Array.from({ length: 15 }, (_, i) =>
+      deckRow({
+        source_deck_id: `d${i}`,
+        placement: i < 5 ? '1' : i < 10 ? '5-8' : '17-32',
+        archetypes: { name: `Arch ${String(i).padStart(2, '0')}`, color_identity: '', art_image_url: null, art_crop_url: null },
+        events: { id: 1, name: 'E', event_date: daysAgo(1) },
+      }),
+    )
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // The breakdown is uncapped (all 15) and every card — including those past the
+    // top-12 display cap — carries a tier from the whole-corpus reference field.
+    expect(result.current.breakdown).toHaveLength(15)
+    for (const a of result.current.breakdown) {
+      expect(['T1', 'T2', 'T3', 'Otros']).toContain(a.tier)
+    }
+    // The strong-finisher head strictly out-tiers the weak tail (whole-corpus
+    // Jenks field discriminates the three clusters).
+    const byName = Object.fromEntries(result.current.breakdown.map((a) => [a.name, a.tier]))
+    const rank = { T1: 0, T2: 1, T3: 2, Otros: 3 } as const
+    expect(rank[byName['Arch 00']]).toBeLessThan(rank[byName['Arch 14']])
+  })
+
   it('narrows the totals to the selected event', async () => {
     queryResult.data = [
       deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),

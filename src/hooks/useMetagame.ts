@@ -182,10 +182,13 @@ export function useMetagame(
           decks: selectedForBreakdown.length,
         }
 
-        const twoWeekTopNames = deriveBreakdown(twoWeekForBreakdown).map((a) => a.name)
+        // Tier reference field = the WHOLE 2-week corpus (uncapped), not a top
+        // slice; the breakdown is likewise uncapped, so every archetype (including
+        // those past the grid's display cap) is tiered and selectable in filters.
+        const twoWeekFieldNames = deriveBreakdown(twoWeekForBreakdown).map((a) => a.name)
         const breakdown = attachPowerTiers(deriveBreakdown(selectedForBreakdown), {
           twoWeekPlacements,
-          twoWeekTopNames,
+          twoWeekFieldNames,
           selectedPlacements,
           isBaseline: metaWindow === BASELINE_WINDOW,
         })

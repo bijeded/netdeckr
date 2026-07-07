@@ -44,8 +44,8 @@ export interface DeckForBreakdown {
 export interface PowerContext {
   /** All 2-week placements per archetype (the stable corpus behind the tier). */
   twoWeekPlacements: Map<string, string[]>
-  /** The 2-week top archetypes — the reference field whose natural breaks set the cutoffs. */
-  twoWeekTopNames: string[]
+  /** The whole 2-week corpus of archetype names — the reference field whose natural breaks set the cutoffs. */
+  twoWeekFieldNames: string[]
   /** The selected window's placements per archetype (drives the trend). */
   selectedPlacements: Map<string, string[]>
   /** True when the selected window IS the 2-week baseline (⇒ no trend arrow). */
@@ -110,7 +110,7 @@ export function deriveBreakdown(decks: DeckForBreakdown[], cap?: number): Ranked
 /**
  * Attach the performance signals to a displayed breakdown. The tier is the
  * archetype's **2-week** Power Score classified against the natural breaks of the
- * 2-week top field — so it is stable no matter which window is shown. The trend
+ * whole 2-week corpus field — so it is stable no matter which window is shown. The trend
  * compares the selected window's finish quality to the 2-week baseline, and is
  * null on the baseline window itself (no arrow). Pure, so it stays unit-testable.
  */
@@ -127,7 +127,7 @@ export function attachPowerTiers(displayed: RankedArchetype[], ctx: PowerContext
     return score
   }
 
-  const referenceScores = ctx.twoWeekTopNames.map(scoreOf)
+  const referenceScores = ctx.twoWeekFieldNames.map(scoreOf)
   const scores = new Map<string, number>()
   for (const archetype of displayed) scores.set(archetype.name, scoreOf(archetype.name))
   const tiers = assignTiers(scores, referenceScores)
