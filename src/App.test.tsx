@@ -680,6 +680,47 @@ describe('App dashboard', () => {
     expect(screen.queryByTestId('grid-caption')).toBeNull()
   })
 
+  it('narrows the StatCard strip to the selected tier', () => {
+    const deck = (name: string, id: string, event: string) => ({
+      id,
+      sourceDeckId: `${name}-${id}`,
+      player: id,
+      placement: '1',
+      eventName: event,
+      eventDate: '2026-07-05',
+      archetypeName: name,
+      colorIdentity: '',
+    })
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 },
+        { rank: 2, name: 'Azorius Control', colorIdentity: 'WU', sharePct: 20, tier: 'T1', trend: null, wins: 0 },
+        { rank: 3, name: 'Mono Red', colorIdentity: 'R', sharePct: 18, tier: 'T3', trend: null, wins: 0 },
+      ],
+      decksByArchetype: {},
+      fullDecksByArchetype: {
+        // 2 T1 archetypes, 5 decks total, across 3 distinct events (RCQ/PTQ/SCG).
+        'Izzet Control': [deck('Izzet Control', 'a', 'RCQ'), deck('Izzet Control', 'b', 'RCQ'), deck('Izzet Control', 'c', 'PTQ')],
+        'Azorius Control': [deck('Azorius Control', 'd', 'SCG'), deck('Azorius Control', 'e', 'SCG')],
+        'Mono Red': [deck('Mono Red', 'f', 'RCQ')], // T3, excluded from a T1 tier view
+      },
+      events: [],
+      totals: { events: 5, archetypes: 3, decks: 99 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } })
+    })
+    const strip = screen.getByTestId('stat-strip')
+    // 2 T1 archetypes, their 5 decks, across 3 events — not the window totals (99 decks).
+    expect(within(strip).getByText('2')).toBeInTheDocument()
+    expect(within(strip).getByText('5')).toBeInTheDocument()
+    expect(within(strip).getByText('3')).toBeInTheDocument()
+    expect(within(strip).queryByText('99')).toBeNull()
+  })
+
   it('shows an empty state when the selected tier matches no archetypes', () => {
     useMetagame.mockReturnValue({
       breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 }],

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
-import { useMetagame } from './hooks/useMetagame'
+import { useMetagame, type MetagameTotals } from './hooks/useMetagame'
 import { useLastUpdated } from './hooks/useLastUpdated'
 import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
@@ -163,17 +163,23 @@ function App() {
   const filtersActive = eventId !== null || archetypeName !== null || tier !== null
 
   // Header StatCard strip: the hook's totals reflect the format/window/event
-  // corpus. The archetype filter is display-only, so override the strip from the
-  // isolated archetype's decks when one is selected.
+  // corpus but not the client-side archetype/tier display filters, so override the
+  // strip from the displayed archetypes' decks when one of those filters is active.
+  // DeckRow carries no event id, so distinct events are keyed by name+date (a safe
+  // proxy within one format/window).
+  const totalsFromDecks = (decks: DeckRow[], archetypes: number): MetagameTotals => ({
+    events: new Set(decks.map((d) => `${d.eventName} ${d.eventDate}`)).size,
+    archetypes,
+    decks: decks.length,
+  })
+  const tierDecks = tierFiltered
+    ? visibleBreakdown.flatMap((a) => fullDecksByArchetype[a.name] ?? [])
+    : []
   const stripTotals = archetypeFiltered
-    ? {
-        // DeckRow carries no event id, so distinct events are keyed by name+date
-        // (a safe proxy within one format/window).
-        events: new Set(isolatedDecks.map((d) => `${d.eventName} ${d.eventDate}`)).size,
-        archetypes: 1,
-        decks: isolatedDecks.length,
-      }
-    : totals
+    ? totalsFromDecks(isolatedDecks, 1)
+    : tierFiltered
+      ? totalsFromDecks(tierDecks, visibleBreakdown.length)
+      : totals
   const stat = (n: number) => n.toLocaleString(i18n.language)
 
   return (
