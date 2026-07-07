@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   deriveBreakdown,
   attachPowerTiers,
+  GRID_DISPLAY_CAP,
   type DeckForBreakdown,
   type RankedArchetype,
 } from './metagame'
@@ -43,15 +44,32 @@ describe('deriveBreakdown', () => {
     expect(b[0].artCropUrl).toBe('https://crop/x.jpg')
   })
 
-  it('caps at the top 20 archetypes by share', () => {
+  it('returns every archetype uncapped by default (no hard cut)', () => {
     const decks: DeckForBreakdown[] = []
     for (let i = 0; i < 25; i++) {
       const name = `A${String(i).padStart(2, '0')}`
       for (let j = 0; j <= i; j++) decks.push(d(name)) // A24 has the most decks
     }
     const b = deriveBreakdown(decks)
-    expect(b).toHaveLength(20)
+    expect(b).toHaveLength(25)
     expect(b[0].name).toBe('A24')
+    // Ranks stay contiguous across the whole list.
+    expect(b.map((x) => x.rank)).toEqual(Array.from({ length: 25 }, (_, i) => i + 1))
+  })
+
+  it('caps to the top N by share when a cap is passed', () => {
+    const decks: DeckForBreakdown[] = []
+    for (let i = 0; i < 25; i++) {
+      const name = `A${String(i).padStart(2, '0')}`
+      for (let j = 0; j <= i; j++) decks.push(d(name))
+    }
+    const b = deriveBreakdown(decks, GRID_DISPLAY_CAP)
+    expect(b).toHaveLength(GRID_DISPLAY_CAP)
+    expect(b[0].name).toBe('A24')
+  })
+
+  it('exposes a grid display cap of 12', () => {
+    expect(GRID_DISPLAY_CAP).toBe(12)
   })
 
   it('ignores decks with no archetype name', () => {
@@ -156,6 +174,28 @@ describe('attachPowerTiers', () => {
     const byName = Object.fromEntries(out.map((a) => [a.name, a]))
     expect(byName['Rising'].trend).toBe('up')
     expect(byName['Falling'].trend).toBe('down')
+  })
+
+  it('attaches a tier to every archetype, even beyond the top 20, against a whole-corpus field', () => {
+    const twoWeekPlacements = new Map<string, string[]>()
+    const names: string[] = []
+    for (let i = 0; i < 30; i++) {
+      const name = `A${String(i).padStart(2, '0')}`
+      names.push(name)
+      // Strong finishers at the top of the list, weak at the tail.
+      twoWeekPlacements.set(name, Array(6).fill(i < 10 ? '1' : i < 20 ? '5-8' : '17-32'))
+    }
+    const displayed = names.map((n, i) => ranked(n, { rank: i + 1 }))
+    const out = attachPowerTiers(displayed, {
+      twoWeekPlacements,
+      twoWeekTopNames: names, // whole corpus is the reference field
+      selectedPlacements: twoWeekPlacements,
+      isBaseline: true,
+    })
+    expect(out).toHaveLength(30)
+    for (const a of out) expect(a.tier).toBeTruthy()
+    // A tail archetype still receives a (weak) tier, not undefined.
+    expect(out[29].tier).toBeTruthy()
   })
 
   it('preserves the ranked fields (share, rank, name, art) unchanged', () => {
