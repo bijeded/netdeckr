@@ -27,7 +27,9 @@
   "dashboard": {
     "loading": "Loading the metagame…",
     "empty": "No metagame data yet — check back soon.",
-    "updated": "Updated {{time}}"
+    "updated": "Updated {{time}}",
+    "topCaption_one": "Top {{count}} most popular archetype",
+    "topCaption_other": "Top {{count}} most popular archetypes"
   },
   "tiers": {
     "rogue": "Rogue"
