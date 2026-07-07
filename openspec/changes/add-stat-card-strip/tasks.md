@@ -1,8 +1,8 @@
 ## 1. Totals in the metagame hook
 
-- [ ] 1.1 Add `totals: { events: number; archetypes: number; decks: number }` to `useMetagame`, computed over the same window+event-filtered deck set that feeds `deriveBreakdown` (decks = count, archetypes = distinct names uncapped, events = distinct event ids).
-- [ ] 1.2 Return `totals`; reset it to zeros on the error/empty paths.
-- [ ] 1.3 Extend `useMetagame` tests: totals reflect the corpus (uncapped archetype count even beyond top-N), narrow under an event filter, and are zeroed on error/empty.
+- [x] 1.1 Add `totals: { events: number; archetypes: number; decks: number }` to `useMetagame`, computed over the same window+event-filtered deck set that feeds `deriveBreakdown` (decks = count, archetypes = distinct names uncapped, events = distinct event ids).
+- [x] 1.2 Return `totals`; reset it to zeros on the error/empty paths.
+- [x] 1.3 Extend `useMetagame` tests: totals reflect the corpus (uncapped archetype count even beyond top-N), narrow under an event filter, and are zeroed on error/empty.
 
 ## 2. StatCard component
 

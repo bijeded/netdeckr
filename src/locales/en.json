@@ -36,6 +36,11 @@
     "label_one": "{{count}} event win",
     "label_other": "{{count}} event wins"
   },
+  "stats": {
+    "events": "Events",
+    "archetypes": "Archetypes",
+    "decks": "Decks"
+  },
   "trend": {
     "up": "Performance trending up",
     "down": "Performance trending down",
