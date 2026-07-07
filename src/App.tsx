@@ -17,6 +17,8 @@ import { ArchetypeCard } from './components/ArchetypeCard'
 import { DeckCard } from './components/DeckCard'
 import { DecklistModal } from './components/DecklistModal'
 import { GRID_DISPLAY_CAP } from './lib/metagame'
+import { TierSelector } from './components/TierSelector'
+import type { Tier } from './lib/tiers'
 import type { DeckRow } from './lib/deckSelection'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
@@ -62,6 +64,7 @@ function App() {
   // Filters (in-memory only — not persisted in the URL). null = "All".
   const [eventId, setEventId] = useState<number | null>(null)
   const [archetypeName, setArchetypeName] = useState<string | null>(null)
+  const [tier, setTier] = useState<Tier | null>(null)
 
   const {
     breakdown,
@@ -88,10 +91,13 @@ function App() {
   useEffect(() => {
     setEventId(null)
     setArchetypeName(null)
+    setTier(null)
   }, [format])
 
   // Auto-reset a filter whose selection is no longer valid after a format/window/
-  // other-filter change (silent — no stale selection).
+  // other-filter change (silent — no stale selection). The Tier filter's options
+  // are static, so it is never auto-reset for absence (it shows an empty state);
+  // the only tier reset is the archetype-precedence rule below.
   useEffect(() => {
     if (eventId !== null && !events.some((e) => e.id === eventId)) setEventId(null)
   }, [events, eventId])
@@ -100,6 +106,15 @@ function App() {
       setArchetypeName(null)
     }
   }, [breakdown, archetypeName])
+
+  // Archetype filter wins over the Tier filter: isolating an archetype outside the
+  // selected tier would be contradictory, so silently drop the tier in that case.
+  useEffect(() => {
+    if (archetypeName !== null && tier !== null) {
+      const selected = breakdown.find((a) => a.name === archetypeName)
+      if (selected && selected.tier !== tier) setTier(null)
+    }
+  }, [archetypeName, tier, breakdown])
 
   // Sidebar state: open by default on desktop, a collapsible overlay drawer on
   // narrow viewports (the filter panel collapses on mobile). Initialized lazily
@@ -121,23 +136,31 @@ function App() {
   const maxPct = breakdown.length > 0 ? breakdown[0].sharePct : 100
   const freshness = lastUpdated ? relativeTimeFromNow(lastUpdated, new Date(), i18n.language) : ''
 
-  // Archetype filter is display-only: collapse the grid to the selected archetype.
-  // Otherwise the default (popularity) grid shows only the top N by share; the
-  // full corpus is still reachable via the StatCard total and the filters.
+  // Grid mode precedence: an isolated archetype (one card) beats the Tier filter
+  // (all of a tier's cards, uncapped) beats the default popularity view (top N by
+  // share). The full corpus stays reachable via the StatCard total and the filters.
   const archetypeFiltered = archetypeName !== null
+  const tierFiltered = !archetypeFiltered && tier !== null
   const visibleBreakdown = archetypeFiltered
     ? breakdown.filter((a) => a.name === archetypeName)
-    : breakdown.slice(0, GRID_DISPLAY_CAP)
+    : tierFiltered
+      ? breakdown.filter((a) => a.tier === tier)
+      : breakdown.slice(0, GRID_DISPLAY_CAP)
   // The "Top N most popular archetypes" caption belongs to the popularity view —
-  // hidden once an archetype is isolated (a single card is not a ranking).
-  const showGridCaption = !archetypeFiltered
+  // hidden once an archetype is isolated or a tier is selected (neither is a
+  // popularity ranking).
+  const showGridCaption = !archetypeFiltered && !tierFiltered
   // The isolated archetype auto-expands its full (uncapped) deck list; with no
   // matching decks under the combined filters, fall through to the empty state.
   const isolatedDecks = archetypeFiltered ? (fullDecksByArchetype[archetypeName] ?? []) : []
   const noArchetypeResults = archetypeFiltered && isolatedDecks.length === 0
+  // A selected tier that matches no archetypes under the combined filters is an
+  // empty state (the tier options are static, so it is not auto-reset).
+  const noTierResults = tierFiltered && visibleBreakdown.length === 0
   const gridIsEmpty = visibleBreakdown.length === 0 || noArchetypeResults
-  const emptyMessage = noArchetypeResults ? t('filters.noResults') : t('dashboard.empty')
-  const filtersActive = eventId !== null || archetypeName !== null
+  const emptyMessage =
+    noArchetypeResults || noTierResults ? t('filters.noResults') : t('dashboard.empty')
+  const filtersActive = eventId !== null || archetypeName !== null || tier !== null
 
   // Header StatCard strip: the hook's totals reflect the format/window/event
   // corpus. The archetype filter is display-only, so override the strip from the
@@ -210,11 +233,13 @@ function App() {
               archetypes={breakdown.map((a) => a.name)}
               onChange={setArchetypeName}
             />
+            <TierSelector value={tier} onChange={setTier} />
             <ClearFiltersButton
               disabled={!filtersActive}
               onClear={() => {
                 setEventId(null)
                 setArchetypeName(null)
+                setTier(null)
               }}
             />
           </div>

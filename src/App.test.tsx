@@ -639,6 +639,126 @@ describe('App dashboard', () => {
     expect(screen.getByTestId('frowny')).toBeInTheDocument()
   })
 
+  it('renders the Tier filter after the Archetype filter in the sidebar', () => {
+    render(<App />)
+    const sidebar = screen.getByTestId('sidebar')
+    const comboboxes = within(sidebar).getAllByRole('combobox').map((c) => c.getAttribute('aria-label'))
+    // Order: Time Frame (WindowSelector uses buttons, not a combobox) → Event → Archetype → Tiers.
+    expect(comboboxes).toEqual(['Event', 'Archetype', 'Tiers'])
+  })
+
+  it('filters the grid to a selected tier, uncapped, as collapsible cards and hides the caption', () => {
+    const breakdown = Array.from({ length: 14 }, (_, i) => ({
+      rank: i + 1,
+      name: `Arch ${String(i).padStart(2, '0')}`,
+      colorIdentity: '',
+      sharePct: 20 - i,
+      // 13 T1 archetypes (past the 12 grid cap) + 1 T3.
+      tier: i < 13 ? 'T1' : 'T3',
+      trend: null,
+      wins: 0,
+    }))
+    useMetagame.mockReturnValue({
+      breakdown,
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 3, archetypes: 14, decks: 40 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } })
+    })
+    const main = screen.getByRole('main')
+    // All 13 T1 archetypes show (past the 12 cap); the lone T3 does not.
+    expect(within(main).getByText('Arch 12')).toBeInTheDocument()
+    expect(within(main).queryByText('Arch 13')).toBeNull()
+    // Cards are collapsible (no auto-expanded deck list) and the caption is hidden.
+    expect(screen.queryByTestId('deck-list')).toBeNull()
+    expect(screen.queryByTestId('grid-caption')).toBeNull()
+  })
+
+  it('shows an empty state when the selected tier matches no archetypes', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 1, archetypes: 1, decks: 5 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T3' } })
+    })
+    // No T3 archetypes → empty state, not the whole-corpus "no data" message.
+    expect(screen.getByTestId('frowny')).toBeInTheDocument()
+  })
+
+  it('drops the tier filter when an archetype outside that tier is isolated', () => {
+    const decks = [
+      {
+        id: 1,
+        sourceDeckId: 'd1',
+        player: 'P',
+        placement: '1',
+        eventName: 'RCQ',
+        eventDate: '2026-07-05',
+        archetypeName: 'Mono Red',
+        colorIdentity: 'R',
+      },
+    ]
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 },
+        { rank: 2, name: 'Mono Red', colorIdentity: 'R', sharePct: 20, tier: 'T3', trend: null, wins: 0 },
+      ],
+      decksByArchetype: { 'Mono Red': decks },
+      fullDecksByArchetype: { 'Mono Red': decks },
+      events: [],
+      totals: { events: 1, archetypes: 2, decks: 5 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    // Select Tier 1, then isolate Mono Red (a T3 archetype).
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } })
+    })
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), { target: { value: 'Mono Red' } })
+    })
+    // The tier filter silently resets, and Mono Red is isolated + auto-expanded.
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('')
+    const main = screen.getByRole('main')
+    expect(within(main).getByText('Mono Red')).toBeInTheDocument()
+    expect(within(main).queryByText('Izzet Control')).toBeNull()
+  })
+
+  it('resets the tier filter via Clear filters', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 1, archetypes: 1, decks: 5 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    const clear = screen.getByRole('button', { name: 'Clear filters' })
+    expect(clear).toBeDisabled()
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } })
+    })
+    expect(clear).toBeEnabled()
+    act(() => fireEvent.click(clear))
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('')
+  })
+
   it('localizes UI copy in Spanish but keeps MTG format names in English', () => {
     i18n.changeLanguage('es')
     render(<App />)

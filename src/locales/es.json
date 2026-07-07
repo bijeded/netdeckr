@@ -17,6 +17,9 @@
     "allEvents": "Todos los eventos",
     "archetype": "Arquetipo",
     "allArchetypes": "Todos los arquetipos",
+    "tiers": "Tiers",
+    "allTiers": "Todos los tiers",
+    "tierLabel": "Tier {{n}}",
     "clear": "Limpiar filtros",
     "noResults": "Ningún mazo coincide con estos filtros."
   },

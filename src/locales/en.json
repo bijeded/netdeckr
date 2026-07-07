@@ -17,6 +17,9 @@
     "allEvents": "All events",
     "archetype": "Archetype",
     "allArchetypes": "All archetypes",
+    "tiers": "Tiers",
+    "allTiers": "All tiers",
+    "tierLabel": "Tier {{n}}",
     "clear": "Clear filters",
     "noResults": "No decks match these filters."
   },

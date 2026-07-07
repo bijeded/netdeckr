@@ -26,10 +26,10 @@ Disciplined mode: one task group per branch → TDD → code-review subagent →
 
 ## 4. Uncapped Archetype filter dropdown
 
-- [ ] 4.1 Add failing test: the Archetype dropdown lists every archetype in the corpus (or every archetype within the selected event), including those below the top-12 grid.
-- [ ] 4.2 Confirm `ArchetypeSelector` options come from the full `breakdown` names (now uncapped); adjust `App.tsx` wiring if needed.
-- [ ] 4.3 Verify selecting a below-cap archetype isolates + auto-expands it with all its decks.
-- [ ] 4.4 Run test/type-check/lint; code-review subagent; PR.
+- [x] 4.1 Add failing test: the Archetype dropdown lists every archetype in the corpus (or every archetype within the selected event), including those below the top-12 grid.
+- [x] 4.2 Confirm `ArchetypeSelector` options come from the full `breakdown` names (now uncapped); adjust `App.tsx` wiring if needed.
+- [x] 4.3 Verify selecting a below-cap archetype isolates + auto-expands it with all its decks.
+- [x] 4.4 Run test/type-check/lint; code-review subagent; PR.
 
 ## 5. Tier filter (TierSelector + App wiring + i18n)
 
