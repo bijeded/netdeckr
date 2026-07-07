@@ -19,10 +19,10 @@ Disciplined mode: one task group per branch → TDD → code-review subagent →
 
 ## 3. Top-12 default grid + popularity caption (App + i18n)
 
-- [ ] 3.1 Add failing tests: default view renders at most 12 cards; caption "Top N most popular archetypes" reflects the shown count and sits above the freshness line; caption hidden under a tier filter.
-- [ ] 3.2 Add `dashboard.topCaption` (count-aware) keys to `en`/`es` locales; render the caption in `App.tsx`; slice the default grid to `GRID_DISPLAY_CAP`.
-- [ ] 3.3 Confirm the StatCard `Archetypes` total still shows the true distinct count (> 12 when applicable); adjust/add test.
-- [ ] 3.4 Locale-parity test passes; run test/type-check/lint; code-review subagent; PR.
+- [x] 3.1 Add failing tests: default view renders at most 12 cards; caption "Top N most popular archetypes" reflects the shown count and sits above the freshness line; caption hidden under a tier filter.
+- [x] 3.2 Add `dashboard.topCaption` (count-aware) keys to `en`/`es` locales; render the caption in `App.tsx`; slice the default grid to `GRID_DISPLAY_CAP`.
+- [x] 3.3 Confirm the StatCard `Archetypes` total still shows the true distinct count (> 12 when applicable); adjust/add test.
+- [x] 3.4 Locale-parity test passes; run test/type-check/lint; code-review subagent; PR.
 
 ## 4. Uncapped Archetype filter dropdown
 
