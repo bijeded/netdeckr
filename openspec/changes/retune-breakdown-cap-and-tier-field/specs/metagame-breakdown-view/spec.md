@@ -97,11 +97,11 @@ The dashboard SHALL let the user clear filters both per-group and globally. Each
 ## ADDED Requirements
 
 ### Requirement: Tier filter
-The dashboard SHALL provide a sidebar filter group, headed "Tiers" (localized), placed after the Archetype filter, that lets the user restrict the grid to archetypes of a single performance tier. The group SHALL offer an "All tiers" default entry plus one entry per tier: Tier 1, Tier 2, Tier 3, and Rogue/Otros (localized labels), mapping to the existing T1/T2/T3/Otros tiers. Selecting a tier SHALL show **all** archetypes of that tier (uncapped) as normal collapsible cards — each click-to-expand for its decks, not auto-expanded — and SHALL hide the "Top N most popular archetypes" popularity caption (the view is no longer a popularity top-N). The tier grouping SHALL use the same whole-2-week-corpus tier assignment as the tier badges. The default state SHALL be "All tiers"; the heading, default entry, and tier labels SHALL be localized.
+The dashboard SHALL provide a sidebar filter group, headed "Tiers" (localized), placed after the Archetype filter, that lets the user restrict the grid to archetypes of a single performance tier. The group SHALL offer an "All tiers" default entry plus one entry per tier: Tier 1, Tier 2, Tier 3, and Rogue/Otros (localized labels), mapping to the existing T1/T2/T3/Otros tiers. Selecting a tier SHALL show **all** archetypes of that tier (uncapped) as normal collapsible cards — each click-to-expand for its decks, not auto-expanded — and SHALL replace the "Top N most popular archetypes" popularity caption (in the same position, above the freshness line) with a localized caption naming the selected tier and the count of archetypes shown (e.g. "Tier 1 — 13 archetypes"; the fringe tier uses the "Rogue"/"Otros" label). The tier grouping SHALL use the same whole-2-week-corpus tier assignment as the tier badges. The default state SHALL be "All tiers"; the heading, default entry, and tier labels SHALL be localized.
 
 #### Scenario: Selecting a tier shows all its archetypes uncapped
 - **WHEN** the user selects Tier 1 (or 2/3/Rogue-Otros) from the Tier filter
-- **THEN** the grid shows every archetype assigned to that tier as a collapsible card, with no top-12 cap, and the popularity caption is hidden
+- **THEN** the grid shows every archetype assigned to that tier as a collapsible card, with no top-12 cap, and the caption names the tier and count (e.g. "Tier 1 — 13 archetypes")
 
 #### Scenario: Tier cards are collapsible, not auto-expanded
 - **WHEN** a tier is selected

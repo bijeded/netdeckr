@@ -675,9 +675,10 @@ describe('App dashboard', () => {
     // All 13 T1 archetypes show (past the 12 cap); the lone T3 does not.
     expect(within(main).getByText('Arch 12')).toBeInTheDocument()
     expect(within(main).queryByText('Arch 13')).toBeNull()
-    // Cards are collapsible (no auto-expanded deck list) and the caption is hidden.
+    // Cards are collapsible (no auto-expanded deck list).
     expect(screen.queryByTestId('deck-list')).toBeNull()
-    expect(screen.queryByTestId('grid-caption')).toBeNull()
+    // The caption now names the tier (in the same spot as the popularity caption).
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Tier 1 — 13 archetypes')
   })
 
   it('narrows the StatCard strip to the selected tier', () => {
@@ -719,6 +720,23 @@ describe('App dashboard', () => {
     expect(within(strip).getByText('5')).toBeInTheDocument()
     expect(within(strip).getByText('3')).toBeInTheDocument()
     expect(within(strip).queryByText('99')).toBeNull()
+  })
+
+  it('captions the fringe tier with the Rogue/Otros label', () => {
+    useMetagame.mockReturnValue({
+      breakdown: [{ rank: 1, name: 'Homebrew', colorIdentity: '', sharePct: 4, tier: 'Otros', trend: null, wins: 0 }],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [],
+      totals: { events: 1, archetypes: 1, decks: 2 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'Otros' } })
+    })
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Rogue — 1 archetype')
   })
 
   it('shows an empty state when the selected tier matches no archetypes', () => {

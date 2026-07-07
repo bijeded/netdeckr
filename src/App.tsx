@@ -146,10 +146,16 @@ function App() {
     : tierFiltered
       ? breakdown.filter((a) => a.tier === tier)
       : breakdown.slice(0, GRID_DISPLAY_CAP)
-  // The "Top N most popular archetypes" caption belongs to the popularity view —
-  // hidden once an archetype is isolated or a tier is selected (neither is a
-  // popularity ranking).
-  const showGridCaption = !archetypeFiltered && !tierFiltered
+  // The grid caption sits above the freshness line. In the popularity view it
+  // reads "Top N most popular archetypes"; under a tier filter it names the tier
+  // instead. It is hidden only while a single archetype is isolated (one card is
+  // not a listing). The fringe tier reuses the shared "Rogue"/"Otros" label.
+  const tierLabel =
+    tier === null ? '' : tier === 'Otros' ? t('tiers.rogue') : t('filters.tierLabel', { n: Number(tier.slice(1)) })
+  const showGridCaption = !archetypeFiltered
+  const gridCaption = tierFiltered
+    ? t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
+    : t('dashboard.topCaption', { count: visibleBreakdown.length })
   // The isolated archetype auto-expands its full (uncapped) deck list; with no
   // matching decks under the combined filters, fall through to the empty state.
   const isolatedDecks = archetypeFiltered ? (fullDecksByArchetype[archetypeName] ?? []) : []
@@ -303,7 +309,7 @@ function App() {
                   color: 'var(--neon-text-soft)',
                 }}
               >
-                {t('dashboard.topCaption', { count: visibleBreakdown.length })}
+                {gridCaption}
               </div>
             )}
             {freshness && (

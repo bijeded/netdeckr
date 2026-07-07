@@ -32,7 +32,9 @@
     "empty": "Aún no hay datos del metajuego — vuelve pronto.",
     "updated": "Actualizado {{time}}",
     "topCaption_one": "Top {{count}} arquetipo más popular",
-    "topCaption_other": "Top {{count}} arquetipos más populares"
+    "topCaption_other": "Top {{count}} arquetipos más populares",
+    "tierCaption_one": "{{tier}} — {{count}} arquetipo",
+    "tierCaption_other": "{{tier}} — {{count}} arquetipos"
   },
   "tiers": {
     "rogue": "Otros"
