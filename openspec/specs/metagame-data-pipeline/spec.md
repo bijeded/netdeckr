@@ -1,7 +1,7 @@
 # metagame-data-pipeline
 
 ## Purpose
-The Supabase schema (formats with a per-format last-updated timestamp, archetypes, events, decks, deck cards) and the MTGTop8 scraper that gathers decklists for all five formats — from which the frontend derives the metagame breakdown at read time. Run daily via GitHub Actions and readable read-only by the browser. Decklists are gathered from the two-week window (following all pages of the events list) and pruned after 30 days.
+The Supabase schema (formats with a per-format last-updated timestamp, archetypes, events, decks, deck cards) and the MTGTop8 scraper that gathers decklists for all five formats — from which the frontend derives the metagame breakdown at read time. Run twice daily via GitHub Actions and readable read-only by the browser. Decklists are gathered from the two-week window (following all pages of the events list) and pruned after 30 days.
 
 ## Requirements
 
@@ -168,11 +168,11 @@ The system SHALL scrape decklists incrementally: when gathering a format's event
 - **THEN** it fetches and stores that event, its decks, and their cards
 
 ### Requirement: Scheduled daily execution
-The scraper SHALL run daily via GitHub Actions, authenticating to Supabase with the service-role key provided via repository secrets. It SHALL run one job per format on staggered schedules (rather than a single job covering all formats at once) so that load on the source is spread out; each scheduled run SHALL scrape exactly one format. A manual trigger SHALL still be able to run a single format or all formats on demand.
+The scraper SHALL run **twice a day** via GitHub Actions (two runs roughly 12 hours apart), authenticating to Supabase with the service-role key provided via repository secrets. Within each of the two daily runs it SHALL run one job per format on staggered schedules (rather than a single job covering all formats at once) so that load on the source is spread out; each scheduled run SHALL scrape exactly one format. A manual trigger SHALL still be able to run a single format or all formats on demand.
 
-#### Scenario: Staggered per-format schedules
-- **WHEN** the daily pipeline runs on its schedule
-- **THEN** each of the five formats is scraped by its own job at its own staggered time, each authenticating with the `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets
+#### Scenario: Two staggered per-format bands each day
+- **WHEN** the pipeline runs on its schedule
+- **THEN** each of the five formats is scraped by its own job at its own staggered time, in each of the two daily bands (~12 hours apart), each authenticating with the `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets
 
 #### Scenario: Manual trigger scrapes a chosen format or all
 - **WHEN** the workflow is triggered manually
