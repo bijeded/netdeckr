@@ -192,6 +192,14 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:  # noqa: BLE001
             print(f"[error] {fmt}/archetype-art: {exc}", file=sys.stderr)
 
+        # Refresh each archetype's color identity: name-derived when the name
+        # carries a color, else derived from its decks' cards. Best-effort.
+        try:
+            colors = writer.refresh_archetype_color_identity(fmt)
+            print(f"{fmt}/archetype-color: {colors} archetypes")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[error] {fmt}/archetype-color: {exc}", file=sys.stderr)
+
         # Stamp the format's freshness after a successful scrape (drives the
         # "Updated X ago" indicator). Best-effort — a stamp failure must not fail
         # the run, which already refreshed the format's decks.
