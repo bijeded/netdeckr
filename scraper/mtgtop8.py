@@ -6,6 +6,7 @@ fixtures without hitting the live site. Network access is isolated in run.py.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup
@@ -113,6 +114,32 @@ def _color_words_in(text: str) -> set[str]:
         for word, letter in _COLOR_WORDS.items()
         if re.search(rf"\b{word}\b", text)
     }
+
+
+# Minimum share of an archetype's decks a color must appear in to count toward
+# the card-derived color identity, so an occasional splash doesn't add a pip.
+# Tunable (verify live across formats); tests don't depend on the exact value.
+COLOR_IDENTITY_MIN_DECK_SHARE = 0.35
+
+
+def color_identity_from_decks(deck_color_sets: Iterable[set[str]]) -> str:
+    """Derive a WUBRG color identity from an archetype's decks' card colors.
+
+    ``deck_color_sets`` is one color-letter set per deck (the union of that deck's
+    cards' Scryfall color identities). A color is kept only when it appears in at
+    least ``COLOR_IDENTITY_MIN_DECK_SHARE`` of the decks, so a one-off splash is
+    excluded. Returns a WUBRG-ordered string, or "" for no decks / all colorless.
+    """
+    decks = list(deck_color_sets)
+    if not decks:
+        return ""
+    threshold = COLOR_IDENTITY_MIN_DECK_SHARE * len(decks)
+    counts: dict[str, int] = {}
+    for colors in decks:
+        for color in colors:
+            counts[color] = counts.get(color, 0) + 1
+    kept = {color for color, count in counts.items() if count >= threshold}
+    return _canonical(kept)
 
 
 def color_identity_for(name: str) -> str:
