@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 
 // deck_cards -> select -> eq(deck_id) -> order(id) => { data, error }
-const { from, eq, queryResult } = vi.hoisted(() => {
+const { from, eq, select, queryResult } = vi.hoisted(() => {
   const queryResult = { data: null as unknown, error: null as unknown }
   const order = vi.fn(() => Promise.resolve(queryResult))
   const eq = vi.fn(() => ({ order }))
   const select = vi.fn(() => ({ eq }))
   const from = vi.fn(() => ({ select }))
-  return { from, eq, queryResult }
+  return { from, eq, select, queryResult }
 })
 
 vi.mock('../lib/supabase', () => ({ supabase: { from } }))
@@ -42,11 +42,11 @@ describe('useDeckCards', () => {
     expect(from).toHaveBeenCalledWith('deck_cards')
     expect(eq).toHaveBeenCalledWith('deck_id', 7)
     expect(result.current.main).toEqual([
-      { quantity: 4, name: 'Llanowar Elves', setCode: null, collectorNumber: null, imageUrl: null },
-      { quantity: 6, name: 'Forest', setCode: null, collectorNumber: null, imageUrl: null },
+      { quantity: 4, name: 'Llanowar Elves', setCode: null, collectorNumber: null, imageUrl: null, typeLine: null },
+      { quantity: 6, name: 'Forest', setCode: null, collectorNumber: null, imageUrl: null, typeLine: null },
     ])
     expect(result.current.side).toEqual([
-      { quantity: 2, name: 'Duress', setCode: null, collectorNumber: null, imageUrl: null },
+      { quantity: 2, name: 'Duress', setCode: null, collectorNumber: null, imageUrl: null, typeLine: null },
     ])
     expect(result.current.mainCount).toBe(10)
     expect(result.current.sideCount).toBe(2)
@@ -77,6 +77,22 @@ describe('useDeckCards', () => {
     const { result } = renderHook(() => useDeckCards(7))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.main[0].imageUrl).toBe('https://cards.scryfall.io/normal/bolt.jpg')
+  })
+
+  it('exposes the Scryfall type line when present', async () => {
+    queryResult.data = [
+      { board: 'main', quantity: 1, card_name: 'Llanowar Elves', type_line: 'Creature — Elf Druid' },
+    ]
+    const { result } = renderHook(() => useDeckCards(7))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.main[0].typeLine).toBe('Creature — Elf Druid')
+  })
+
+  it('selects the type_line column', async () => {
+    queryResult.data = []
+    renderHook(() => useDeckCards(7))
+    await waitFor(() => expect(select).toHaveBeenCalled())
+    expect(select).toHaveBeenCalledWith(expect.stringContaining('type_line'))
   })
 
   it('exposes an error and empty lists on failure', async () => {
