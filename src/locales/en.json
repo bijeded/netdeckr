@@ -63,6 +63,12 @@
   "modal": {
     "main": "Main",
     "side": "Sideboard",
+    "group": {
+      "lands": "Lands",
+      "creatures": "Creatures",
+      "spells": "Spells",
+      "other": "Other"
+    },
     "cards_one": "{{count}} card",
     "cards_other": "{{count}} cards",
     "close": "Close",

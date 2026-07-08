@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ManaPips } from './ManaPips'
 import { CardArtPreview } from './CardArtPreview'
 import { Spinner } from './Spinner'
 import { EmptyState } from './EmptyState'
 import { useDeckCards, type DeckCardLine } from '../hooks/useDeckCards'
+import { groupMainByType, type CardTypeCategory } from '../lib/cardType'
 import { placementBadge, type PlacementKind } from '../lib/placement'
 import { arenaDelivery, buildArenaDeck, arenaFilename } from '../lib/arenaExport'
 import type { FormatCode } from '../lib/formats'
@@ -44,6 +45,44 @@ function CardLine({ line }: { line: DeckCardLine }) {
   )
 }
 
+/** Card-type groups rendered within the mainboard, in fixed order. */
+const CARD_GROUP_ORDER: CardTypeCategory[] = ['lands', 'creatures', 'spells', 'other']
+
+const sumQuantity = (lines: DeckCardLine[]) => lines.reduce((total, line) => total + line.quantity, 0)
+
+/** A subdued sub-heading for a mainboard card-type group (e.g. Lands · 24). */
+function GroupHeading({ label, count }: { label: string; count: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 8,
+        margin: '14px 0 6px',
+        breakInside: 'avoid',
+        breakAfter: 'avoid',
+      }}
+    >
+      <span
+        data-testid="card-group-heading"
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--fs-2xs)',
+          fontWeight: 'var(--fw-semibold)',
+          letterSpacing: 'var(--track-wide)',
+          textTransform: 'uppercase',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-2xs)', color: 'var(--text-faint)' }}>
+        {count}
+      </span>
+    </div>
+  )
+}
+
 function SectionHeading({ label, count }: { label: string; count: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -71,6 +110,7 @@ function SectionHeading({ label, count }: { label: string; count: string }) {
 export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
   const { t, i18n } = useTranslation()
   const { main, side, mainCount, sideCount, loading, error } = useDeckCards(deck.id)
+  const mainGroups = useMemo(() => groupMainByType(main), [main])
   const closeRef = useRef<HTMLButtonElement>(null)
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; message: string } | null>(null)
   const badge = placementBadge(deck.placement)
@@ -264,9 +304,21 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
             <div style={{ padding: '20px 22px', borderRight: '1px solid var(--border-soft)' }}>
               <SectionHeading label={t('modal.main')} count={t('modal.cards', { count: mainCount })} />
               <div className="decklist-main-cols">
-                {main.map((line, i) => (
-                  <CardLine key={`m-${i}-${line.name}`} line={line} />
-                ))}
+                {CARD_GROUP_ORDER.map((category) => {
+                  const lines = mainGroups[category]
+                  if (lines.length === 0) return null
+                  return (
+                    <Fragment key={category}>
+                      <GroupHeading
+                        label={t(`modal.group.${category}`)}
+                        count={t('modal.cards', { count: sumQuantity(lines) })}
+                      />
+                      {lines.map((line, i) => (
+                        <CardLine key={`m-${category}-${i}-${line.name}`} line={line} />
+                      ))}
+                    </Fragment>
+                  )
+                })}
               </div>
             </div>
             <div style={{ padding: '20px 22px', background: 'var(--surface-faint)' }}>

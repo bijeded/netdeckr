@@ -5,7 +5,7 @@
 
 ## 2. Data layer
 
-- [ ] 2.1 Add `type_line` to the `useDeckCards` Supabase select and expose `typeLine?: string | null` on `DeckCardLine`; update/adjust `useDeckCards` tests for the new field.
+- [x] 2.1 Add `type_line` to the `useDeckCards` Supabase select and expose `typeLine?: string | null` on `DeckCardLine`; update/adjust `useDeckCards` tests for the new field.
 
 ## 3. Modal rendering + i18n
 
