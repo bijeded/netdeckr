@@ -151,6 +151,8 @@ def test_scrape_stamps_each_format_and_has_no_breakdown_pass(monkeypatch):
     assert writer.stamp_format_updated.call_count == len(FORMATS)
     stamped = {call.args[0] for call in writer.stamp_format_updated.call_args_list}
     assert stamped == set(FORMATS)
+    # Each scraped format also refreshes its archetypes' color identity.
+    assert writer.refresh_archetype_color_identity.call_count == len(FORMATS)
 
 
 def test_scrape_returns_failure_when_every_format_fails(monkeypatch):

@@ -743,3 +743,97 @@ def test_refresh_archetype_art_breaks_full_ties_by_name_ascending():
 
     body = session.patch.call_args[1]["json"]
     assert body["signature_card_name"] == "Abrade"  # ties broken by name asc
+
+
+# -- Archetype color identity (name-first, card fallback) -------------------
+
+def _ci_card_row(cid, deck_id, name):
+    return {"id": cid, "deck_id": deck_id, "card_name": name, "decks": {"archetype_id": 5}}
+
+
+def test_refresh_archetype_color_identity_requires_a_resolver():
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        _writer(MagicMock()).refresh_archetype_color_identity("MO")
+
+
+def test_refresh_archetype_color_identity_uses_name_when_present():
+    session = MagicMock()
+    # Name "Izzet Prowess" -> UR; card lookups are never queried.
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Izzet Prowess", "color_identity": ""}]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=_StubResolver({}))
+
+    updated = writer.refresh_archetype_color_identity("MO")
+
+    assert updated == 1
+    assert session.get.call_count == 1  # no deck_cards query for a named archetype
+    patch_url = session.patch.call_args[0][0]
+    assert "/rest/v1/archetypes" in patch_url
+    assert "id=eq.5" in patch_url
+    body = session.patch.call_args[1]["json"]
+    assert body == {"color_identity": "UR"}  # only color_identity is written
+
+
+def test_refresh_archetype_color_identity_derives_from_cards_when_name_has_none():
+    session = MagicMock()
+    # Name "Cauldron" -> no color; both decks are UB, so identity is UB.
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Cauldron", "color_identity": ""}]),
+        _response(
+            [
+                _ci_card_row(1, 100, "Deep-Cavern Bat"),
+                _ci_card_row(2, 100, "Island"),
+                _ci_card_row(3, 101, "Deep-Cavern Bat"),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {
+            "Deep-Cavern Bat": Printing(name="Deep-Cavern Bat", set_code="LCI",
+                                        collector_number="1", color_identity=("B",)),
+            "Island": Printing(name="Island", set_code="X", collector_number="1",
+                               color_identity=("U",)),
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_color_identity("MO")
+
+    body = session.patch.call_args[1]["json"]
+    assert body == {"color_identity": "UB"}
+
+
+def test_refresh_archetype_color_identity_is_idempotent_when_unchanged():
+    session = MagicMock()
+    # Stored value already matches the name-derived identity -> no PATCH.
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Izzet Prowess", "color_identity": "UR"}]),
+    ]
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=_StubResolver({}))
+
+    updated = writer.refresh_archetype_color_identity("MO")
+
+    assert updated == 0
+    session.patch.assert_not_called()
+
+
+def test_refresh_archetype_color_identity_leaves_colorless_empty():
+    session = MagicMock()
+    # Name has no color and cards don't resolve -> stays "" (no PATCH).
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Homebrew", "color_identity": ""}]),
+        _response([_ci_card_row(1, 100, "Totally Made Up Card")]),
+        _response([]),
+    ]
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=_StubResolver({}))
+
+    updated = writer.refresh_archetype_color_identity("MO")
+
+    assert updated == 0
+    session.patch.assert_not_called()

@@ -11,7 +11,13 @@ from urllib.parse import quote
 
 import requests
 
-from mtgtop8 import DeckCard, DeckResult, Event, color_identity_for
+from mtgtop8 import (
+    DeckCard,
+    DeckResult,
+    Event,
+    color_identity_for,
+    color_identity_from_decks,
+)
 
 # Rarity ordering for signature-card ranking; mythic is best. An unknown/null
 # rarity sorts after all of these (see _signature_sort_key), so a resolved card
@@ -416,6 +422,75 @@ class SupabaseWriter:
             patch.raise_for_status()
             updated += 1
         return updated
+
+    def refresh_archetype_color_identity(self, fmt: str) -> int:
+        """Recompute and persist each archetype's WUBRG color identity for a format.
+
+        The name-derived identity (``color_identity_for``) is authoritative; only
+        when it is empty is the identity derived from the archetype's decks' cards
+        via ``_card_color_identity`` (the WUBRG union of colors meeting the
+        deck-presence threshold, so a splash is excluded). The archetype is PATCHed
+        only when the newly computed value differs from the stored one, so the pass
+        is idempotent and does not churn unchanged rows. Requires a card_resolver.
+        Returns the number of archetypes updated.
+        """
+        if self._card_resolver is None:
+            raise RuntimeError("refresh_archetype_color_identity requires a card_resolver")
+
+        archetypes = self._session.get(
+            f"{self._rest}/archetypes?format_code=eq.{quote(fmt)}&select=id,name,color_identity",
+            headers=self._headers,
+        )
+        archetypes.raise_for_status()
+
+        updated = 0
+        for arch in archetypes.json():
+            derived = color_identity_for(arch["name"])
+            if not derived:
+                derived = self._card_color_identity(arch["id"])
+            if derived == (arch.get("color_identity") or ""):
+                continue  # unchanged — leave the row alone
+            patch = self._session.patch(
+                f"{self._rest}/archetypes?id=eq.{arch['id']}",
+                headers=self._headers,
+                json={"color_identity": derived},
+            )
+            patch.raise_for_status()
+            updated += 1
+        return updated
+
+    def _card_color_identity(self, archetype_id: int, *, page_size: int = 1000) -> str:
+        """Card-derived WUBRG color identity for an archetype's mainboard decks.
+
+        Groups the archetype's mainboard ``deck_cards`` by deck (paged by ascending
+        id), resolving each card to its Scryfall printing's color identity and
+        unioning the colors per deck (a card that does not resolve contributes no
+        color; the deck is still counted). Delegates the deck-presence threshold to
+        ``color_identity_from_decks``. Returns a WUBRG-ordered string, or "" when no
+        decks / all colorless.
+        """
+        deck_colors: dict[int, set[str]] = {}
+        cursor = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/deck_cards"
+                f"?board=eq.main&decks.archetype_id=eq.{archetype_id}&id=gt.{cursor}"
+                f"&select=id,deck_id,card_name,decks!inner(archetype_id)"
+                f"&order=id.asc&limit={page_size}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
+                break
+            for row in rows:
+                colors = deck_colors.setdefault(row["deck_id"], set())
+                printing = self._card_resolver.resolve(row["card_name"])
+                if printing is not None:
+                    colors.update(printing.color_identity)
+            cursor = rows[-1]["id"]
+
+        return color_identity_from_decks(deck_colors.values())
 
     @staticmethod
     def _signature_sort_key(name: str, quantity: int, meta: dict) -> tuple:

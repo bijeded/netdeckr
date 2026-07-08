@@ -6,8 +6,8 @@
 
 ## 2. Card-derived color-identity helper
 
-- [ ] 2.1 Add a pure helper (in `scraper/mtgtop8.py`, alongside `color_identity_for`) that takes per-deck card color sets and returns the WUBRG-ordered union of colors meeting the deck-presence threshold; add the `COLOR_IDENTITY_MIN_DECK_SHARE` constant
-- [ ] 2.2 Unit tests: base color kept, splash color (below threshold) excluded, colorless-only → empty, WUBRG ordering, threshold boundary
+- [x] 2.1 Add a pure helper (in `scraper/mtgtop8.py`, alongside `color_identity_for`) that takes per-deck card color sets and returns the WUBRG-ordered union of colors meeting the deck-presence threshold; add the `COLOR_IDENTITY_MIN_DECK_SHARE` constant
+- [x] 2.2 Unit tests: base color kept, splash color (below threshold) excluded, colorless-only → empty, WUBRG ordering, threshold boundary
 
 ## 3. Persist derived color identity in the archetype pass
 
