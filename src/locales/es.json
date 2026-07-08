@@ -63,6 +63,12 @@
   "modal": {
     "main": "Main",
     "side": "Sideboard",
+    "group": {
+      "lands": "Tierras",
+      "creatures": "Criaturas",
+      "spells": "Hechizos",
+      "other": "Otros"
+    },
     "cards_one": "{{count}} carta",
     "cards_other": "{{count}} cartas",
     "close": "Cerrar",

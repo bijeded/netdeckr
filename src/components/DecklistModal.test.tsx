@@ -23,10 +23,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   useDeckCards.mockReturnValue({
     main: [
-      { quantity: 4, name: 'Island' },
-      { quantity: 2, name: 'Opt' },
+      { quantity: 4, name: 'Island', typeLine: 'Basic Land — Island' },
+      { quantity: 2, name: 'Opt', typeLine: 'Instant' },
     ],
-    side: [{ quantity: 3, name: 'Negate' }],
+    side: [{ quantity: 3, name: 'Negate', typeLine: 'Instant' }],
     mainCount: 6,
     sideCount: 3,
     loading: false,
@@ -47,6 +47,57 @@ describe('DecklistModal', () => {
     // Section counts.
     expect(screen.getByText('6 cards')).toBeInTheDocument()
     expect(screen.getByText('3 cards')).toBeInTheDocument()
+  })
+
+  describe('mainboard grouped by card type', () => {
+    it('shows a heading for each non-empty type group in fixed order', () => {
+      useDeckCards.mockReturnValue({
+        main: [
+          { quantity: 4, name: 'Island', typeLine: 'Basic Land — Island' },
+          { quantity: 4, name: 'Snapcaster Mage', typeLine: 'Creature — Human Wizard' },
+          { quantity: 2, name: 'Opt', typeLine: 'Instant' },
+          { quantity: 3, name: 'Aether Spellbomb', typeLine: 'Artifact' },
+        ],
+        side: [{ quantity: 3, name: 'Negate', typeLine: 'Instant' }],
+        mainCount: 13,
+        sideCount: 3,
+        loading: false,
+        error: null,
+      })
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      const headings = screen.getAllByTestId('card-group-heading').map((el) => el.textContent)
+      expect(headings).toEqual(['Lands', 'Creatures', 'Spells', 'Other'])
+    })
+
+    it('hides the heading for an empty type group', () => {
+      // Default mock has only a Land and an Instant — no creatures, no other.
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      expect(screen.getByText('Lands')).toBeInTheDocument()
+      expect(screen.getByText('Spells')).toBeInTheDocument()
+      expect(screen.queryByText('Creatures')).not.toBeInTheDocument()
+      expect(screen.queryByText('Other')).not.toBeInTheDocument()
+    })
+
+    it('places a card with an unresolved type line into Other', () => {
+      useDeckCards.mockReturnValue({
+        main: [{ quantity: 1, name: 'Embiggen', typeLine: null }],
+        side: [],
+        mainCount: 1,
+        sideCount: 0,
+        loading: false,
+        error: null,
+      })
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      expect(screen.getByText('Other')).toBeInTheDocument()
+      expect(screen.getByText('Embiggen')).toBeInTheDocument()
+    })
+
+    it('does not group the sideboard', () => {
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      // The sideboard's Instant does not create a second "Spells" group heading.
+      expect(screen.getAllByText('Spells')).toHaveLength(1)
+      expect(screen.getByText('Negate')).toBeInTheDocument()
+    })
   })
 
   it('fetches cards for the deck id', () => {

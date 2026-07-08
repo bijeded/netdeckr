@@ -15,6 +15,15 @@ describe('locale parity', () => {
     expect(keyPaths(es)).toEqual(keyPaths(en))
   })
 
+  it('covers the decklist card-type group headings in both locales', () => {
+    for (const locale of [en, es]) {
+      const group = (locale as { modal: { group: Record<string, string> } }).modal.group
+      for (const key of ['lands', 'creatures', 'spells', 'other']) {
+        expect(group[key]).toBeTruthy()
+      }
+    }
+  })
+
   it('covers the filter controls in both locales', () => {
     for (const locale of [en, es]) {
       const filters = (locale as { filters: Record<string, string> }).filters
