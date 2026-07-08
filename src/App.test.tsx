@@ -260,6 +260,61 @@ describe('App dashboard', () => {
     expect(screen.getByTestId('grid-caption').textContent).toBe('Top 1 arquetipo más popular')
   })
 
+  it('names the selected event and uncaps the grid in the popularity view', () => {
+    const breakdown = Array.from({ length: 15 }, (_, i) => ({
+      rank: i + 1,
+      name: `Arch ${String(i).padStart(2, '0')}`,
+      colorIdentity: '',
+      sharePct: 20 - i,
+      tier: 'Otros',
+      trend: null,
+      wins: 0,
+    }))
+    useMetagame.mockReturnValue({
+      breakdown,
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05' }],
+      totals: { events: 1, archetypes: 15, decks: 40 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    // Caption becomes the event name + abbreviated date.
+    expect(screen.getByTestId('grid-caption').textContent).toBe('RCQ — Jul 5')
+    // The grid is uncapped: archetypes beyond the top-12 slice now render.
+    const main = screen.getByRole('main')
+    expect(within(main).getByText('Arch 12')).toBeInTheDocument()
+    expect(within(main).getByText('Arch 14')).toBeInTheDocument()
+  })
+
+  it('combines the tier label and event name when both filters are active', () => {
+    const breakdown = [
+      { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 40, tier: 'T1', trend: null, wins: 0 },
+      { rank: 2, name: 'Mono Red', colorIdentity: 'R', sharePct: 30, tier: 'T2', trend: null, wins: 0 },
+    ]
+    useMetagame.mockReturnValue({
+      breakdown,
+      decksByArchetype: { 'Izzet Control': [], 'Mono Red': [] },
+      fullDecksByArchetype: { 'Izzet Control': [], 'Mono Red': [] },
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05' }],
+      totals: { events: 1, archetypes: 2, decks: 10 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } })
+    })
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Tier 1 — RCQ — Jul 5')
+  })
+
   it('shows the freshness indicator when a timestamp exists', () => {
     useLastUpdated.mockReturnValue('2026-07-01T10:00:00Z')
     render(<App />)
