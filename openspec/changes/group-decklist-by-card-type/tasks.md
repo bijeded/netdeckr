@@ -1,7 +1,7 @@
 ## 1. Card-type classification helper
 
-- [ ] 1.1 Write tests for `src/lib/cardType.ts`: `cardCategory(typeLine)` precedence (Land beats Creature beats Instant/Sorcery/Enchantment beats Other; null/empty → Other; edge cases: "Legendary Creature", "Artifact Creature", "Enchantment Creature", "Artifact Land", "Basic Land", "Battle", "Planeswalker", "Instant", "Sorcery", "Enchantment").
-- [ ] 1.2 Implement `cardType.ts` (`cardCategory` + `groupMainByType` preserving input order within each bucket) to pass the tests.
+- [x] 1.1 Write tests for `src/lib/cardType.ts`: `cardCategory(typeLine)` precedence (Land beats Creature beats Instant/Sorcery/Enchantment beats Other; null/empty → Other; edge cases: "Legendary Creature", "Artifact Creature", "Enchantment Creature", "Artifact Land", "Basic Land", "Battle", "Planeswalker", "Instant", "Sorcery", "Enchantment").
+- [x] 1.2 Implement `cardType.ts` (`cardCategory` + `groupMainByType` preserving input order within each bucket) to pass the tests.
 
 ## 2. Data layer
 

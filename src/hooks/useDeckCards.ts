@@ -9,6 +9,8 @@ export interface DeckCardLine {
   collectorNumber?: string | null
   /** Hotlinked Scryfall card image (normal size), when resolved; else null. */
   imageUrl?: string | null
+  /** Scryfall type line (e.g. "Creature — Elf Druid"), when resolved; else null. */
+  typeLine?: string | null
 }
 
 interface DeckCardQueryRow {
@@ -19,6 +21,7 @@ interface DeckCardQueryRow {
   set_code?: string | null
   collector_number?: string | null
   image_url?: string | null
+  type_line?: string | null
 }
 
 interface DeckCardsState {
@@ -53,7 +56,7 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
 
     supabase
       .from('deck_cards')
-      .select('board, quantity, card_name, scryfall_name, set_code, collector_number, image_url')
+      .select('board, quantity, card_name, scryfall_name, set_code, collector_number, image_url, type_line')
       .eq('deck_id', deckId)
       .order('id')
       .then(({ data, error }) => {
@@ -71,6 +74,7 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
             setCode: row.set_code ?? null,
             collectorNumber: row.collector_number ?? null,
             imageUrl: row.image_url ?? null,
+            typeLine: row.type_line ?? null,
           }
           ;(row.board === 'side' ? side : main).push(line)
         }
