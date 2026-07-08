@@ -248,6 +248,30 @@ def test_only_special_printing_still_resolves():
     assert index.resolve("Rare Drop").set_code == "SRL"
 
 
+# -- color identity --------------------------------------------------------
+
+def test_printing_carries_color_identity():
+    row = _printing_row("Izzet Thing", "aaa", "1", released_at="2024-01-01",
+                        color_identity=["U", "R"])
+    printing = CardIndex.from_bulk_rows([row]).resolve("Izzet Thing")
+    assert printing.color_identity == ("U", "R")
+
+
+def test_colorless_printing_has_empty_color_identity():
+    row = _printing_row("Sol Ring", "aaa", "1", released_at="2024-01-01",
+                        color_identity=[])
+    printing = CardIndex.from_bulk_rows([row]).resolve("Sol Ring")
+    assert printing.color_identity == ()
+
+
+def test_printing_color_identity_defaults_empty_when_absent():
+    # A bulk row missing color_identity (shouldn't happen in real data) is
+    # treated as colorless rather than raising.
+    row = _printing_row("Odd Card", "aaa", "1", released_at="2024-01-01")
+    printing = CardIndex.from_bulk_rows([row]).resolve("Odd Card")
+    assert printing.color_identity == ()
+
+
 # -- bulk sync / cache -----------------------------------------------------
 
 def test_load_bulk_index_reads_a_file_into_an_index():
