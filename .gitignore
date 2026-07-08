@@ -11,3 +11,4 @@ scraper/venv/
 scraper/.cache/
 .vercel
 coverage/
+.playwright-mcp/
