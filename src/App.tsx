@@ -7,6 +7,7 @@ import { useLastUpdated } from './hooks/useLastUpdated'
 import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
+import { formatShortDate } from './lib/formatDate'
 import { FormatSwitcher } from './components/FormatSwitcher'
 import { WindowSelector } from './components/WindowSelector'
 import { EventSelector } from './components/EventSelector'
@@ -141,21 +142,40 @@ function App() {
   // share). The full corpus stays reachable via the StatCard total and the filters.
   const archetypeFiltered = archetypeName !== null
   const tierFiltered = !archetypeFiltered && tier !== null
+  // The selected event's label (name + abbreviated date), reused for the caption;
+  // null when no event is selected. Event names are proper nouns (not localized).
+  const selectedEvent = eventId !== null ? (events.find((e) => e.id === eventId) ?? null) : null
+  const eventLabel = selectedEvent
+    ? ((date) => (date ? `${selectedEvent.name} — ${date}` : selectedEvent.name))(
+        formatShortDate(selectedEvent.eventDate, i18n.language),
+      )
+    : null
   const visibleBreakdown = archetypeFiltered
     ? breakdown.filter((a) => a.name === archetypeName)
     : tierFiltered
       ? breakdown.filter((a) => a.tier === tier)
-      : breakdown.slice(0, GRID_DISPLAY_CAP)
+      : // A selected event's field is shown in full (uncapped); the default
+        // popularity view still caps at the top N by share.
+        eventLabel !== null
+        ? breakdown
+        : breakdown.slice(0, GRID_DISPLAY_CAP)
   // The grid caption sits above the freshness line. In the popularity view it
   // reads "Top N most popular archetypes"; under a tier filter it names the tier
   // instead. It is hidden only while a single archetype is isolated (one card is
   // not a listing). The fringe tier reuses the shared "Rogue"/"Otros" label.
   const tierLabel =
     tier === null ? '' : tier === 'Otros' ? t('tiers.rogue') : t('filters.tierLabel', { n: Number(tier.slice(1)) })
+  // Caption resolution: under a tier filter it names the tier (folding in the
+  // event name when an event is also selected); otherwise a selected event names
+  // itself, falling back to the "Top N most popular archetypes" popularity caption.
   const showGridCaption = !archetypeFiltered
   const gridCaption = tierFiltered
-    ? t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
-    : t('dashboard.topCaption', { count: visibleBreakdown.length })
+    ? eventLabel !== null
+      ? t('dashboard.tierEventCaption', { tier: tierLabel, event: eventLabel })
+      : t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
+    : eventLabel !== null
+      ? eventLabel
+      : t('dashboard.topCaption', { count: visibleBreakdown.length })
   // The isolated archetype auto-expands its full (uncapped) deck list; with no
   // matching decks under the combined filters, fall through to the empty state.
   const isolatedDecks = archetypeFiltered ? (fullDecksByArchetype[archetypeName] ?? []) : []

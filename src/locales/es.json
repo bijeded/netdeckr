@@ -34,7 +34,8 @@
     "topCaption_one": "Top {{count}} arquetipo más popular",
     "topCaption_other": "Top {{count}} arquetipos más populares",
     "tierCaption_one": "{{tier}} — {{count}} arquetipo",
-    "tierCaption_other": "{{tier}} — {{count}} arquetipos"
+    "tierCaption_other": "{{tier}} — {{count}} arquetipos",
+    "tierEventCaption": "{{tier}} — {{event}}"
   },
   "tiers": {
     "rogue": "Otros"
