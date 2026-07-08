@@ -12,9 +12,19 @@ describe('placementBadge', () => {
     expect(placementBadge('4')).toEqual({ label: 'Top 4', kind: 'top4' })
   })
 
-  it('labels deeper finishes as Top <upper bound>', () => {
+  it('labels deeper bracket ranges as Top <upper bound>', () => {
     expect(placementBadge('5-8')).toEqual({ label: 'Top 8', kind: 'other' })
     expect(placementBadge('9-16')).toEqual({ label: 'Top 16', kind: 'other' })
+    expect(placementBadge('17-32')).toEqual({ label: 'Top 32', kind: 'other' })
+  })
+
+  it('shows a bare number for a single standing worse than 8th', () => {
+    expect(placementBadge('9')).toEqual({ label: '9', kind: 'other' })
+    expect(placementBadge('14')).toEqual({ label: '14', kind: 'other' })
+  })
+
+  it('keeps Top <n> for a single standing of 8th or better', () => {
+    expect(placementBadge('8')).toEqual({ label: 'Top 8', kind: 'other' })
   })
 
   it('falls back to the raw label when unparseable', () => {
