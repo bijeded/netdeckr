@@ -66,8 +66,9 @@ def test_backfill_flag_also_refreshes_archetype_art(monkeypatch):
 
     assert rc == 0
     writer.backfill_scryfall.assert_called_once()
-    # Backfill also refreshes archetype art for every format.
+    # Backfill also refreshes archetype art AND color identity for every format.
     assert writer.refresh_archetype_art.call_count == len(FORMATS)
+    assert writer.refresh_archetype_color_identity.call_count == len(FORMATS)
 
 
 def test_metadata_backfill_flag_runs_backfill_and_refreshes_art(monkeypatch):
@@ -86,8 +87,9 @@ def test_metadata_backfill_flag_runs_backfill_and_refreshes_art(monkeypatch):
     writer.backfill_scryfall.assert_not_called()  # this mode fills the metadata columns
     writer.existing_event_ids.assert_not_called()  # standalone mode — no scrape
     assert run.SupabaseWriter.call_args.kwargs.get("card_resolver") is resolver
-    # Recomputes each archetype's signature card + art from the refreshed rows.
+    # Recomputes each archetype's signature card + art AND color identity.
     assert writer.refresh_archetype_art.call_count == len(FORMATS)
+    assert writer.refresh_archetype_color_identity.call_count == len(FORMATS)
 
 
 def test_metadata_backfill_flag_fails_when_bulk_sync_unavailable(monkeypatch):
@@ -115,8 +117,36 @@ def test_remap_flag_runs_remap_and_refreshes_art(monkeypatch):
     writer.backfill_metadata.assert_not_called()
     writer.existing_event_ids.assert_not_called()  # standalone mode — no scrape
     assert run.SupabaseWriter.call_args.kwargs.get("card_resolver") is resolver
-    # Recomputes each archetype's signature card + art from the refreshed rows.
+    # Recomputes each archetype's signature card + art AND color identity.
     assert writer.refresh_archetype_art.call_count == len(FORMATS)
+    assert writer.refresh_archetype_color_identity.call_count == len(FORMATS)
+
+
+def test_refresh_color_identity_flag_recomputes_all_formats_without_scraping(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    resolver = object()
+    monkeypatch.setattr(run, "build_card_resolver", lambda: resolver)
+    writer = MagicMock()
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+
+    rc = run.main(["run.py", "--refresh-color-identity"])
+
+    assert rc == 0
+    # Only the color-identity pass runs — no scrape, no remap, no art refresh.
+    assert writer.refresh_archetype_color_identity.call_count == len(FORMATS)
+    writer.existing_event_ids.assert_not_called()
+    writer.remap_scryfall.assert_not_called()
+    writer.refresh_archetype_art.assert_not_called()
+    assert run.SupabaseWriter.call_args.kwargs.get("card_resolver") is resolver
+
+
+def test_refresh_color_identity_flag_fails_when_bulk_sync_unavailable(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    monkeypatch.setattr(run, "build_card_resolver", lambda: None)  # Scryfall down
+
+    assert run.main(["run.py", "--refresh-color-identity"]) == 1
 
 
 def test_remap_flag_fails_when_bulk_sync_unavailable(monkeypatch):
