@@ -1,8 +1,8 @@
 ## 1. Carry Scryfall color identity on the printing
 
-- [ ] 1.1 Add a `color_identity` field to the `Printing` dataclass in `scraper/scryfall.py` (WUBRG letters, empty for colorless)
-- [ ] 1.2 Populate it in `CardIndex.from_bulk_rows` from the bulk row's `color_identity` (default to empty when absent)
-- [ ] 1.3 Unit test: a resolved printing exposes the expected `color_identity` (mono, multi, colorless) — fixture-based
+- [x] 1.1 Add a `color_identity` field to the `Printing` dataclass in `scraper/scryfall.py` (WUBRG letters, empty for colorless)
+- [x] 1.2 Populate it in `CardIndex.from_bulk_rows` from the bulk row's `color_identity` (default to empty when absent)
+- [x] 1.3 Unit test: a resolved printing exposes the expected `color_identity` (mono, multi, colorless) — fixture-based
 
 ## 2. Card-derived color-identity helper
 
