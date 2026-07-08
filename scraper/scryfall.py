@@ -40,6 +40,7 @@ class Printing:
     rarity: str | None = None  # mythic/rare/uncommon/common
     cmc: float | None = None  # converted mana cost
     released_at: str | None = None  # printing's set release date (ISO YYYY-MM-DD)
+    color_identity: tuple[str, ...] = ()  # WUBRG color identity letters, () for colorless
 
 
 def _normalize(name: str) -> str:
@@ -193,6 +194,7 @@ class CardIndex:
                 rarity=row.get("rarity"),
                 cmc=row.get("cmc"),
                 released_at=row.get("released_at"),
+                color_identity=tuple(row.get("color_identity") or ()),
             )
             for key in _name_keys(row):
                 by_name.setdefault(key, printing)
