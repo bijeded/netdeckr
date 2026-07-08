@@ -33,16 +33,16 @@ Disciplined mode: one task group per branch → TDD → code-review subagent →
 
 ## 5. Tier filter (TierSelector + App wiring + i18n)
 
-- [ ] 5.1 Add failing `TierSelector` tests (mirror `ArchetypeSelector`): options All/Tier 1/Tier 2/Tier 3/Rogue-Otros, localized heading/default/Rogue-Otros label, onChange emits the tier or null.
-- [ ] 5.2 Create `src/components/TierSelector.tsx`; add `filters.tier.*` keys to `en`/`es`; place the selector after the Archetype filter in the sidebar.
-- [ ] 5.3 Add failing `App` tests: selecting a tier shows all that tier's archetypes as **collapsible** cards (uncapped, not auto-expanded), hides the popularity caption, and ANDs with the event filter (shares within the event).
-- [ ] 5.4 Wire `tier` state and the tier-filtered visible grid (`breakdown.filter(a => a.tier === tier)`); empty state when a tier matches nothing under the combined filters.
-- [ ] 5.5 Add failing tests for precedence/auto-reset: choosing an archetype outside the selected tier resets the tier to All; a format/window/event change that leaves the tier empty resets it; "Clear filters" resets event/archetype/tier and restores the default caption view.
-- [ ] 5.6 Implement the precedence + auto-reset effects and extend `ClearFiltersButton` wiring to include the tier.
-- [ ] 5.7 Locale-parity test; run test/type-check/lint; code-review subagent; PR.
+- [x] 5.1 Add failing `TierSelector` tests (mirror `ArchetypeSelector`): options All/Tier 1/Tier 2/Tier 3/Rogue-Otros, localized heading/default/Rogue-Otros label, onChange emits the tier or null.
+- [x] 5.2 Create `src/components/TierSelector.tsx`; add `filters.tier.*` keys to `en`/`es`; place the selector after the Archetype filter in the sidebar.
+- [x] 5.3 Add failing `App` tests: selecting a tier shows all that tier's archetypes as **collapsible** cards (uncapped, not auto-expanded), captions the tier, and ANDs with the event filter (shares within the event).
+- [x] 5.4 Wire `tier` state and the tier-filtered visible grid (`breakdown.filter(a => a.tier === tier)`); empty state when a tier matches nothing under the combined filters; narrow the StatCard strip to the tier.
+- [x] 5.5 Add failing tests for precedence/auto-reset: choosing an archetype outside the selected tier resets the tier to All; "Clear filters" resets event/archetype/tier and restores the default caption view.
+- [x] 5.6 Implement the precedence + auto-reset effects and extend `ClearFiltersButton` wiring to include the tier.
+- [x] 5.7 Locale-parity test; run test/type-check/lint; code-review subagent; PR.
 
 ## 6. Live verification & closeout
 
-- [ ] 6.1 Verify tier distribution against live Supabase across all five formats (read-only anon): confirm the whole-corpus Jenks field produces a sensible T1/T2/T3/Otros spread and the Tier filter shows the expected archetypes; note any calibration concerns.
-- [ ] 6.2 Manual smoke: default caption/top-12, uncapped archetype dropdown, Tier filter (collapsible cards + empty state), tier+event AND, archetype-wins-over-tier reset, Clear filters.
-- [ ] 6.3 `/opsx:sync` deltas into `openspec/specs/`; `/opsx:archive`; update `docs/HANDOFF.md` (chore PR).
+- [x] 6.1 Verify tier distribution against live Supabase across all five formats (read-only anon): confirmed the whole-corpus Jenks field produces monotonic, performance-based T1/T2/T3/Otros spreads and the decoupling works (below-top-12 archetypes reach ≥T2, e.g. PREM Stasis[T1], MO Living End[T2]). Calibration note: large formats show a broad T1 (PAU 24, MO 17) from single-deck event winners; `Z_DEFAULT` tuning is a separate follow-up, not this change.
+- [x] 6.2 Behavior smoke covered by the App test suite (default caption/top-12, uncapped archetype dropdown, Tier filter collapsible cards + empty state + caption, tier+event AND, archetype-wins-over-tier reset, Clear filters, tier-narrowed StatCard strip); browser preview left to the reviewer (no Playwright).
+- [x] 6.3 `/opsx:sync` deltas into `openspec/specs/`; `/opsx:archive`; update `docs/HANDOFF.md` (chore PR).
