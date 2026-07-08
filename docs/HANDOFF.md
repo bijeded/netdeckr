@@ -39,7 +39,7 @@ Paste-ready context to continue MetaStack in a new chat. Discovery and project-i
 
 17. **`show-bare-position-above-top-8`** (2026-07-08, fast mode) — a **placement-label tweak** so a bare Swiss standing deeper than 8th reads as the raw number instead of a fake bracket (frontend-only, no schema/scraper/i18n). `placementBadge` in `src/lib/placement.ts` gained one branch: `nums.length === 1 && high > 8` returns `{ label: String(high), kind: 'other' }` — so `"9" → 9`, `"14" → 14`. **Bracket ranges** are unchanged (`"5-8" → Top 8`, `"9-16" → Top 16`, `"17-32" → Top 32`; they have two parsed ints), and single standings of 8th or better keep `Top {n}` (`"8" → Top 8`), alongside `1st`/`2nd`/`Top 4`. Label-only: the badge `kind` (colour) is untouched, and both surfaces (archetype-card deck rows + decklist modal) update at once since they share `placementBadge`. Competitive labels stay English in both locales. Specs: `archetype-decklists-view` (added — "Placement result label format" requirement).
 
-Backed by a daily MTGTop8 scraper → Supabase (RLS read-only). 262 frontend + 106 scraper tests.
+Backed by a twice-daily MTGTop8 scraper → Supabase (RLS read-only). 262 frontend + 106 scraper tests.
 
 ## Stack & commands (see CLAUDE.md for full detail)
 - Frontend: React 19 + Vite 8 + TS 5.8, Vitest (config in **separate `vitest.config.ts`**), oxlint, react-i18next, @supabase/supabase-js, Recharts (still unused).

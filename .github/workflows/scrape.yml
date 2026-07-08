@@ -2,13 +2,27 @@ name: Daily scrape
 
 on:
   schedule:
-    # One format per staggered slot (UTC) to spread load on MTGTop8. The slot ->
-    # format mapping lives in the "Resolve format" step below; keep them in sync.
-    - cron: '0 12 * * *'   # ST   (Standard)
-    - cron: '15 12 * * *'  # PI   (Pioneer)
-    - cron: '30 12 * * *'  # MO   (Modern)
-    - cron: '45 12 * * *'  # PAU  (Pauper)
-    - cron: '0 13 * * *'   # PREM (Pre-Modern)
+    # Twice daily (~12 h apart), one format per staggered slot (UTC) to spread load
+    # on MTGTop8. The slot -> format mapping lives in the "Resolve format" step
+    # below; keep the two lists in lockstep (an unmapped cron fails the run).
+    #
+    # Targets 6:00 AM / 6:00 PM UTC-6 (a fixed offset — no DST). GitHub schedules
+    # cron jobs LATE and variably (observed ~2-4 h on this repo), so the bands are
+    # set ~2 h EARLIER than the desired landing to bias actual runs toward target:
+    # 10:00 UTC aims to land ~12:00 UTC (~6 AM), 22:00 UTC aims to land ~00:00 UTC
+    # (~6 PM). Do NOT "correct" these to 12:00/00:00 — that pushes runs ~2 h late.
+    # Morning band (~6 AM UTC-6):
+    - cron: '0 10 * * *'   # ST   (Standard)
+    - cron: '15 10 * * *'  # PI   (Pioneer)
+    - cron: '30 10 * * *'  # MO   (Modern)
+    - cron: '45 10 * * *'  # PAU  (Pauper)
+    - cron: '0 11 * * *'   # PREM (Pre-Modern)
+    # Evening band (~6 PM UTC-6):
+    - cron: '0 22 * * *'   # ST   (Standard)
+    - cron: '15 22 * * *'  # PI   (Pioneer)
+    - cron: '30 22 * * *'  # MO   (Modern)
+    - cron: '45 22 * * *'  # PAU  (Pauper)
+    - cron: '0 23 * * *'   # PREM (Pre-Modern)
   # Manual trigger — seed on demand. A fixed choice (not free text) so the value
   # is constrained to known codes and can never inject into the shell steps below.
   workflow_dispatch:
@@ -69,11 +83,18 @@ jobs:
         run: |
           if [ -n "$SCHEDULE" ]; then
             case "$SCHEDULE" in
-              "0 12 * * *")  FMT=ST ;;
-              "15 12 * * *") FMT=PI ;;
-              "30 12 * * *") FMT=MO ;;
-              "45 12 * * *") FMT=PAU ;;
-              "0 13 * * *")  FMT=PREM ;;
+              # Morning band (~6 AM UTC-6)
+              "0 10 * * *")  FMT=ST ;;
+              "15 10 * * *") FMT=PI ;;
+              "30 10 * * *") FMT=MO ;;
+              "45 10 * * *") FMT=PAU ;;
+              "0 11 * * *")  FMT=PREM ;;
+              # Evening band (~6 PM UTC-6)
+              "0 22 * * *")  FMT=ST ;;
+              "15 22 * * *") FMT=PI ;;
+              "30 22 * * *") FMT=MO ;;
+              "45 22 * * *") FMT=PAU ;;
+              "0 23 * * *")  FMT=PREM ;;
               *) echo "Unmapped schedule '$SCHEDULE' — update the case to match on.schedule" >&2; exit 1 ;;
             esac
           else

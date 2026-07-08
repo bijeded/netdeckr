@@ -80,12 +80,12 @@ web (responsive)
 - Seed command: `python scraper/run.py` (populates from MTGTop8 + Scryfall)
 
 ## Data pipeline
-- Schedule: GitHub Actions daily, one job per format on staggered crons (12:00–13:00 UTC, 15 min apart); `workflow_dispatch` can run a single format or `all`. Decklist scraping is incremental (events already stored are skipped) and follows **every page** of a window's events list (`&cp=2`, `&cp=3`, … until a page yields no new events, capped at ~20), so only the first backfill is slow.
+- Schedule: GitHub Actions twice daily (~12 h apart), one job per format on staggered crons — a morning band (10:00–11:00 UTC) and an evening band (22:00–23:00 UTC), 15 min apart. The bands target ~6:00 AM / 6:00 PM UTC-6 but are scheduled ~2 h early to compensate for GitHub's variable cron delay (scheduled runs fire ~2–4 h late), so actual times drift within roughly that window. `workflow_dispatch` can run a single format or `all`. Decklist scraping is incremental (events already stored are skipped) and follows **every page** of a window's events list (`&cp=2`, `&cp=3`, … until a page yields no new events, capped at ~20), so only the first backfill is slow.
 - Source: MTGTop8 (requests + BeautifulSoup4), base `http://mtgtop8.com`
 - Time windows: format-independent logical keys `5days`, `2weeks` (the two windows the dashboard offers, with the same meaning for every format). The frontend applies them as pure client-side **date filters** over the decks and **derives the metagame breakdown from those decks** (there is no stored breakdown). The scraper uses the logical keys only to resolve MTGTop8's per-format numeric `meta` param — **the same window has a different ID per format** — via `WINDOW_META`/`meta_id_for` in `scraper/mtgtop8.py`, and gathers only the `2weeks` window (which contains `5days` by date). Wider MTGTop8 windows ("2 Months", "Large Events", "MTGO/Live") are not tracked (2 months is too large to fully paginate; the others aren't uniform across formats).
 - Fair use: respectful rate limiting, cache aggressively, no redistribution beyond derived metagame stats
 - Card data: Scryfall bulk download once/day; hotlink `image_uris`; Arena export uses current/latest non-foil set printing, no special art
-- Retention: data older than 30 days is not kept — the daily job prunes events (and their decks/cards) older than 30 days from Supabase after each run
+- Retention: data older than 30 days is not kept — the scrape job prunes events (and their decks/cards) older than 30 days from Supabase after each run
 
 ## Error tracking
 - Platform: none (v1) — Sentry candidate later
