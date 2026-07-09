@@ -11,14 +11,14 @@
 
 ## 3. Persist derived color identity in the archetype pass
 
-- [ ] 3.1 Add `refresh_archetype_color_identity(fmt)` to `scraper/supabase_writer.py`, mirroring `refresh_archetype_art`: for each archetype, use the name-derived identity when non-empty, else compute the card-derived value from its mainboard deck cards (resolved via the card resolver) and PATCH `archetypes.color_identity`
-- [ ] 3.2 Wire the new pass into the per-format scrape run wherever `refresh_archetype_art` runs
-- [ ] 3.3 Tests: name-derived identity preserved; empty-name archetype filled from cards; recompute is idempotent; PATCH targets `color_identity` only
+- [x] 3.1 Add `refresh_archetype_color_identity(fmt)` to `scraper/supabase_writer.py`, mirroring `refresh_archetype_art`: for each archetype, use the name-derived identity when non-empty, else compute the card-derived value from its mainboard deck cards (resolved via the card resolver) and PATCH `archetypes.color_identity`
+- [x] 3.2 Wire the new pass into the per-format scrape run wherever `refresh_archetype_art` runs
+- [x] 3.3 Tests: name-derived identity preserved; empty-name archetype filled from cards; recompute is idempotent; PATCH targets `color_identity` only
 
 ## 4. One-time backfill / recompute
 
-- [ ] 4.1 Extend the maintenance path in `scraper/run.py` (the `--refresh`/art-refresh flow, or a `--refresh-color-identity` flag) to run `refresh_archetype_color_identity` across all formats with the service-role key
-- [ ] 4.2 Document the one-time run command in the change (and note it for HANDOFF): run after merge, idempotent
+- [x] 4.1 Extend the maintenance path in `scraper/run.py` (the `--refresh`/art-refresh flow, or a `--refresh-color-identity` flag) to run `refresh_archetype_color_identity` across all formats with the service-role key
+- [x] 4.2 Document the one-time run command in the change (and note it for HANDOFF): run after merge, idempotent
 
 ## 5. Verify
 

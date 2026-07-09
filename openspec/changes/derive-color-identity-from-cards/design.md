@@ -21,7 +21,14 @@
 - **New `refresh_archetype_color_identity(fmt)` in `supabase_writer.py`**, mirroring `refresh_archetype_art`: for each archetype, compute `name_ci = color_identity_for(name)`; if non-empty, PATCH `color_identity = name_ci` (keeps name authoritative, also self-heals any drift); if empty, compute the card-derived value and PATCH it. Run it in the same place `refresh_archetype_art` is invoked (per-format scrape + the `_refresh_all_archetype_art` maintenance path → extend to also refresh color identity, or add a sibling).
 - **Card-derived value = threshold union over decks.** For the archetype's decks, resolve each mainboard card to its printing's `color_identity`; a *deck's* colors = union of its cards' colors. A color is kept iff it appears in `>= COLOR_IDENTITY_MIN_DECK_SHARE` of the archetype's decks (share = decks-with-color / total decks). Order the kept colors WUBRG via the existing `_canonical`. Deck-presence (not card-count) is the threshold unit, matching how a "splash" is judged. Default threshold ~0.35 (tunable constant, like the powerScore constants); a single splash deck in a large archetype falls out, a genuine base color in most decks stays.
 - **Mainboard only.** Sideboard cards routinely add off-color hate; the base identity is a mainboard property. (Consistent with signature-card selection, which is mainboard-only.)
-- **One-time correction via `run.py`.** Reuse the existing maintenance entrypoint pattern (`--backfill` / `--remap-scryfall`): the recompute over all archetypes is exactly the per-run pass run standalone, so extending the existing art-refresh maintenance path (or a `--refresh-color-identity` flag) covers the backfill with the service-role key. Idempotent.
+- **One-time correction via `run.py`.** A dedicated `--refresh-color-identity` standalone mode recomputes every archetype's color identity from its already-mapped `deck_cards` (no re-scrape, no card re-resolution), and the shared maintenance helper (`_refresh_all_archetype_derived`, formerly `_refresh_all_archetype_art`) now runs the color pass alongside art, so `--backfill` / `--remap-scryfall` / `--backfill-scryfall` also keep color identity current. One-time backfill after merge, service-role key:
+
+  ```
+  gh workflow run scrape.yml -f format=refresh-color-identity   # Actions (has the service-role key)
+  # or locally with SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY:
+  python scraper/run.py --refresh-color-identity
+  ```
+  Idempotent (change-detected PATCH), so it is safe to re-run.
 
 ## Risks / Trade-offs
 

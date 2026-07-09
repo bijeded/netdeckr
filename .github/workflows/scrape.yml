@@ -42,6 +42,7 @@ on:
           - backfill            # fill card metadata (type_line/rarity/cmc/released_at) + art_crop
           - backfill-scryfall   # fill Scryfall identity/image on rows still missing it
           - remap-scryfall      # re-resolve ALL rows so resolver heuristic changes reach existing data
+          - refresh-color-identity  # recompute archetype color identity from already-mapped rows
 
 # The job only checks out code; it needs no write access to the repo.
 permissions:
@@ -130,5 +131,6 @@ jobs:
             backfill)          python scraper/run.py --backfill ;;
             backfill-scryfall) python scraper/run.py --backfill-scryfall ;;
             remap-scryfall)    python scraper/run.py --remap-scryfall ;;
+            refresh-color-identity) python scraper/run.py --refresh-color-identity ;;
             *)                 python scraper/run.py "$FMT" ;;
           esac

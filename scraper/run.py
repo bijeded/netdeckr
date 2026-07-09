@@ -11,6 +11,7 @@ SUPABASE_SERVICE_ROLE_KEY set.
     python scraper/run.py --backfill-scryfall  # one-time: map existing deck_cards
     python scraper/run.py --backfill           # one-time: fill card metadata + art_crop
     python scraper/run.py --remap-scryfall     # one-time: re-resolve ALL rows (heuristic changes)
+    python scraper/run.py --refresh-color-identity  # one-time: recompute archetype color identity
 """
 from __future__ import annotations
 
@@ -91,14 +92,26 @@ def formats_to_scrape(argv: list[str], available) -> list[str]:
     return list(available)
 
 
-def _refresh_all_archetype_art(writer: SupabaseWriter) -> None:
-    """Recompute every format's archetype signature card + art (best-effort)."""
+def _refresh_all_archetype_derived(writer: SupabaseWriter) -> None:
+    """Recompute every format's derived archetype attributes (best-effort).
+
+    Runs the same signature-card art and color-identity passes the daily scrape
+    loop runs, so the standalone maintenance modes (--backfill-scryfall,
+    --remap-scryfall, --backfill) keep both derived attributes in lockstep with
+    the resolved deck_cards rows — e.g. after a --remap-scryfall the card-derived
+    color identities are refreshed rather than left stale until the next scrape.
+    """
     for fmt in FORMATS:
         try:
             arts = writer.refresh_archetype_art(fmt)
             print(f"{fmt}/archetype-art: {arts} archetypes")
         except Exception as exc:  # noqa: BLE001 — art is best-effort
             print(f"[error] {fmt}/archetype-art: {exc}", file=sys.stderr)
+        try:
+            colors = writer.refresh_archetype_color_identity(fmt)
+            print(f"{fmt}/archetype-color: {colors} archetypes")
+        except Exception as exc:  # noqa: BLE001 — color identity is best-effort
+            print(f"[error] {fmt}/archetype-color: {exc}", file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -110,6 +123,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Missing required environment variable: {missing}", file=sys.stderr)
         return 2
 
+    if "--refresh-color-identity" in argv:
+        # One-time mode: recompute every archetype's color identity from its
+        # already-mapped deck_cards (name-derived, else card-derived), without
+        # re-resolving cards or re-scraping. Use after shipping the card-derived
+        # color-identity fallback to correct existing name-colorless archetypes.
+        resolver = build_card_resolver()
+        if resolver is None:
+            print("Scryfall bulk sync unavailable; cannot refresh color identity", file=sys.stderr)
+            return 1
+        writer = SupabaseWriter(url, key, card_resolver=resolver)
+        for fmt in FORMATS:
+            try:
+                colors = writer.refresh_archetype_color_identity(fmt)
+                print(f"{fmt}/archetype-color: {colors} archetypes")
+            except Exception as exc:  # noqa: BLE001 — color identity is best-effort
+                print(f"[error] {fmt}/archetype-color: {exc}", file=sys.stderr)
+        return 0
+
     if "--backfill-scryfall" in argv:
         # One-time mode: enrich existing deck_cards rows that predate Scryfall
         # mapping. A standalone pass — it does not scrape.
@@ -120,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
         writer = SupabaseWriter(url, key, card_resolver=resolver)
         updated = writer.backfill_scryfall()
         print(f"backfill-scryfall: enriched {updated} deck_cards rows")
-        _refresh_all_archetype_art(writer)
+        _refresh_all_archetype_derived(writer)
         return 0
 
     if "--remap-scryfall" in argv:
@@ -135,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
         writer = SupabaseWriter(url, key, card_resolver=resolver)
         updated = writer.remap_scryfall()
         print(f"remap-scryfall: re-resolved {updated} deck_cards rows")
-        _refresh_all_archetype_art(writer)
+        _refresh_all_archetype_derived(writer)
         return 0
 
     if "--backfill" in argv:
@@ -150,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
         writer = SupabaseWriter(url, key, card_resolver=resolver)
         updated = writer.backfill_metadata()
         print(f"backfill: enriched {updated} deck_cards rows with card metadata")
-        _refresh_all_archetype_art(writer)
+        _refresh_all_archetype_derived(writer)
         return 0
 
     formats = formats_to_scrape(argv, FORMATS)
