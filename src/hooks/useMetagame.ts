@@ -14,7 +14,7 @@ import {
 /** The 2-week window is the corpus we always fetch; the selected window is a date subset. */
 const BASELINE_WINDOW: WindowCode = '2weeks'
 
-function pushToMap(map: Map<string, string[]>, key: string, value: string) {
+function pushToMap<T>(map: Map<string, T[]>, key: string, value: T) {
   const arr = map.get(key)
   if (arr) arr.push(value)
   else map.set(key, [value])
@@ -31,7 +31,13 @@ interface DeckQueryRow {
     art_image_url: string | null
     art_crop_url: string | null
   } | null
-  events: { id: number; name: string; event_date: string | null; format_code: string } | null
+  events: {
+    id: number
+    name: string
+    event_date: string | null
+    format_code: string
+    player_count: number | null
+  } | null
 }
 
 export type DecksByArchetype = Record<string, DeckRow[]>
@@ -95,7 +101,7 @@ export function useMetagame(
     supabase
       .from('decks')
       .select(
-        'id, source_deck_id, player, placement, archetypes(name, color_identity, art_image_url, art_crop_url), events!inner(id, name, event_date, format_code)',
+        'id, source_deck_id, player, placement, archetypes(name, color_identity, art_image_url, art_crop_url), events!inner(id, name, event_date, format_code, player_count)',
       )
       .eq('events.format_code', formatCode)
       .gte('events.event_date', windowStartISO(BASELINE_WINDOW))
@@ -126,6 +132,9 @@ export function useMetagame(
         // reference field. Selected subset: display groups + breakdown input +
         // placements — all from the same rows so cards and drill-down never disagree.
         const twoWeekPlacements = new Map<string, string[]>()
+        // Per-finish tournament sizes aligned with twoWeekPlacements (parallel push),
+        // so the Power Score can weight each finish by its event's player count.
+        const twoWeekSizes = new Map<string, (number | null)[]>()
         const twoWeekForBreakdown: DeckForBreakdown[] = []
         const selectedGrouped: Record<string, DeckRow[]> = {}
         const selectedForBreakdown: DeckForBreakdown[] = []
@@ -141,8 +150,10 @@ export function useMetagame(
           const artCropUrl = row.archetypes?.art_crop_url ?? null
           const placement = row.placement
           const eventDate = row.events?.event_date ?? ''
+          const playerCount = row.events?.player_count ?? null
 
           pushToMap(twoWeekPlacements, archetypeName, placement)
+          pushToMap(twoWeekSizes, archetypeName, playerCount)
           twoWeekForBreakdown.push({ archetypeName, colorIdentity, placement, artImageUrl, artCropUrl })
 
           const inWindow = eventDate >= selectedStart
@@ -188,6 +199,7 @@ export function useMetagame(
         const twoWeekFieldNames = deriveBreakdown(twoWeekForBreakdown).map((a) => a.name)
         const breakdown = attachPowerTiers(deriveBreakdown(selectedForBreakdown), {
           twoWeekPlacements,
+          twoWeekSizes,
           twoWeekFieldNames,
           selectedPlacements,
           isBaseline: metaWindow === BASELINE_WINDOW,

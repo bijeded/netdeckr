@@ -4,9 +4,11 @@ import {
   meanQuality,
   wilsonLowerBound,
   archetypePowerScore,
+  sizeWeight,
   jenksBreaks,
   assignTiers,
   windowTrend,
+  T1_MIN_DECKS,
 } from './powerScore'
 
 describe('finishQuality', () => {
@@ -116,6 +118,57 @@ describe('archetypePowerScore', () => {
   })
 })
 
+describe('sizeWeight', () => {
+  it('increases with tournament size in the unclamped range', () => {
+    expect(sizeWeight(128)).toBeGreaterThan(sizeWeight(32))
+  })
+
+  it('treats a missing size as a small event (the floor)', () => {
+    // Unsized == the floor, which equals a genuinely tiny event's weight.
+    expect(sizeWeight(null)).toBe(sizeWeight(1))
+    expect(sizeWeight(null)).toBeLessThan(sizeWeight(128))
+  })
+
+  it('is bounded so one huge event cannot dominate', () => {
+    expect(sizeWeight(100000)).toBeLessThanOrEqual(sizeWeight(100001))
+    expect(sizeWeight(100000)).toBeLessThan(5)
+  })
+})
+
+describe('archetypePowerScore — tournament-size weighting', () => {
+  it('scores identical finishes higher when earned at larger tournaments', () => {
+    const placements = ['1', '2', '3-4', '5-8']
+    const large = archetypePowerScore(placements, [200, 200, 200, 200])
+    const tiny = archetypePowerScore(placements, [8, 8, 8, 8])
+    expect(large).toBeGreaterThan(tiny)
+  })
+
+  it('treats a null size as a small event rather than dropping the finish', () => {
+    const placements = ['1', '2', '3-4']
+    const allNull = archetypePowerScore(placements, [null, null, null])
+    const allTiny = archetypePowerScore(placements, [1, 1, 1])
+    expect(allNull).toBeGreaterThan(0)
+    expect(allNull).toBeCloseTo(allTiny, 5) // null == small default
+  })
+
+  it('degrades gracefully when no sizes are known (uniform weight, no error)', () => {
+    const s = archetypePowerScore(['1', '2', '3-4'], [null, null, null])
+    expect(Number.isNaN(s)).toBe(false)
+    expect(s).toBeGreaterThan(0)
+  })
+
+  it('still rewards depth over volume when tournament size is held constant', () => {
+    // Isolate depth-vs-volume by giving every finish the same size (weight): a
+    // large pile of shallow finishes must not out-score a few deep ones.
+    const manyShallow = archetypePowerScore(Array(40).fill('9-16'), Array(40).fill(64))
+    const fewDeep = archetypePowerScore(
+      ['1', '1', '2', '3-4', '3-4', '5-8'],
+      Array(6).fill(64),
+    )
+    expect(fewDeep).toBeGreaterThan(manyShallow)
+  })
+})
+
 describe('jenksBreaks', () => {
   it('finds the natural gap of a clearly bimodal set', () => {
     expect(jenksBreaks([1, 2, 3, 100, 101, 102], 2)).toEqual([100])
@@ -179,6 +232,39 @@ describe('assignTiers', () => {
     ])
     const ref = [80, 80, 20, 55]
     expect(assignTiers(scores, ref)).toEqual(assignTiers(scores, ref))
+  })
+
+  it('demotes a below-floor top scorer out of T1 (down to T2, not the fringe)', () => {
+    const scores = new Map<string, number>([
+      ['LuckyWinner', 80], // top-class score but only 1 deck
+      ['Proven', 80], // same top class, well supported
+    ])
+    const ref = [80, 80, 40, 12]
+    const deckCounts = new Map<string, number>([
+      ['LuckyWinner', 1],
+      ['Proven', 20],
+    ])
+    const tiers = assignTiers(scores, ref, { deckCounts, t1MinDecks: T1_MIN_DECKS })
+    expect(tiers.get('LuckyWinner')).toBe('T2') // floored out of T1, not fringe
+    expect(tiers.get('Proven')).toBe('T1')
+  })
+
+  it('leaves T1 intact when the top scorer clears the deck floor', () => {
+    const scores = new Map<string, number>([
+      ['Dominant', 80],
+      ['Weak', 12],
+    ])
+    const ref = [80, 60, 40, 12]
+    const deckCounts = new Map<string, number>([
+      ['Dominant', T1_MIN_DECKS], // exactly at the floor → eligible
+      ['Weak', 8],
+    ])
+    expect(assignTiers(scores, ref, { deckCounts }).get('Dominant')).toBe('T1')
+  })
+
+  it('applies no floor when deck counts are not supplied', () => {
+    const scores = new Map<string, number>([['Solo', 80]])
+    expect(assignTiers(scores, [80, 60, 40, 12]).get('Solo')).toBe('T1')
   })
 })
 

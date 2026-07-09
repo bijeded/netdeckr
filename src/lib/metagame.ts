@@ -5,7 +5,7 @@
 // so it is unit-testable.
 
 import type { Tier } from './tiers'
-import { archetypePowerScore, assignTiers, windowTrend, type Trend } from './powerScore'
+import { archetypePowerScore, assignTiers, windowTrend, T1_MIN_DECKS, type Trend } from './powerScore'
 import { placementBadge } from './placement'
 
 /** The popularity-ranked shape `deriveBreakdown` produces (before performance is attached). */
@@ -44,6 +44,8 @@ export interface DeckForBreakdown {
 export interface PowerContext {
   /** All 2-week placements per archetype (the stable corpus behind the tier). */
   twoWeekPlacements: Map<string, string[]>
+  /** Per-finish tournament sizes aligned with `twoWeekPlacements` (null = unknown → small-event weight). */
+  twoWeekSizes: Map<string, (number | null)[]>
   /** The whole 2-week corpus of archetype names — the reference field whose natural breaks set the cutoffs. */
   twoWeekFieldNames: string[]
   /** The selected window's placements per archetype (drives the trend). */
@@ -121,7 +123,10 @@ export function attachPowerTiers(displayed: RankedArchetype[], ctx: PowerContext
   const scoreOf = (name: string): number => {
     let score = scoreCache.get(name)
     if (score === undefined) {
-      score = archetypePowerScore(ctx.twoWeekPlacements.get(name) ?? [])
+      score = archetypePowerScore(
+        ctx.twoWeekPlacements.get(name) ?? [],
+        ctx.twoWeekSizes.get(name) ?? [],
+      )
       scoreCache.set(name, score)
     }
     return score
@@ -129,8 +134,13 @@ export function attachPowerTiers(displayed: RankedArchetype[], ctx: PowerContext
 
   const referenceScores = ctx.twoWeekFieldNames.map(scoreOf)
   const scores = new Map<string, number>()
-  for (const archetype of displayed) scores.set(archetype.name, scoreOf(archetype.name))
-  const tiers = assignTiers(scores, referenceScores)
+  const deckCounts = new Map<string, number>()
+  for (const archetype of displayed) {
+    scores.set(archetype.name, scoreOf(archetype.name))
+    // The Tier-1 floor counts an archetype's supporting decks in the 2-week corpus.
+    deckCounts.set(archetype.name, (ctx.twoWeekPlacements.get(archetype.name) ?? []).length)
+  }
+  const tiers = assignTiers(scores, referenceScores, { deckCounts, t1MinDecks: T1_MIN_DECKS })
 
   return displayed.map((archetype) => ({
     ...archetype,

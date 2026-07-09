@@ -111,6 +111,7 @@ describe('attachPowerTiers', () => {
     const out = attachPowerTiers([ranked('Dominant', { rank: 1 }), ranked('Weak', { rank: 2 })], {
       twoWeekPlacements,
       twoWeekFieldNames: ['Dominant', 'Weak'],
+      twoWeekSizes: new Map(),
       selectedPlacements: twoWeekPlacements,
       isBaseline: true,
     })
@@ -131,12 +132,14 @@ describe('attachPowerTiers', () => {
     const baseline = attachPowerTiers(displayed, {
       twoWeekPlacements,
       twoWeekFieldNames: topNames,
+      twoWeekSizes: new Map(),
       selectedPlacements: twoWeekPlacements,
       isBaseline: true,
     })
     const fiveDay = attachPowerTiers(displayed, {
       twoWeekPlacements,
       twoWeekFieldNames: topNames,
+      twoWeekSizes: new Map(),
       selectedPlacements: new Map([['A', Array(4).fill('9-16')]]),
       isBaseline: false,
     })
@@ -150,6 +153,7 @@ describe('attachPowerTiers', () => {
     const out = attachPowerTiers([ranked('A')], {
       twoWeekPlacements: tw,
       twoWeekFieldNames: ['A'],
+      twoWeekSizes: new Map(),
       selectedPlacements: tw,
       isBaseline: true,
     })
@@ -168,6 +172,7 @@ describe('attachPowerTiers', () => {
     const out = attachPowerTiers([ranked('Rising'), ranked('Falling')], {
       twoWeekPlacements: tw,
       twoWeekFieldNames: ['Rising', 'Falling'],
+      twoWeekSizes: new Map(),
       selectedPlacements: sel,
       isBaseline: false,
     })
@@ -189,6 +194,7 @@ describe('attachPowerTiers', () => {
     const out = attachPowerTiers(displayed, {
       twoWeekPlacements,
       twoWeekFieldNames: names, // whole corpus is the reference field
+      twoWeekSizes: new Map(),
       selectedPlacements: twoWeekPlacements,
       isBaseline: true,
     })
@@ -204,10 +210,78 @@ describe('attachPowerTiers', () => {
       {
         twoWeekPlacements: new Map([['X', ['1', '1', '1']]]),
         twoWeekFieldNames: ['X'],
+        twoWeekSizes: new Map(),
         selectedPlacements: new Map([['X', ['1', '1', '1']]]),
         isBaseline: true,
       },
     )
     expect(out[0]).toMatchObject({ rank: 3, name: 'X', sharePct: 12.5, colorIdentity: 'UR', artCropUrl: 'https://crop/x.jpg' })
+  })
+
+  it('keeps a single-deck event winner out of T1 via the deck floor', () => {
+    // OneWin: a lone 1st place. Proven: many strong finishes. Both top-class by
+    // score, but the floor bars OneWin from T1 (drops to T2), not the fringe.
+    const twoWeekPlacements = new Map<string, string[]>([
+      ['OneWin', ['1']],
+      ['Proven', Array(12).fill('1')],
+      ['Weak', Array(12).fill('17-32')],
+    ])
+    const names = ['OneWin', 'Proven', 'Weak']
+    const out = attachPowerTiers(names.map((n, i) => ranked(n, { rank: i + 1 })), {
+      twoWeekPlacements,
+      twoWeekFieldNames: names,
+      twoWeekSizes: new Map(),
+      selectedPlacements: twoWeekPlacements,
+      isBaseline: true,
+    })
+    const byName = Object.fromEntries(out.map((a) => [a.name, a]))
+    expect(byName['Proven'].tier).toBe('T1')
+    expect(byName['OneWin'].tier).not.toBe('T1')
+    expect(byName['OneWin'].tier).not.toBe('Otros') // floored to T2, not fringe
+  })
+
+  it('computes the same trend regardless of tournament sizes (trend stays unweighted)', () => {
+    const twoWeekPlacements = new Map<string, string[]>([['Rising', ['9-16', '9-16', '9-16', '1']]])
+    const selectedPlacements = new Map<string, string[]>([['Rising', ['1', '1', '1', '2']]])
+    const ctx = (twoWeekSizes: Map<string, (number | null)[]>) =>
+      attachPowerTiers([ranked('Rising')], {
+        twoWeekPlacements,
+        twoWeekFieldNames: ['Rising'],
+        twoWeekSizes,
+        selectedPlacements,
+        isBaseline: false,
+      })[0].trend
+    // Wildly different sizes must not move the trend arrow.
+    expect(ctx(new Map([['Rising', [500, 500, 500, 500]]]))).toBe(
+      ctx(new Map([['Rising', [4, 4, 4, 4]]])),
+    )
+  })
+
+  it('weights larger tournaments higher when scoring the tier', () => {
+    // Same finishes; BigEvents earned them at large tournaments, SmallEvents at
+    // tiny ones. Size weighting must give BigEvents the stronger (higher) tier.
+    const placements = Array(6).fill('1')
+    const twoWeekPlacements = new Map<string, string[]>([
+      ['BigEvents', placements],
+      ['SmallEvents', placements],
+    ])
+    const twoWeekSizes = new Map<string, (number | null)[]>([
+      ['BigEvents', Array(6).fill(256)],
+      ['SmallEvents', Array(6).fill(8)],
+    ])
+    const names = ['BigEvents', 'SmallEvents']
+    const out = attachPowerTiers(names.map((n, i) => ranked(n, { rank: i + 1 })), {
+      twoWeekPlacements,
+      twoWeekFieldNames: names,
+      twoWeekSizes,
+      selectedPlacements: twoWeekPlacements,
+      isBaseline: true,
+    })
+    const order = ['T1', 'T2', 'T3', 'Otros']
+    const byName = Object.fromEntries(out.map((a) => [a.name, a]))
+    // BigEvents is at least as strong a tier as SmallEvents (never weaker).
+    expect(order.indexOf(byName['BigEvents'].tier)).toBeLessThanOrEqual(
+      order.indexOf(byName['SmallEvents'].tier),
+    )
   })
 })

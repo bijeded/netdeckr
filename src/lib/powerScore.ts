@@ -9,9 +9,30 @@ import type { Tier } from './tiers'
 export type Trend = 'up' | 'down' | 'flat'
 
 // Calibration constants (tunable; property tests do not depend on exact values).
-const Z_DEFAULT = 1.5 // Wilson z: larger ⇒ harsher small-sample penalty.
+const Z_DEFAULT = 2.0 // Wilson z: larger ⇒ harsher small-sample penalty.
 const TREND_EPS = 0.02 // Deadband on the 0–1 quality scale for a flat trend.
 const MIN_TREND_DECKS = 3 // Min usable recent placements before showing ▲/▼.
+
+// Tournament-size weighting: a finish contributes more effective Wilson
+// observations when it was earned at a larger event. `sizeWeight` maps a player
+// count to a weight; the score uses Σ weights as the effective sample size.
+const SIZE_REF = 64 // A ~reference-size event maps to weight ≈ 1.
+const SIZE_WEIGHT_MIN = 0.35 // Floor: tiny events AND unsized events (small default).
+const SIZE_WEIGHT_MAX = 2.5 // Cap: one huge event can't dominate the field.
+
+// A deck must be supported by at least this many placements to be eligible for
+// Tier 1, so a single-tiny-event winner cannot flood the top tier.
+export const T1_MIN_DECKS = 3
+
+/**
+ * Weight of one finish by its tournament's player count. A larger tournament
+ * yields more effective observations (up to a cap); a missing size (`null`) is
+ * treated as a **small event** (the floor), never dropped.
+ */
+export function sizeWeight(size: number | null): number {
+  if (size === null || size <= 0) return SIZE_WEIGHT_MIN
+  return Math.max(SIZE_WEIGHT_MIN, Math.min(SIZE_WEIGHT_MAX, size / SIZE_REF))
+}
 
 // Strongest → weakest; a class index counted from the top maps into this.
 const TIER_ORDER: Tier[] = ['T1', 'T2', 'T3', 'Otros']
@@ -73,15 +94,35 @@ export function wilsonLowerBound(pHat: number, n: number, z: number = Z_DEFAULT)
 }
 
 /**
- * An archetype's Power Score in [0, 100]: the Wilson lower bound of its mean
- * finish quality over its usable placements, scaled ×100. Using the *mean*
- * (not a sum) means volume can't buy score — only depth. Returns 0 when the
- * archetype has no usable placement.
+ * An archetype's Power Score in [0, 100]: the Wilson lower bound of its
+ * **size-weighted** mean finish quality, over an **effective sample size** of
+ * Σ (per-finish size weights), scaled ×100. Using the *mean* (not a sum) means
+ * volume can't buy score — only depth; weighting the effective n by tournament
+ * size means finishes proven across larger fields are trusted more (shrink less).
+ *
+ * `sizes` aligns with `placements` (index i is finish i's player count, or null
+ * when unknown → small-event weight). When `sizes` is omitted every finish gets a
+ * neutral weight of 1 (used by pure unit tests; production always passes sizes).
+ * Returns 0 when the archetype has no usable placement.
  */
-export function archetypePowerScore(placements: string[], z: number = Z_DEFAULT): number {
-  const q = usableQualities(placements)
-  if (q.length === 0) return 0
-  return wilsonLowerBound(mean(q), q.length, z) * 100
+export function archetypePowerScore(
+  placements: string[],
+  sizes?: (number | null)[],
+  z: number = Z_DEFAULT,
+): number {
+  let weightedQ = 0
+  let effectiveN = 0
+  // Iterate placements directly (not via usableQualities) to keep each finish
+  // index-aligned with its size in `sizes` — do not refactor to the shared helper.
+  for (let i = 0; i < placements.length; i++) {
+    const q = finishQuality(placements[i])
+    if (q === null) continue
+    const w = sizes === undefined ? 1 : sizeWeight(sizes[i] ?? null)
+    weightedQ += q * w
+    effectiveN += w
+  }
+  if (effectiveN === 0) return 0
+  return wilsonLowerBound(weightedQ / effectiveN, effectiveN, z) * 100
 }
 
 /** Sum of squared deviations of sorted[a..b] (inclusive) from their mean, via prefix sums. */
@@ -153,12 +194,14 @@ export function jenksBreaks(values: number[], classes: number): number[] {
 export function assignTiers(
   scores: Map<string, number>,
   referenceScores: number[],
+  opts: { deckCounts?: Map<string, number>; t1MinDecks?: number } = {},
 ): Map<string, Tier> {
   const breaks = jenksBreaks(
     referenceScores.filter((s) => s > 0),
     TIER_ORDER.length,
   )
   const k = breaks.length + 1
+  const t1MinDecks = opts.t1MinDecks ?? T1_MIN_DECKS
   const result = new Map<string, Tier>()
   for (const [name, score] of scores) {
     if (score <= 0) {
@@ -167,7 +210,14 @@ export function assignTiers(
     }
     const classIndex = breaks.filter((b) => score >= b).length // 0..k-1, low→high
     const fromTop = k - 1 - classIndex // classIndex ≤ breaks.length ⇒ fromTop ≥ 0
-    result.set(name, TIER_ORDER[Math.min(fromTop, TIER_ORDER.length - 1)])
+    let tier = TIER_ORDER[Math.min(fromTop, TIER_ORDER.length - 1)]
+    // Tier-1 minimum-deck floor: an archetype supported by too few decks cannot be
+    // T1 (a single-tiny-event winner), but is not forced to the fringe — it drops
+    // one tier to T2. Only applied when deck counts are supplied (production path).
+    if (tier === 'T1' && opts.deckCounts && (opts.deckCounts.get(name) ?? 0) < t1MinDecks) {
+      tier = 'T2'
+    }
+    result.set(name, tier)
   }
   return result
 }
