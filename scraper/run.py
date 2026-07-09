@@ -12,6 +12,7 @@ SUPABASE_SERVICE_ROLE_KEY set.
     python scraper/run.py --backfill           # one-time: fill card metadata + art_crop
     python scraper/run.py --remap-scryfall     # one-time: re-resolve ALL rows (heuristic changes)
     python scraper/run.py --refresh-color-identity  # one-time: recompute archetype color identity
+    python scraper/run.py --backfill-sizes     # one-time: fill events.player_count from event pages
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
-from decklist_pipeline import sync_decklists
+from decklist_pipeline import backfill_event_sizes, sync_decklists
 from mtgtop8 import FORMATS, event_url, format_url, meta_id_for
 from scryfall import sync_bulk
 from supabase_writer import SupabaseWriter
@@ -139,6 +140,19 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{fmt}/archetype-color: {colors} archetypes")
             except Exception as exc:  # noqa: BLE001 — color identity is best-effort
                 print(f"[error] {fmt}/archetype-color: {exc}", file=sys.stderr)
+        return 0
+
+    if "--backfill-sizes" in argv:
+        # One-time mode: fill events.player_count on stored events still missing a
+        # size by re-fetching each event page and parsing its player count. A
+        # standalone pass — it touches only events, no decklists or Scryfall.
+        writer = SupabaseWriter(url, key)
+        updated = backfill_event_sizes(
+            writer,
+            fetch_event_page=fetch_event,
+            on_error=lambda ctx, exc: print(f"[error] event {ctx}: {exc}", file=sys.stderr),
+        )
+        print(f"backfill-sizes: set player_count on {updated} events")
         return 0
 
     if "--backfill-scryfall" in argv:

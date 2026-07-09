@@ -43,6 +43,7 @@ on:
           - backfill-scryfall   # fill Scryfall identity/image on rows still missing it
           - remap-scryfall      # re-resolve ALL rows so resolver heuristic changes reach existing data
           - refresh-color-identity  # recompute archetype color identity from already-mapped rows
+          - backfill-sizes      # fill events.player_count from event pages (one-time)
 
 # The job only checks out code; it needs no write access to the repo.
 permissions:
@@ -132,5 +133,6 @@ jobs:
             backfill-scryfall) python scraper/run.py --backfill-scryfall ;;
             remap-scryfall)    python scraper/run.py --remap-scryfall ;;
             refresh-color-identity) python scraper/run.py --refresh-color-identity ;;
+            backfill-sizes)    python scraper/run.py --backfill-sizes ;;
             *)                 python scraper/run.py "$FMT" ;;
           esac

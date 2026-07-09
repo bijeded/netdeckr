@@ -205,6 +205,37 @@ def test_existing_event_ids_empty_when_none_stored():
     assert _writer(session).existing_event_ids("ST") == set()
 
 
+def test_events_missing_size_pages_null_player_count_rows():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([
+            {"id": 1, "source_event_id": "87496", "format_code": "ST"},
+            {"id": 2, "source_event_id": "87497", "format_code": "ST"},
+        ]),
+        _response([]),  # end the cursor loop
+    ]
+
+    rows = _writer(session).events_missing_size()
+
+    assert [r["id"] for r in rows] == [1, 2]
+    url = session.get.call_args_list[0][0][0]
+    assert "/rest/v1/events" in url
+    assert "player_count=is.null" in url  # only null-size events
+    assert "select=id,source_event_id,format_code" in url
+
+
+def test_set_event_size_patches_player_count():
+    session = MagicMock()
+    session.patch.return_value = _response([{"id": 7}])
+
+    _writer(session).set_event_size(7, 42)
+
+    url = session.patch.call_args[0][0]
+    assert "/rest/v1/events" in url
+    assert "id=eq.7" in url
+    assert session.patch.call_args[1]["json"] == {"player_count": 42}
+
+
 def test_prune_events_before_deletes_older_events():
     session = MagicMock()
     session.delete.return_value = _response(status=204)
