@@ -18,12 +18,12 @@ Cross-stack change — one task group per branch/PR (disciplined mode). Safe `ma
 
 ## 3. Frontend — thread size, size-weight the Power Score, tighten Tier 1
 
-- [ ] 3.1 Select `events.player_count` in `useMetagame`/`metagame.ts` and carry a nullable `playerCount` onto each `DeckRow`.
-- [ ] 3.2 TDD in `powerScore.ts`: a `sizeWeight(size: number | null)` (small-size default when null via a low-clamped weight), and rework `archetypePowerScore` to take `(placement, size)` inputs — Wilson lower bound of the **size-weighted mean** finish quality over an **effective n = Σ weights**. Property tests: bigger tournaments ⇒ strictly higher score at equal finishes; all-null field degrades gracefully (no error); volume-without-depth still doesn't win.
-- [ ] 3.3 Add `T1_MIN_DECKS` floor and tune `Z_DEFAULT`: in `assignTiers`, cap sub-floor archetypes at T2 (never forced to fringe), keep tier order monotonic. Tests for the floor + monotonicity (value-independent).
-- [ ] 3.4 Keep `windowTrend` on **raw, unweighted** mean quality (unchanged semantics); confirm via test that size does not affect the trend arrow.
-- [ ] 3.5 Verify share %, StatCard totals, trending, and decklists are unchanged (assert share-invariance in a test); run `npm run test`, `npm run type-check`, `npm run lint`.
-- [ ] 3.6 Live read-only verification across all five formats (anon key): confirm large-format Tier 1 narrows (no single-tiny-event winners), tiers stay monotonic, and low-share strong performers still out-tier high-share weak ones. Tune constants if needed.
+- [x] 3.1 Select `events.player_count` in `useMetagame`/`metagame.ts` and carry a nullable `playerCount` onto each `DeckRow`.
+- [x] 3.2 TDD in `powerScore.ts`: a `sizeWeight(size: number | null)` (small-size default when null via a low-clamped weight), and rework `archetypePowerScore` to take `(placement, size)` inputs — Wilson lower bound of the **size-weighted mean** finish quality over an **effective n = Σ weights**. Property tests: bigger tournaments ⇒ strictly higher score at equal finishes; all-null field degrades gracefully (no error); volume-without-depth still doesn't win.
+- [x] 3.3 Add `T1_MIN_DECKS` floor and tune `Z_DEFAULT`: in `assignTiers`, cap sub-floor archetypes at T2 (never forced to fringe), keep tier order monotonic. Tests for the floor + monotonicity (value-independent).
+- [x] 3.4 Keep `windowTrend` on **raw, unweighted** mean quality (unchanged semantics); confirm via test that size does not affect the trend arrow.
+- [x] 3.5 Verify share %, StatCard totals, trending, and decklists are unchanged (assert share-invariance in a test); run `npm run test`, `npm run type-check`, `npm run lint`.
+- [x] 3.6 Live read-only verification across all five formats (anon key): confirm large-format Tier 1 narrows (no single-tiny-event winners), tiers stay monotonic, and low-share strong performers still out-tier high-share weak ones. Tune constants if needed.
 
 ## 4. Sync & archive
 
