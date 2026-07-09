@@ -22,5 +22,5 @@
 
 ## 5. Verify
 
-- [ ] 5.1 Run the scraper test suite (`cd scraper && ./venv/bin/pytest`) green
-- [ ] 5.2 Live read-only check across the five formats: previously-gray, name-colorless archetypes now show correct card-derived pips; name-derived archetypes unchanged; tune `COLOR_IDENTITY_MIN_DECK_SHARE` if splashes leak or base colors drop
+- [x] 5.1 Run the scraper test suite (`cd scraper && ./venv/bin/pytest`) green
+- [x] 5.2 Live read-only check across the five formats: previously-gray, name-colorless archetypes now show correct card-derived pips; name-derived archetypes unchanged. One-time backfill run via Actions `format=refresh-color-identity` (updated ST 2 / PI 14 / MO 66 / PAU 67 / PREM 0). Verified: name-derived correct, card-derived sensible on real samples (PI Arclight Phoenix→UR, PAU Affinity→UBR). **Deferred:** on tiny (2-deck) archetypes a single-deck splash can leak (pure share threshold); a minimum absolute deck-count floor is a candidate follow-up. Kept `COLOR_IDENTITY_MIN_DECK_SHARE=0.35` (base colors correct on real samples).
