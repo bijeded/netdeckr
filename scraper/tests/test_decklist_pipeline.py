@@ -80,6 +80,41 @@ def test_deck_pages_fetched_per_deck():
     assert len(deck_fetches) == 12
 
 
+def test_event_size_is_parsed_from_page_and_passed_to_upsert():
+    writer = _fake_writer()
+    # Event page reports "21 players"; the pipeline reads it off that page and
+    # sets it on the event before upserting.
+    fetch_event_page = MagicMock(return_value=_load("event_players_ST.html"))
+
+    sync_decklists(
+        "ST",
+        ["5days"],
+        fetch_format_page=MagicMock(return_value=_load("event_list_ST.html")),
+        fetch_event_page=fetch_event_page,
+        writer=writer,
+    )
+
+    events = [c.args[1] for c in writer.upsert_event.call_args_list]
+    assert events and all(e.player_count == 21 for e in events)
+
+
+def test_event_size_absent_leaves_player_count_none():
+    writer = _fake_writer()
+    # The results-only fixture reports no size -> player_count stays None.
+    fetch_event_page = MagicMock(return_value=_load("event_ST.html"))
+
+    sync_decklists(
+        "ST",
+        ["5days"],
+        fetch_format_page=MagicMock(return_value=_load("event_list_ST.html")),
+        fetch_event_page=fetch_event_page,
+        writer=writer,
+    )
+
+    events = [c.args[1] for c in writer.upsert_event.call_args_list]
+    assert events and all(e.player_count is None for e in events)
+
+
 def test_pagination_follows_and_dedupes_across_pages():
     writer = _fake_writer()
     fetch_format_page = MagicMock(

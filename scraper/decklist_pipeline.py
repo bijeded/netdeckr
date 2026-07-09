@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import AbstractSet, Callable, Optional
 
-from mtgtop8 import parse_decklist, parse_event_decks, parse_event_list
+from mtgtop8 import parse_decklist, parse_event_decks, parse_event_list, parse_event_size
 
 # Safety cap on how many events-list pages to follow per window. MTGTop8 shows
 # ~24 events per page; the two-week window is a handful of pages, so this only
@@ -65,8 +65,10 @@ def sync_decklists(
     deck_count = 0
     for event in events.values():
         try:
+            event_page = fetch_event_page(fmt, event.source_event_id)
+            event.player_count = parse_event_size(event_page)
             event_id = writer.upsert_event(fmt, event)
-            results = parse_event_decks(fetch_event_page(fmt, event.source_event_id))
+            results = parse_event_decks(event_page)
             for result in results:
                 archetype_id = writer.upsert_archetype(fmt, result.archetype_name)
                 deck_id = writer.upsert_deck(event_id, archetype_id, result)

@@ -204,6 +204,7 @@ class Event:
     source_event_id: str
     name: str
     event_date: str | None = None  # ISO date (YYYY-MM-DD) or None if absent
+    player_count: int | None = None  # tournament size, or None if MTGTop8 omits it
 
 
 @dataclass
@@ -273,6 +274,18 @@ def parse_event_list(html: str) -> list[Event]:
         events.append(Event(source_event_id=event_id, name=name, event_date=event_date))
 
     return events
+
+
+def parse_event_size(html: str) -> int | None:
+    """Parse an event page's reported player count, or None when it is absent.
+
+    MTGTop8 renders the tournament size in the event's `class=S14` meta panel as
+    "<N> players - DD/MM/YY". We match the "<N> players" text directly: the only
+    other "player" occurrences on the page are pilot `class=player` / `player=`
+    links, which are never preceded by a digit, so a global match is safe.
+    """
+    match = re.search(r"(\d+)\s+players?\b", html, re.IGNORECASE)
+    return int(match.group(1)) if match else None
 
 
 def parse_event_decks(html: str) -> list[DeckResult]:

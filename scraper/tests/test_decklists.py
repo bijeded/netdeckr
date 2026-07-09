@@ -7,6 +7,7 @@ from mtgtop8 import (  # noqa: E402
     parse_decklist,
     parse_event_decks,
     parse_event_list,
+    parse_event_size,
 )
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
@@ -84,6 +85,25 @@ def test_event_decks_keeps_range_placings():
     assert by_id["863984"].placing == "3-4"
     assert by_id["863985"].placing == "5-8"
     assert by_id["863985"].player == "Javier Dominguez"
+
+
+# --- parse_event_size -------------------------------------------------------
+
+
+def test_event_size_parses_player_count_when_present():
+    # The `class=S14` meta panel renders "21 players - 28/06/26".
+    assert parse_event_size(_load("event_players_ST.html")) == 21
+
+
+def test_event_size_is_none_when_no_player_count():
+    # Some events (leagues) show only the date, no player count.
+    assert parse_event_size(_load("event_no_players_ST.html")) is None
+
+
+def test_event_size_is_none_when_absent_entirely():
+    # A results-only page with no meta panel at all (existing fixture) has no size,
+    # and the pilot `class=player` links must not be mistaken for a player count.
+    assert parse_event_size(_load("event_ST.html")) is None
 
 
 # --- parse_decklist ---------------------------------------------------------
