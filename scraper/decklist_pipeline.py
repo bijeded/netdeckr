@@ -82,3 +82,32 @@ def sync_decklists(
                 on_error(fmt, event.source_event_id, exc)
 
     return deck_count
+
+
+def backfill_event_sizes(
+    writer,
+    *,
+    fetch_event_page: Callable[..., str],
+    on_error: Optional[Callable[[str, Exception], None]] = None,
+) -> int:
+    """Fill `events.player_count` on stored events that still have it null.
+
+    A one-time pass: for each null-size event the writer reports, fetch its event
+    page, parse the reported size, and write it when present (a miss leaves the row
+    null, revisited on a later run). Touches only `events.player_count` — never
+    decks or cards. Network is injected so this is unit-testable. A failure on one
+    event does not abort the rest. Returns the number of events updated.
+    """
+    updated = 0
+    for event in writer.events_missing_size():
+        try:
+            size = parse_event_size(
+                fetch_event_page(event["format_code"], event["source_event_id"])
+            )
+            if size is not None:
+                writer.set_event_size(event["id"], size)
+                updated += 1
+        except Exception as exc:  # noqa: BLE001 — one bad event must not stop the rest
+            if on_error is not None:
+                on_error(event["source_event_id"], exc)
+    return updated

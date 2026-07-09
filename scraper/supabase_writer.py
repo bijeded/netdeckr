@@ -573,6 +573,39 @@ class SupabaseWriter:
         response.raise_for_status()
         return {row["source_event_id"] for row in response.json()}
 
+    def events_missing_size(self, *, page_size: int = 1000) -> list[dict]:
+        """Return stored events whose `player_count` is null, cursor-paged by id.
+
+        Used by the one-time `--backfill-sizes` pass to re-fetch each such event's
+        page and fill its size. The cursor (id > last) means the loop always makes
+        progress even though the rows are not being updated during the read.
+        """
+        out: list[dict] = []
+        cursor = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/events"
+                f"?player_count=is.null&id=gt.{cursor}"
+                f"&select=id,source_event_id,format_code&order=id.asc&limit={page_size}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
+                break
+            out.extend(rows)
+            cursor = rows[-1]["id"]
+        return out
+
+    def set_event_size(self, event_id: int, size: int) -> None:
+        """Set one event's `player_count` (the size backfill's only write)."""
+        patch = self._session.patch(
+            f"{self._rest}/events?id=eq.{event_id}",
+            headers=self._headers,
+            json={"player_count": size},
+        )
+        patch.raise_for_status()
+
     def prune_events_before(self, cutoff_date: str) -> None:
         """Delete events with an event_date before ``cutoff_date`` (ISO YYYY-MM-DD).
 

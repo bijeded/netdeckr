@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from decklist_pipeline import sync_decklists  # noqa: E402
+from decklist_pipeline import backfill_event_sizes, sync_decklists  # noqa: E402
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
 
@@ -259,3 +259,65 @@ def test_event_failure_does_not_abort_the_rest():
 
     assert count == 8  # events 1 and 3 (4 decks each); event 2 skipped
     assert len(errors) == 1
+
+
+# --- backfill_event_sizes ---------------------------------------------------
+
+
+def _size_writer(rows):
+    writer = MagicMock()
+    writer.events_missing_size.return_value = rows
+    return writer
+
+
+def test_backfill_event_sizes_fills_found_sizes():
+    writer = _size_writer([
+        {"id": 1, "source_event_id": "87496", "format_code": "ST"},
+        {"id": 2, "source_event_id": "87497", "format_code": "ST"},
+    ])
+    fetch_event_page = MagicMock(return_value=_load("event_players_ST.html"))  # reports 21
+
+    updated = backfill_event_sizes(writer, fetch_event_page=fetch_event_page)
+
+    assert updated == 2
+    calls = {c[0][0]: c[0][1] for c in writer.set_event_size.call_args_list}
+    assert calls == {1: 21, 2: 21}
+    # Fetches the event page by (format, source_event_id); never a deck id.
+    assert all(len(c[0]) == 2 for c in fetch_event_page.call_args_list)
+
+
+def test_backfill_event_sizes_skips_pages_without_a_size():
+    writer = _size_writer([{"id": 1, "source_event_id": "87496", "format_code": "ST"}])
+    fetch_event_page = MagicMock(return_value=_load("event_no_players_ST.html"))  # no size
+
+    updated = backfill_event_sizes(writer, fetch_event_page=fetch_event_page)
+
+    assert updated == 0
+    writer.set_event_size.assert_not_called()
+
+
+def test_backfill_event_sizes_continues_past_one_error():
+    writer = _size_writer([
+        {"id": 1, "source_event_id": "1", "format_code": "ST"},
+        {"id": 2, "source_event_id": "2", "format_code": "ST"},
+    ])
+    fetch_event_page = MagicMock(side_effect=[RuntimeError("boom"), _load("event_players_ST.html")])
+    errors = []
+
+    updated = backfill_event_sizes(
+        writer, fetch_event_page=fetch_event_page, on_error=lambda ctx, exc: errors.append(ctx)
+    )
+
+    assert updated == 1  # event 2 still processed after event 1 failed
+    assert len(errors) == 1
+
+
+def test_backfill_event_sizes_touches_only_events():
+    writer = _size_writer([{"id": 1, "source_event_id": "87496", "format_code": "ST"}])
+    fetch_event_page = MagicMock(return_value=_load("event_players_ST.html"))
+
+    backfill_event_sizes(writer, fetch_event_page=fetch_event_page)
+
+    # No deck/card writes happen during a size backfill.
+    writer.upsert_deck.assert_not_called()
+    writer.replace_deck_cards.assert_not_called()
