@@ -27,5 +27,5 @@ Cross-stack change — one task group per branch/PR (disciplined mode). Safe `ma
 
 ## 4. Sync & archive
 
-- [ ] 4.1 `/opsx:sync` the delta specs into `openspec/specs/` (via a `chore:` PR — `main` is protected).
-- [ ] 4.2 `/opsx:archive` the change; update `docs/HANDOFF.md` deferred items (#7 done; note size weighting) and the `powerScore.ts` gotcha.
+- [x] 4.1 `/opsx:sync` the delta specs into `openspec/specs/` (via a `chore:` PR — `main` is protected).
+- [x] 4.2 `/opsx:archive` the change; update `docs/HANDOFF.md` deferred items (#7 done; note size weighting) and the `powerScore.ts` gotcha.
