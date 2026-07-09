@@ -56,6 +56,7 @@ create table if not exists public.events (
   format_code     text not null references public.formats(code) on delete cascade,
   name            text not null,               -- event name, e.g. "MTGO Challenge 32"
   event_date      date,                        -- null if MTGTop8 omits it
+  player_count    integer,                     -- tournament size; null if MTGTop8 omits it
   unique (source_event_id, format_code)
 );
 
@@ -117,6 +118,11 @@ alter table public.deck_cards add column if not exists rarity text;
 alter table public.deck_cards add column if not exists cmc numeric;
 alter table public.deck_cards add column if not exists released_at date;
 alter table public.archetypes add column if not exists art_crop_url text;
+
+-- Tournament size for size-weighted Power Score (added to databases created before
+-- it; the create-table definition above already includes it for a fresh apply).
+-- Nullable — MTGTop8 does not report a size for every event.
+alter table public.events add column if not exists player_count integer;
 
 -- ---------------------------------------------------------------------------
 -- One-time merge: MTGTop8 capitalizes archetype names inconsistently across
