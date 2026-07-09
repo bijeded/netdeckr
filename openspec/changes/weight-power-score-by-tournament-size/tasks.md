@@ -10,11 +10,11 @@ Cross-stack change — one task group per branch/PR (disciplined mode). Safe `ma
 
 ## 2. Scraper — parse and persist tournament size
 
-- [ ] 2.1 Add saved fixtures: one MTGTop8 event page **with** a displayed player count and one **without** (under `scraper/tests/fixtures`).
-- [ ] 2.2 TDD `parse_event_size(html) -> int | None` in `scraper/mtgtop8.py` against the fixtures (returns the integer when present, `None` when absent), no network.
-- [ ] 2.3 Carry `player_count` on the `Event` dataclass and populate it in the event-parsing flow (reuse the event-results HTML already fetched — no extra request).
-- [ ] 2.4 Persist `player_count` in `SupabaseWriter`'s event upsert; on update, write a newly available/changed size but **never overwrite a non-null stored size with null**. Add a writer test for the "don't null a known size" guard.
-- [ ] 2.5 Run `cd scraper && ./venv/bin/pytest`; all scraper tests green.
+- [x] 2.1 Add saved fixtures: one MTGTop8 event page **with** a displayed player count and one **without** (under `scraper/tests/fixtures`).
+- [x] 2.2 TDD `parse_event_size(html) -> int | None` in `scraper/mtgtop8.py` against the fixtures (returns the integer when present, `None` when absent), no network.
+- [x] 2.3 Carry `player_count` on the `Event` dataclass and populate it in the event-parsing flow (reuse the event-results HTML already fetched — no extra request).
+- [x] 2.4 Persist `player_count` in `SupabaseWriter`'s event upsert; on update, write a newly available/changed size but **never overwrite a non-null stored size with null**. Add a writer test for the "don't null a known size" guard.
+- [x] 2.5 Run `cd scraper && ./venv/bin/pytest`; all scraper tests green.
 
 ## 3. Frontend — thread size, size-weight the Power Score, tighten Tier 1
 

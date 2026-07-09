@@ -52,6 +52,31 @@ def test_upsert_event_uses_conflict_key_and_returns_id():
     assert "merge-duplicates" in session.post.call_args[1]["headers"]["Prefer"]
 
 
+def test_upsert_event_includes_player_count_when_known():
+    session = MagicMock()
+    session.post.return_value = _response([{"id": 42}])
+    event = Event(source_event_id="87496", name="RCQ", event_date="2026-06-28", player_count=21)
+
+    _writer(session).upsert_event("ST", event)
+
+    body = session.post.call_args[1]["json"]
+    assert body["player_count"] == 21
+
+
+def test_upsert_event_omits_player_count_when_unknown():
+    # A null size must NOT be sent: PostgREST merge-duplicates would otherwise
+    # overwrite a previously-stored size with null. Omitting the column leaves any
+    # existing value untouched on conflict.
+    session = MagicMock()
+    session.post.return_value = _response([{"id": 42}])
+    event = Event(source_event_id="87496", name="RCQ", event_date="2026-06-28")  # player_count=None
+
+    _writer(session).upsert_event("ST", event)
+
+    body = session.post.call_args[1]["json"]
+    assert "player_count" not in body
+
+
 def test_upsert_deck_carries_player_placing_and_returns_id():
     session = MagicMock()
     session.post.return_value = _response([{"id": 7}])

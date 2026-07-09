@@ -90,16 +90,25 @@ class SupabaseWriter:
     # export falls back to `card_name`).
 
     def upsert_event(self, fmt: str, event: Event) -> int:
-        """Upsert an event on (source_event_id, format_code); return its id."""
+        """Upsert an event on (source_event_id, format_code); return its id.
+
+        `player_count` is included only when known: a null size is omitted so the
+        merge-duplicates upsert never overwrites a previously-stored size with null
+        (MTGTop8 does not report a size for every event, and a re-scrape may see an
+        event's size drop off the page).
+        """
+        body = {
+            "source_event_id": event.source_event_id,
+            "format_code": fmt,
+            "name": event.name,
+            "event_date": event.event_date,
+        }
+        if event.player_count is not None:
+            body["player_count"] = event.player_count
         upsert = self._session.post(
             f"{self._rest}/events?on_conflict=source_event_id,format_code",
             headers={**self._headers, "Prefer": "resolution=merge-duplicates,return=representation"},
-            json={
-                "source_event_id": event.source_event_id,
-                "format_code": fmt,
-                "name": event.name,
-                "event_date": event.event_date,
-            },
+            json=body,
         )
         upsert.raise_for_status()
         return upsert.json()[0]["id"]
