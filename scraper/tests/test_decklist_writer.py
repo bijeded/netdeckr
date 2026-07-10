@@ -836,7 +836,9 @@ def test_refresh_archetype_color_identity_uses_name_when_present():
 
 def test_refresh_archetype_color_identity_derives_from_cards_when_name_has_none():
     session = MagicMock()
-    # Name "Cauldron" -> no color; both decks are UB, so identity is UB.
+    # Name "Cauldron" -> no color; both decks are UB (B and U each appear in
+    # both decks), so identity is UB — the deck-count floor keeps colors present
+    # in >= 2 decks.
     session.get.side_effect = [
         _response([{"id": 5, "name": "Cauldron", "color_identity": ""}]),
         _response(
@@ -844,6 +846,7 @@ def test_refresh_archetype_color_identity_derives_from_cards_when_name_has_none(
                 _ci_card_row(1, 100, "Deep-Cavern Bat"),
                 _ci_card_row(2, 100, "Island"),
                 _ci_card_row(3, 101, "Deep-Cavern Bat"),
+                _ci_card_row(4, 101, "Island"),
             ]
         ),
         _response([]),

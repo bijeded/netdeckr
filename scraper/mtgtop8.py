@@ -121,24 +121,38 @@ def _color_words_in(text: str) -> set[str]:
 # Tunable (verify live across formats); tests don't depend on the exact value.
 COLOR_IDENTITY_MIN_DECK_SHARE = 0.35
 
+# Absolute minimum number of decks a color must appear in, on top of the share.
+# The share alone lets a single off-color deck through on a tiny archetype (on a
+# 2-deck archetype one splash deck is 0.5 share >= 0.35), so this floor drops
+# single-deck splashes while base colors (in >= 2 decks) survive. It is capped at
+# the archetype's deck count so a lone-deck archetype keeps its colors instead of
+# going gray. Tunable; tests don't depend on the exact value.
+COLOR_IDENTITY_MIN_DECK_COUNT = 2
+
 
 def color_identity_from_decks(deck_color_sets: Iterable[set[str]]) -> str:
     """Derive a WUBRG color identity from an archetype's decks' card colors.
 
     ``deck_color_sets`` is one color-letter set per deck (the union of that deck's
-    cards' Scryfall color identities). A color is kept only when it appears in at
-    least ``COLOR_IDENTITY_MIN_DECK_SHARE`` of the decks, so a one-off splash is
-    excluded. Returns a WUBRG-ordered string, or "" for no decks / all colorless.
+    cards' Scryfall color identities). A color is kept only when it appears in
+    **both** at least ``COLOR_IDENTITY_MIN_DECK_SHARE`` of the decks **and** at
+    least ``COLOR_IDENTITY_MIN_DECK_COUNT`` decks — the latter capped at the deck
+    count, so a single-deck splash on a tiny archetype is excluded while a lone
+    deck's colors are still kept. Returns a WUBRG-ordered string, or "" for no
+    decks / all colorless.
     """
     decks = list(deck_color_sets)
     if not decks:
         return ""
-    threshold = COLOR_IDENTITY_MIN_DECK_SHARE * len(decks)
+    required = max(
+        COLOR_IDENTITY_MIN_DECK_SHARE * len(decks),
+        min(COLOR_IDENTITY_MIN_DECK_COUNT, len(decks)),
+    )
     counts: dict[str, int] = {}
     for colors in decks:
         for color in colors:
             counts[color] = counts.get(color, 0) + 1
-    kept = {color for color, count in counts.items() if count >= threshold}
+    kept = {color for color, count in counts.items() if count >= required}
     return _canonical(kept)
 
 
