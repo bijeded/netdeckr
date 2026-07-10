@@ -24,6 +24,14 @@ describe('locale parity', () => {
     }
   })
 
+  it('covers the count-aware event-size label in both locales', () => {
+    for (const locale of [en, es]) {
+      const dashboard = (locale as { dashboard: Record<string, string> }).dashboard
+      expect(dashboard.eventSize_one).toContain('{{count}}')
+      expect(dashboard.eventSize_other).toContain('{{count}}')
+    }
+  })
+
   it('covers the share-delta aria-labels in both locales', () => {
     for (const locale of [en, es]) {
       const shareDelta = (locale as { shareDelta: Record<string, string> }).shareDelta

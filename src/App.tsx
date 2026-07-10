@@ -7,7 +7,7 @@ import { useLastUpdated } from './hooks/useLastUpdated'
 import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
-import { formatShortDate } from './lib/formatDate'
+import { eventLabel as buildEventLabel } from './lib/eventLabel'
 import { FormatSwitcher } from './components/FormatSwitcher'
 import { WindowSelector } from './components/WindowSelector'
 import { EventSelector } from './components/EventSelector'
@@ -142,14 +142,11 @@ function App() {
   // share). The full corpus stays reachable via the StatCard total and the filters.
   const archetypeFiltered = archetypeName !== null
   const tierFiltered = !archetypeFiltered && tier !== null
-  // The selected event's label (name + abbreviated date), reused for the caption;
-  // null when no event is selected. Event names are proper nouns (not localized).
+  // The selected event's label (name + abbreviated date + size when known),
+  // reused for the caption; null when no event is selected. Built by the shared
+  // helper so the caption and the Event-filter dropdown never diverge.
   const selectedEvent = eventId !== null ? (events.find((e) => e.id === eventId) ?? null) : null
-  const eventLabel = selectedEvent
-    ? ((date) => (date ? `${selectedEvent.name} — ${date}` : selectedEvent.name))(
-        formatShortDate(selectedEvent.eventDate, i18n.language),
-      )
-    : null
+  const eventLabel = selectedEvent ? buildEventLabel(selectedEvent, i18n.language, t) : null
   const visibleBreakdown = archetypeFiltered
     ? breakdown.filter((a) => a.name === archetypeName)
     : tierFiltered

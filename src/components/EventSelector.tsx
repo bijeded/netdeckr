@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { EventOption } from '../hooks/useMetagame'
-import { formatShortDate } from '../lib/formatDate'
+import { eventLabel } from '../lib/eventLabel'
 
 interface EventSelectorProps {
   /** Selected event id, or null for "All events". */
@@ -48,14 +48,11 @@ export function EventSelector({ value, events, onChange }: EventSelectorProps) {
         }}
       >
         <option value="">{t('filters.allEvents')}</option>
-        {events.map((event) => {
-          const date = formatShortDate(event.eventDate, i18n.language)
-          return (
-            <option key={event.id} value={event.id}>
-              {date ? `${event.name} — ${date}` : event.name}
-            </option>
-          )
-        })}
+        {events.map((event) => (
+          <option key={event.id} value={event.id}>
+            {eventLabel(event, i18n.language, t)}
+          </option>
+        ))}
       </select>
     </div>
   )
