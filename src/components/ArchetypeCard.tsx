@@ -2,9 +2,11 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ManaPips } from './ManaPips'
 import { TierBadge } from './TierBadge'
 import { TrendIndicator } from './TrendIndicator'
+import { ShareDelta } from './ShareDelta'
 import { WinTrophy } from './WinTrophy'
 import type { Tier } from '../lib/tiers'
 import type { Trend } from '../lib/powerScore'
+import type { ShareDelta as ShareDeltaValue } from '../lib/shareDelta'
 
 // A stable hue (0-360) derived from the name, so placeholder art varies per card.
 function hueFromName(name: string): number {
@@ -25,6 +27,8 @@ interface ArchetypeCardProps {
   tier: Tier
   /** Recent-window momentum vs the 2-week baseline; null on the baseline window (no arrow). */
   trend?: Trend | null
+  /** Period-over-period metagame-share change; null suppresses the footer indicator. */
+  shareDelta?: ShareDeltaValue | null
   /** Signature-card normal-size art (hotlinked Scryfall CDN); used when no crop. */
   artImageUrl?: string | null
   /** Signature-card cropped art (hotlinked Scryfall CDN); preferred over the normal image. */
@@ -48,6 +52,7 @@ export function ArchetypeCard({
   wins = 0,
   tier,
   trend = null,
+  shareDelta = null,
   artImageUrl = null,
   artCropUrl = null,
   maxPct = 100,
@@ -155,16 +160,21 @@ export function ArchetypeCard({
           {/* Win trophy: stays pinned (never truncates) while the name ellipsizes. */}
           <WinTrophy wins={wins} style={{ flexShrink: 0, fontSize: 'var(--fs-2xs)' }} />
         </div>
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--fs-stat)',
-            fontWeight: 'var(--fw-bold)',
-            letterSpacing: '-.02em',
-            lineHeight: 1,
-          }}
-        >
-          {sharePct.toFixed(1)}%
+        {/* Stat footer: the share % on the left, its period-over-period delta
+            right-aligned opposite it (the delta describes this very share). */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--fs-stat)',
+              fontWeight: 'var(--fw-bold)',
+              letterSpacing: '-.02em',
+              lineHeight: 1,
+            }}
+          >
+            {sharePct.toFixed(1)}%
+          </div>
+          <ShareDelta delta={shareDelta} style={{ flexShrink: 0 }} />
         </div>
         <div
           style={{

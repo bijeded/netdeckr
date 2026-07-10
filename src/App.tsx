@@ -384,6 +384,7 @@ function App() {
                         wins={archetype.wins}
                         tier={archetype.tier}
                         trend={archetype.trend}
+                        shareDelta={archetype.shareDelta}
                         artImageUrl={archetype.artImageUrl}
                         artCropUrl={archetype.artCropUrl}
                         maxPct={maxPct}

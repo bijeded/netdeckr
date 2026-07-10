@@ -24,6 +24,19 @@ describe('locale parity', () => {
     }
   })
 
+  it('covers the share-delta aria-labels in both locales', () => {
+    for (const locale of [en, es]) {
+      const shareDelta = (locale as { shareDelta: Record<string, string> }).shareDelta
+      for (const key of ['up', 'down', 'flat']) {
+        expect(shareDelta[key]).toBeTruthy()
+      }
+      // up/down interpolate the magnitude; flat does not.
+      expect(shareDelta.up).toContain('{{value}}')
+      expect(shareDelta.down).toContain('{{value}}')
+      expect(shareDelta.flat).not.toContain('{{value}}')
+    }
+  })
+
   it('covers the filter controls in both locales', () => {
     for (const locale of [en, es]) {
       const filters = (locale as { filters: Record<string, string> }).filters

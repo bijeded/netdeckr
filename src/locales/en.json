@@ -54,6 +54,11 @@
     "down": "Performance trending down",
     "flat": "Performance steady"
   },
+  "shareDelta": {
+    "up": "Metagame share up {{value}} points vs the previous period",
+    "down": "Metagame share down {{value}} points vs the previous period",
+    "flat": "Metagame share steady vs the previous period"
+  },
   "decks": {
     "heading": "Recent decklists",
     "count": "{{count}} lists",
