@@ -20,6 +20,50 @@ describe('ArchetypeCard', () => {
     expect(name.compareDocumentPosition(trophy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  it('renders the share delta in the stat footer when provided', () => {
+    render(
+      <ArchetypeCard
+        rank={1}
+        name="Izzet Control"
+        colors="UR"
+        sharePct={24}
+        tier="T1"
+        shareDelta={{ direction: 'up', valuePct: 2.1 }}
+      />,
+    )
+    const delta = screen.getByRole('img', { name: /Metagame share up 2.1 points/ })
+    expect(delta.textContent).toContain('+2.1')
+    // It sits after the share % in DOM order (the footer row).
+    const share = screen.getByText('24.0%')
+    expect(share.compareDocumentPosition(delta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('renders no share delta when it is suppressed (null) or omitted', () => {
+    const { rerender } = render(
+      <ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" shareDelta={null} />,
+    )
+    expect(screen.queryByRole('img', { name: /Metagame share/ })).toBeNull()
+    rerender(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" />)
+    expect(screen.queryByRole('img', { name: /Metagame share/ })).toBeNull()
+  })
+
+  it('shows the share delta alongside the performance trend arrow (two distinct signals)', () => {
+    render(
+      <ArchetypeCard
+        rank={1}
+        name="Izzet Control"
+        colors="UR"
+        sharePct={24}
+        tier="T1"
+        trend="up"
+        shareDelta={{ direction: 'down', valuePct: -1.7 }}
+      />,
+    )
+    // Both indicators are present and distinguishable by their labels.
+    expect(screen.getByRole('img', { name: 'Performance trending up' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /Metagame share down 1.7 points/ })).toBeInTheDocument()
+  })
+
   it('renders no win trophy when the archetype has no wins', () => {
     render(<ArchetypeCard rank={1} name="Izzet Control" colors="UR" sharePct={24} tier="T1" wins={0} />)
     expect(screen.queryByRole('img', { name: /event win/ })).toBeNull()

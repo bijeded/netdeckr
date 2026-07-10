@@ -6,9 +6,9 @@
 
 ## 2. Widen the fetch and expose the delta from the hook
 
-- [ ] 2.1 In `useMetagame`, widen the deck query `gte` from `windowStartISO('2weeks')` (14d) to the 28-day preceding extent (2× the 2-week window), keeping the same single query and decks-only columns (test the boundary date math).
-- [ ] 2.2 Compute the per-archetype share delta via the §1 selector over the (event-unfiltered) window corpus and attach it to each `breakdown` entry (e.g. `shareDelta`), leaving existing `share`, tiers, and the performance trend untouched.
-- [ ] 2.3 Assert in tests that existing shares, tiers, totals, and the performance `TrendIndicator` values are unchanged by the wider fetch.
+- [x] 2.1 In `useMetagame`, widen the deck query `gte` from `windowStartISO('2weeks')` (14d) to the 28-day preceding extent (2× the 2-week window), keeping the same single query and decks-only columns (test the boundary date math).
+- [x] 2.2 Compute the per-archetype share delta via the §1 selector over the (event-unfiltered) window corpus and attach it to each `breakdown` entry (e.g. `shareDelta`), leaving existing `share`, tiers, and the performance trend untouched.
+- [x] 2.3 Assert in tests that existing shares, tiers, totals, and the performance `TrendIndicator` values are unchanged by the wider fetch.
 
 ## 3. ShareDelta indicator component + card placement
 

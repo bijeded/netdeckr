@@ -54,6 +54,11 @@
     "down": "Rendimiento en baja",
     "flat": "Rendimiento estable"
   },
+  "shareDelta": {
+    "up": "Cuota del metajuego +{{value}} puntos respecto al periodo anterior",
+    "down": "Cuota del metajuego -{{value}} puntos respecto al periodo anterior",
+    "flat": "Cuota del metajuego estable respecto al periodo anterior"
+  },
   "decks": {
     "heading": "Listas recientes",
     "count": "{{count}} listas",
