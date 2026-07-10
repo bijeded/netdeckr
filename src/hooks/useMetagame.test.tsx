@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { windowStartISO } from '../lib/windows'
+import { corpusFetchStartISO } from '../lib/windows'
 
 // Chainable query-builder mock resolving to { data, error }.
 // decks -> select -> eq(format) -> gte(date) -> order(date desc) => result
@@ -59,8 +59,10 @@ describe('useMetagame', () => {
 
     expect(from).toHaveBeenCalledWith('decks')
     expect(eq).toHaveBeenCalledWith('events.format_code', 'ST')
-    // Always fetches the 2-week window (the selected window is a client-side subset).
-    expect(gte).toHaveBeenCalledWith('events.event_date', windowStartISO('2weeks'))
+    // Fetches a 28-day corpus (two 2-week windows) so the preceding equal-length
+    // slice is available for the week-over-week share delta; the selected window
+    // and its preceding slice are both client-side subsets of this fetch.
+    expect(gte).toHaveBeenCalledWith('events.event_date', corpusFetchStartISO())
 
     // Breakdown derived from deck counts: Izzet Lesson 2/3, Mono Red 1/3.
     expect(result.current.breakdown.map((a) => a.name)).toEqual(['Izzet Lesson', 'Mono Red'])
@@ -292,5 +294,63 @@ describe('useMetagame', () => {
       'p58',
       'old1',
     ])
+  })
+
+  it('attaches a period-over-period share delta to each breakdown entry', async () => {
+    const mono = { name: 'Mono Red', color_identity: 'R', art_image_url: null, art_crop_url: null }
+    queryResult.data = [
+      // Selected slice (last 14 days): Izzet 3, Mono 1 → Izzet 75%, Mono 25%.
+      deckRow({ source_deck_id: 's1', events: { id: 1, name: 'E', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 's2', events: { id: 1, name: 'E', event_date: daysAgo(2) } }),
+      deckRow({ source_deck_id: 's3', events: { id: 1, name: 'E', event_date: daysAgo(3) } }),
+      deckRow({ source_deck_id: 's4', archetypes: mono, events: { id: 1, name: 'E', event_date: daysAgo(3) } }),
+      // Preceding slice (days 16–28): Izzet 1, Mono 3 → Izzet 25%, Mono 75%.
+      deckRow({ source_deck_id: 'p1', events: { id: 2, name: 'E', event_date: daysAgo(18) } }),
+      deckRow({ source_deck_id: 'p2', archetypes: mono, events: { id: 2, name: 'E', event_date: daysAgo(18) } }),
+      deckRow({ source_deck_id: 'p3', archetypes: mono, events: { id: 2, name: 'E', event_date: daysAgo(20) } }),
+      deckRow({ source_deck_id: 'p4', archetypes: mono, events: { id: 2, name: 'E', event_date: daysAgo(22) } }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const byName = Object.fromEntries(result.current.breakdown.map((a) => [a.name, a]))
+    // The breakdown itself only reflects the selected (last-14-day) decks: Izzet 75%.
+    expect(byName['Izzet Lesson'].sharePct).toBeCloseTo(75, 1)
+    // Izzet rose (25% → 75%), Mono fell (75% → 25%).
+    expect(byName['Izzet Lesson'].shareDelta?.direction).toBe('up')
+    expect(byName['Izzet Lesson'].shareDelta?.valuePct).toBeCloseTo(50, 1)
+    expect(byName['Mono Red'].shareDelta?.direction).toBe('down')
+  })
+
+  it('suppresses the share delta (null) when the preceding slice is too thin', async () => {
+    // Only recent decks; no preceding-slice data → the whole field is suppressed.
+    queryResult.data = [
+      deckRow({ source_deck_id: 'a', events: { id: 1, name: 'E', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'b', events: { id: 1, name: 'E', event_date: daysAgo(2) } }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.breakdown.every((a) => a.shareDelta === null)).toBe(true)
+  })
+
+  it('excludes decks older than the selected window from the breakdown while using them for the delta', async () => {
+    queryResult.data = [
+      // One selected Izzet deck (last 14 days).
+      deckRow({ source_deck_id: 's1', events: { id: 1, name: 'E', event_date: daysAgo(2) } }),
+      // Preceding-slice decks (days 16–28) — must NOT appear in the breakdown/decks,
+      // and must not change Izzet's selected-window share (still 100%).
+      deckRow({ source_deck_id: 'p1', events: { id: 2, name: 'E', event_date: daysAgo(18) } }),
+      deckRow({ source_deck_id: 'p2', events: { id: 2, name: 'E', event_date: daysAgo(20) } }),
+      deckRow({ source_deck_id: 'p3', events: { id: 2, name: 'E', event_date: daysAgo(22) } }),
+    ]
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // Breakdown/decks/totals reflect only the selected 14-day window (1 deck).
+    expect(result.current.totals.decks).toBe(1)
+    expect(result.current.decksByArchetype['Izzet Lesson'].map((d) => d.sourceDeckId)).toEqual(['s1'])
+    expect(result.current.breakdown[0].sharePct).toBeCloseTo(100, 1)
+    // But the preceding decks fed the delta: 100% now vs 100% before → flat.
+    expect(result.current.breakdown[0].shareDelta?.direction).toBe('flat')
   })
 })

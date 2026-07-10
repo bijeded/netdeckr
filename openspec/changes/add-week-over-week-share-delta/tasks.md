@@ -1,8 +1,8 @@
 ## 1. Pure share-delta selector
 
-- [ ] 1.1 Add calibration constants (`DELTA_EPS` pp deadband, `MIN_PREV_DECKS` guard) near the existing constants and a pure helper that, given the window corpus decks + the selected `WindowCode` + `now`, computes per-archetype share for the selected slice `[now−N, now]` and the preceding slice `[now−2N, now−N]` and returns a signed pp delta with `{ direction: 'up'|'down'|'flat', value }` (write the tests first).
-- [ ] 1.2 Cover in tests: rising → up + positive, falling → down + negative, within-deadband → flat, absent-in-preceding-but-present-now (preceding field populated) → up with full current share, and preceding field below `MIN_PREV_DECKS` → suppressed (indicator omitted).
-- [ ] 1.3 Verify share is computed **within each window** (count / that window's total), so the delta is a field-proportion change, and confirm it is independent of the display-only archetype filter and not event-scoped.
+- [x] 1.1 Add calibration constants (`DELTA_EPS` pp deadband, `MIN_PREV_DECKS` guard) near the existing constants and a pure helper that, given the window corpus decks + the selected `WindowCode` + `now`, computes per-archetype share for the selected slice `[now−N, now]` and the preceding slice `[now−2N, now−N]` and returns a signed pp delta with `{ direction: 'up'|'down'|'flat', value }` (write the tests first).
+- [x] 1.2 Cover in tests: rising → up + positive, falling → down + negative, within-deadband → flat, absent-in-preceding-but-present-now (preceding field populated) → up with full current share, and preceding field below `MIN_PREV_DECKS` → suppressed (indicator omitted).
+- [x] 1.3 Verify share is computed **within each window** (count / that window's total), so the delta is a field-proportion change, and confirm it is independent of the display-only archetype filter and not event-scoped.
 
 ## 2. Widen the fetch and expose the delta from the hook
 
