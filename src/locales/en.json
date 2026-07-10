@@ -93,5 +93,24 @@
     "label": "Language",
     "en": "EN",
     "es": "ES"
+  },
+  "trending": {
+    "title": "Trending",
+    "subtitle": "Top {{n}} · week over week",
+    "sideboardTitle": "Top Sideboard Cards",
+    "col": {
+      "rank": "#",
+      "card": "Card",
+      "current": "% Current",
+      "previous": "% Previous",
+      "change": "Change"
+    },
+    "empty": "No trending cards yet",
+    "sideboardEmpty": "No sideboard cards yet",
+    "change": {
+      "up": "Copy share up {{value}} points vs the previous period",
+      "down": "Copy share down {{value}} points vs the previous period",
+      "flat": "Copy share steady vs the previous period"
+    }
   }
 }

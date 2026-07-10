@@ -93,5 +93,24 @@
     "label": "Idioma",
     "en": "EN",
     "es": "ES"
+  },
+  "trending": {
+    "title": "En Tendencia",
+    "subtitle": "Top {{n}} · semana a semana",
+    "sideboardTitle": "Top Cartas de Sideboard",
+    "col": {
+      "rank": "#",
+      "card": "Carta",
+      "current": "% Actual",
+      "previous": "% Anterior",
+      "change": "Cambio"
+    },
+    "empty": "Aún no hay cartas en tendencia",
+    "sideboardEmpty": "Aún no hay cartas de sideboard",
+    "change": {
+      "up": "Cuota de copias +{{value}} puntos respecto al periodo anterior",
+      "down": "Cuota de copias -{{value}} puntos respecto al periodo anterior",
+      "flat": "Cuota de copias estable respecto al periodo anterior"
+    }
   }
 }

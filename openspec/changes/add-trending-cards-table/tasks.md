@@ -19,11 +19,11 @@
 
 ## 4. UI components (TDD)
 
-- [ ] 4.1 Write tests for `TrendingTable`: renders rank/name/`% actual`/`% anterior`/change; suppressed delta column when appropriate; empty state; ES/EN chrome with English card names
-- [ ] 4.2 Implement `TrendingTable` (mono numerals, `ChangeIndicator`-family ▲/▼/–, `CardArtPreview` on name hover/touch) per the design reference
-- [ ] 4.3 Write tests for `TopSideboardCards`: rank/name/% only (no delta columns); empty state; localization
-- [ ] 4.4 Implement `TopSideboardCards`
-- [ ] 4.5 Add `trending.*` i18n keys to ES + EN locales; add locale-parity coverage
+- [x] 4.1 Write tests for `TrendingTable`: renders rank/name/`% actual`/`% anterior`/change; suppressed delta column when appropriate; empty state; ES/EN chrome with English card names
+- [x] 4.2 Implement `TrendingTable` (mono numerals, `ChangeIndicator`-family ▲/▼/–, `CardArtPreview` on name hover/touch) per the design reference
+- [x] 4.3 Write tests for `TopSideboardCards`: rank/name/% only (no delta columns); empty state; localization
+- [x] 4.4 Implement `TopSideboardCards`
+- [x] 4.5 Add `trending.*` i18n keys to ES + EN locales; add locale-parity coverage
 
 ## 5. Dashboard integration
 
