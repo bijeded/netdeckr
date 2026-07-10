@@ -219,3 +219,63 @@ create policy deck_cards_read
 grant select on public.formats, public.archetypes, public.events, public.decks,
                 public.deck_cards
   to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Trending cards aggregation (change add-trending-cards-table).
+-- Per-card copy counts for the "En Tendencia" trending table and the Top
+-- Sideboard Cards list, aggregated server-side so the browser never pulls the
+-- ~88k raw deck_cards lines the largest formats hold. Returns one row per card
+-- name for the requested slice (format + date window + board), with optional
+-- archetype and event narrowing to mirror the sidebar filters. Copy share is
+-- computed client-side as each card's total_copies over the sum of the returned
+-- rows' copies (basic lands are excluded here, so they never dilute the share
+-- nor consume a top-N slot). The frontend calls this per window/board:
+-- main-current + main-previous (for the period delta) + side-current.
+--
+-- Basic-land exclusion uses `type_line ILIKE '%basic%land%'`, which matches both
+-- "Basic Land — Plains" and "Basic Snow Land — Island"; a null type_line (a
+-- Scryfall resolution miss) is kept so a resolution gap never hides a real card.
+-- SECURITY INVOKER (the default) so the caller's RLS applies — anon keeps its
+-- read-only access and no write path is exposed.
+-- ---------------------------------------------------------------------------
+create or replace function public.top_cards(
+  p_format         text,
+  p_start          date,
+  p_end            date,
+  p_board          text,
+  p_archetype_ids  bigint[] default null,
+  p_event_id       bigint   default null
+)
+returns table (
+  card_name    text,
+  total_copies bigint,
+  deck_count   bigint,
+  image_url    text
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select dc.card_name,
+         sum(dc.quantity)::bigint            as total_copies,
+         count(distinct dc.deck_id)::bigint  as deck_count,
+         max(dc.image_url)                   as image_url
+  from public.deck_cards dc
+  join public.decks  d on d.id = dc.deck_id
+  join public.events e on e.id = d.event_id
+  where e.format_code = p_format
+    and dc.board = p_board
+    and e.event_date >= p_start
+    and e.event_date <  p_end
+    and (dc.type_line is null or dc.type_line not ilike '%basic%land%')
+    and (p_archetype_ids is null or d.archetype_id = any (p_archetype_ids))
+    and (p_event_id is null or d.event_id = p_event_id)
+  group by dc.card_name
+$$;
+
+-- Let the browser (anon) and authenticated roles call the aggregation; RLS on the
+-- underlying tables still gates the rows it reads (SECURITY INVOKER).
+grant execute on function
+  public.top_cards(text, date, date, text, bigint[], bigint)
+  to anon, authenticated;
