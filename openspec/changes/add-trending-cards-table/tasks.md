@@ -1,16 +1,16 @@
 ## 1. Data aggregation (schema PR — lands first)
 
-- [ ] 1.1 Spike: `count(*)` / payload check to decide RPC-with-filter-params vs plain view + client per-archetype summing; record the decision in design.md Open Questions
-- [ ] 1.2 Add the read-only per-card copy-count aggregation to `supabase/schema.sql` (view or RPC over `decks`/`deck_cards`/`events`): per format, card name, board, with total copies + distinct-deck counts, date-range filterable; exclude basic lands (`type_line ILIKE '%Basic Land%'`); anon RLS read-only; idempotent
-- [ ] 1.3 Validate the SQL with `pglast` (catches reserved-keyword/identifier errors)
-- [ ] 1.4 Open the schema PR; after merge apply `schema.sql` with the service-role key in the Supabase SQL editor
-- [ ] 1.5 Verify the aggregation read-only via `curl` with the anon key across all five formats (basics absent, copies summed, both boards)
+- [x] 1.1 Spike: `count(*)` / payload check to decide RPC-with-filter-params vs plain view + client per-archetype summing; record the decision in design.md Open Questions
+- [x] 1.2 Add the read-only per-card copy-count aggregation to `supabase/schema.sql` (view or RPC over `decks`/`deck_cards`/`events`): per format, card name, board, with total copies + distinct-deck counts, date-range filterable; exclude basic lands (`type_line ILIKE '%Basic Land%'`); anon RLS read-only; idempotent
+- [x] 1.3 Validate the SQL with `pglast` (catches reserved-keyword/identifier errors)
+- [x] 1.4 Open the schema PR; after merge apply `schema.sql` with the service-role key in the Supabase SQL editor
+- [x] 1.5 Verify the aggregation read-only via `curl` with the anon key across all five formats (basics absent, copies summed, both boards)
 
 ## 2. Trending logic (pure lib, TDD)
 
-- [ ] 2.1 Write tests for `src/lib/trendingCards.ts`: copy share = summed copies ÷ slice total; ranking; basic-land exclusion; top-10 slice
-- [ ] 2.2 Write tests for the period delta: current vs immediately-preceding equal-length window (5v5, 14v14); ▲ for new-this-period; `DELTA_EPS` flat deadband; `MIN_PREV_DECKS` field-wide suppression
-- [ ] 2.3 Implement `src/lib/trendingCards.ts` (mirroring `shareDelta.ts`) to pass 2.1–2.2
+- [x] 2.1 Write tests for `src/lib/trendingCards.ts`: copy share = summed copies ÷ slice total; ranking; basic-land exclusion; top-10 slice
+- [x] 2.2 Write tests for the period delta: current vs immediately-preceding equal-length window (5v5, 14v14); ▲ for new-this-period; `DELTA_EPS` flat deadband; `MIN_PREV_DECKS` field-wide suppression
+- [x] 2.3 Implement `src/lib/trendingCards.ts` (mirroring `shareDelta.ts`) to pass 2.1–2.2
 
 ## 3. Data hook
 
