@@ -291,6 +291,31 @@ describe('App dashboard', () => {
     expect(within(main).getByText('Arch 14')).toBeInTheDocument()
   })
 
+  it('appends the tournament size to the event caption (and the tier+event caption) when known', () => {
+    const breakdown = [
+      { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 40, tier: 'T1', trend: null, wins: 0 },
+      { rank: 2, name: 'Mono Red', colorIdentity: 'R', sharePct: 30, tier: 'T2', trend: null, wins: 0 },
+    ]
+    useMetagame.mockReturnValue({
+      breakdown,
+      decksByArchetype: { 'Izzet Control': [], 'Mono Red': [] },
+      fullDecksByArchetype: { 'Izzet Control': [], 'Mono Red': [] },
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128 }],
+      totals: { events: 1, archetypes: 2, decks: 10 },
+      loading: false,
+      error: null,
+    })
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
+    })
+    expect(screen.getByTestId('grid-caption').textContent).toBe('RCQ — Jul 5 (128 players)')
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } })
+    })
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Tier 1 — RCQ — Jul 5 (128 players)')
+  })
+
   it('combines the tier label and event name when both filters are active', () => {
     const breakdown = [
       { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 40, tier: 'T1', trend: null, wins: 0 },

@@ -7,8 +7,8 @@ import type { EventOption } from '../hooks/useMetagame'
 afterEach(() => i18n.changeLanguage('en'))
 
 const EVENTS: EventOption[] = [
-  { id: 10, name: 'RCQ Madrid', eventDate: '2026-07-05' },
-  { id: 20, name: 'PTQ Lyon', eventDate: '2026-07-01' },
+  { id: 10, name: 'RCQ Madrid', eventDate: '2026-07-05', playerCount: 128 },
+  { id: 20, name: 'PTQ Lyon', eventDate: '2026-07-01', playerCount: null },
 ]
 
 describe('EventSelector', () => {
@@ -24,6 +24,13 @@ describe('EventSelector', () => {
     render(<EventSelector value={null} events={EVENTS} onChange={() => {}} />)
     // Abbreviated day + month (en-US renders "Jul 5").
     expect(screen.getByRole('option', { name: /RCQ Madrid/ })).toHaveTextContent(/Jul.*5|5.*Jul/)
+  })
+
+  it('appends the tournament size when known and omits it otherwise', () => {
+    render(<EventSelector value={null} events={EVENTS} onChange={() => {}} />)
+    expect(screen.getByRole('option', { name: /RCQ Madrid/ })).toHaveTextContent('(128 players)')
+    // PTQ Lyon has a null player count → no size parenthetical.
+    expect(screen.getByRole('option', { name: /PTQ Lyon/ })).not.toHaveTextContent('players')
   })
 
   it('reflects the selected event id as the current value', () => {

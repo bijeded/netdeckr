@@ -48,6 +48,8 @@ export interface EventOption {
   id: number
   name: string
   eventDate: string
+  /** Tournament size (player_count); null when MTGTop8 didn't report it. */
+  playerCount: number | null
 }
 
 /** Optional client-side view filters applied over the fetched corpus. */
@@ -180,7 +182,7 @@ export function useMetagame(
             const evtId = row.events?.id
             if (evtId != null && !seenEventIds.has(evtId)) {
               seenEventIds.add(evtId)
-              eventOptions.push({ id: evtId, name: row.events?.name ?? '', eventDate })
+              eventOptions.push({ id: evtId, name: row.events?.name ?? '', eventDate, playerCount })
             }
           }
 

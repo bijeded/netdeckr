@@ -207,19 +207,20 @@ describe('useMetagame', () => {
     expect(errored.current.totals).toEqual({ events: 0, archetypes: 0, decks: 0 })
   })
 
-  it('lists the distinct events in the window corpus, most-recent-first', async () => {
+  it('lists the distinct events in the window corpus, most-recent-first, with size', async () => {
     queryResult.data = [
-      deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
-      deckRow({ source_deck_id: 'b', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1), player_count: 128 } }),
+      deckRow({ source_deck_id: 'b', events: { id: 10, name: 'RCQ', event_date: daysAgo(1), player_count: 128 } }),
       deckRow({ source_deck_id: 'c', events: { id: 20, name: 'PTQ', event_date: daysAgo(4) } }),
     ]
     const { result } = renderHook(() => useMetagame('ST', '2weeks'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    // Distinct events (deduped by id), ordered most-recent-first.
+    // Distinct events (deduped by id), ordered most-recent-first, carrying the
+    // tournament size (null when the event has no player_count).
     expect(result.current.events).toEqual([
-      { id: 10, name: 'RCQ', eventDate: daysAgo(1) },
-      { id: 20, name: 'PTQ', eventDate: daysAgo(4) },
+      { id: 10, name: 'RCQ', eventDate: daysAgo(1), playerCount: 128 },
+      { id: 20, name: 'PTQ', eventDate: daysAgo(4), playerCount: null },
     ])
   })
 
