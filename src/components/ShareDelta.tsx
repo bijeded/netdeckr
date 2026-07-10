@@ -10,22 +10,27 @@ import type { ShareDelta as ShareDeltaValue } from '../lib/shareDelta'
 // delta is suppressed (null) — the field's preceding slice was too thin.
 const STYLES: Record<
   ShareDeltaValue['direction'],
-  { color: string; bg: string; border: string; glyph: string; key: string }
+  { color: string; bg: string; border: string; glyph: string }
 > = {
-  up: { color: 'var(--up)', bg: 'var(--up-tint)', border: 'var(--up-border)', glyph: '▲', key: 'shareDelta.up' },
-  down: { color: 'var(--down)', bg: 'var(--down-tint)', border: 'var(--down-border)', glyph: '▼', key: 'shareDelta.down' },
+  up: { color: 'var(--up)', bg: 'var(--up-tint)', border: 'var(--up-border)', glyph: '▲' },
+  down: { color: 'var(--down)', bg: 'var(--down-tint)', border: 'var(--down-border)', glyph: '▼' },
   // '–' is an en-dash (U+2013), matching the design glyph set — not a hyphen.
-  flat: { color: 'var(--flat)', bg: 'var(--flat-tint)', border: 'var(--flat-border)', glyph: '–', key: 'shareDelta.flat' },
+  flat: { color: 'var(--flat)', bg: 'var(--flat-tint)', border: 'var(--flat-border)', glyph: '–' },
 }
 
 interface ShareDeltaProps {
   /** The period-over-period share delta; null suppresses the indicator entirely. */
   delta: ShareDeltaValue | null
+  /**
+   * i18n key prefix for the accessible label (`<prefix>.up/down/flat`), so the
+   * same chip can describe metagame share (default) or, e.g., a card's copy share.
+   */
+  labelKeyPrefix?: string
   style?: CSSProperties
 }
 
-/** Mono ▲/▼/– chip + signed pp value marking an archetype's week-over-week share change. */
-export function ShareDelta({ delta, style }: ShareDeltaProps) {
+/** Mono ▲/▼/– chip + signed pp value marking a period-over-period share change. */
+export function ShareDelta({ delta, labelKeyPrefix = 'shareDelta', style }: ShareDeltaProps) {
   const { t } = useTranslation()
   if (!delta) return null
 
@@ -34,7 +39,8 @@ export function ShareDelta({ delta, style }: ShareDeltaProps) {
   // Flat shows a neutral 0.0 (the change is within the deadband); up/down carry
   // an explicit sign. The aria-label interpolates the magnitude for up/down.
   const text = delta.direction === 'up' ? `+${magnitude}` : delta.direction === 'down' ? `-${magnitude}` : '0.0'
-  const label = delta.direction === 'flat' ? t(c.key) : t(c.key, { value: magnitude })
+  const key = `${labelKeyPrefix}.${delta.direction}`
+  const label = delta.direction === 'flat' ? t(key) : t(key, { value: magnitude })
 
   return (
     <span
