@@ -3,7 +3,7 @@
 ## Project overview
 MetaStack is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and a time frame (Last 5 Days / 2 Weeks) to explore the metagame; planned filters (event, archetype) and features (archetype decklists, trending/top cards, MTG Arena export) extend from there. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
 
-Shipped so far: format switcher, the metagame archetype breakdown, and the time-frame filter (in a filter sidebar). See `openspec/specs/` for living specs and `openspec/changes/archive/` for completed changes.
+Shipped so far: format switcher, the metagame archetype breakdown, the time-frame + event/archetype/tier filters (in a filter sidebar), a header StatCard strip, performance-based tier badges with trend/share-delta indicators, archetype decklists with card art and MTG Arena export, and the "En Tendencia" trending-cards + Top Sideboard Cards tables. See `openspec/specs/` for living specs and `openspec/changes/archive/` for completed changes.
 
 ## Platform
 web (responsive)
