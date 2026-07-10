@@ -7,6 +7,7 @@
 import type { Tier } from './tiers'
 import { archetypePowerScore, assignTiers, windowTrend, T1_MIN_DECKS, type Trend } from './powerScore'
 import { placementBadge } from './placement'
+import type { ShareDelta } from './shareDelta'
 
 /** The popularity-ranked shape `deriveBreakdown` produces (before performance is attached). */
 export interface RankedArchetype {
@@ -28,6 +29,16 @@ export interface ArchetypeShare extends RankedArchetype {
   tier: Tier
   /** Selected-window-vs-2-week momentum, or null on the baseline window (no arrow). */
   trend: Trend | null
+}
+
+/**
+ * An archetype card's full data: its share/performance signals plus the
+ * period-over-period metagame-share delta (selected window vs the immediately-
+ * preceding equal-length window). `shareDelta` is null when the field's preceding
+ * slice is too thin to compare (see `shareDeltas`).
+ */
+export interface ArchetypeCardData extends ArchetypeShare {
+  shareDelta: ShareDelta | null
 }
 
 /** The per-deck facts the breakdown needs — one entry per deck in the window. */

@@ -25,6 +25,18 @@ export function windowStartISO(window: WindowCode, now: Date = new Date()): stri
   return start.toISOString().slice(0, 10)
 }
 
+// The hook fetches two 2-week windows' worth of decks (28 days), so the
+// immediately-preceding, equal-length slice is available client-side for the
+// week-over-week share delta — without any stored history. Stays within the
+// scraper's 30-day retention.
+export const CORPUS_FETCH_DAYS = 2 * WINDOW_DAYS['2weeks']
+
+/** ISO date (YYYY-MM-DD) marking the start of the fetched corpus, `CORPUS_FETCH_DAYS` before `now`. */
+export function corpusFetchStartISO(now: Date = new Date()): string {
+  const start = new Date(now.getTime() - CORPUS_FETCH_DAYS * 24 * 60 * 60 * 1000)
+  return start.toISOString().slice(0, 10)
+}
+
 const CODES = WINDOWS.map((w) => w.code) as readonly string[]
 
 export function isWindowCode(value: unknown): value is WindowCode {
