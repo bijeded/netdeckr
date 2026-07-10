@@ -7,11 +7,13 @@ const useFormatSelection = vi.fn()
 const useMetagame = vi.fn()
 const useLastUpdated = vi.fn()
 const useDeckCards = vi.fn()
+const useTrendingCards = vi.fn()
 
 vi.mock('./hooks/useFormatSelection', () => ({ useFormatSelection: () => useFormatSelection() }))
 vi.mock('./hooks/useMetagame', () => ({ useMetagame: (...args: unknown[]) => useMetagame(...args) }))
 vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => useLastUpdated() }))
 vi.mock('./hooks/useDeckCards', () => ({ useDeckCards: (id: number | null) => useDeckCards(id) }))
+vi.mock('./hooks/useTrendingCards', () => ({ useTrendingCards: (...args: unknown[]) => useTrendingCards(...args) }))
 
 const setFormat = vi.fn()
 
@@ -34,6 +36,14 @@ beforeEach(() => {
   })
   useLastUpdated.mockReturnValue(null)
   useDeckCards.mockReturnValue({ main: [], side: [], mainCount: 0, sideCount: 0, loading: false, error: null })
+  // Non-empty by default so the trending tables render (not their own frowny
+  // empty-state), keeping the grid-empty assertions to a single frowny.
+  useTrendingCards.mockReturnValue({
+    trending: [{ cardName: 'Trending Card', imageUrl: null, sharePct: 5, totalCopies: 100 }],
+    sideboard: [{ cardName: 'Sideboard Card', imageUrl: null, sharePct: 3, totalCopies: 40 }],
+    loading: false,
+    error: null,
+  })
 })
 
 afterEach(() => {

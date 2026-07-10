@@ -2,14 +2,12 @@ import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CardArtPreview } from './CardArtPreview'
 import { EmptyState } from './EmptyState'
-import { ShareDelta } from './ShareDelta'
 import { TRENDING_TOP_N, type TrendingCard } from '../lib/trendingCards'
 
 // The "En Tendencia" trending table: the top mainboard cards for the current
-// metagame view, ranked by copy share, each with its previous-period share and a
-// ▲/▼/– change chip. When every delta is suppressed (thin preceding data or an
-// event filter) the "% Previous" / change columns drop out entirely, leaving a
-// rank · card · share layout. Ported from the design's 5-column trending grid.
+// metagame view, ranked by copy share, each with its total copy count. Lands are
+// excluded upstream (in the top_cards RPC) so this shows spells/creatures.
+// Ported from the design's trending grid.
 
 const containerStyle: CSSProperties = {
   border: '1px solid var(--border-soft)',
@@ -34,6 +32,15 @@ const numCellStyle: CSSProperties = {
   fontWeight: 'var(--fw-medium)',
 }
 
+const rowStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '34px 1fr 92px 92px',
+  alignItems: 'center',
+  gap: 8,
+  padding: '11px 20px',
+  borderBottom: '1px solid rgba(255,255,255,.035)',
+}
+
 /** A card name with its dashed underline + hover/touch art preview. */
 export function TrendingCardName({ card }: { card: TrendingCard }) {
   return (
@@ -49,19 +56,6 @@ interface TrendingTableProps {
 
 export function TrendingTable({ cards }: TrendingTableProps) {
   const { t } = useTranslation()
-  // Deltas are all-or-nothing (rankTrendingCards suppresses field-wide), so a
-  // single check drives whether the "% Previous" and change columns render.
-  const showDelta = cards.some((c) => c.delta !== null)
-  const columns = showDelta ? '34px 1fr 92px 92px 110px' : '34px 1fr 92px'
-
-  const rowStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: columns,
-    alignItems: 'center',
-    gap: 8,
-    padding: '11px 20px',
-    borderBottom: '1px solid rgba(255,255,255,.035)',
-  }
 
   return (
     <section style={containerStyle} aria-label={t('trending.title')}>
@@ -109,12 +103,7 @@ export function TrendingTable({ cards }: TrendingTableProps) {
             <span style={headerCellStyle}>{t('trending.col.rank')}</span>
             <span style={headerCellStyle}>{t('trending.col.card')}</span>
             <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.current')}</span>
-            {showDelta && (
-              <>
-                <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.previous')}</span>
-                <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.change')}</span>
-              </>
-            )}
+            <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.count')}</span>
           </div>
 
           {cards.map((card, i) => (
@@ -126,16 +115,7 @@ export function TrendingTable({ cards }: TrendingTableProps) {
                 <TrendingCardName card={card} />
               </span>
               <span style={numCellStyle}>{card.sharePct.toFixed(1)}%</span>
-              {showDelta && (
-                <>
-                  <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>
-                    {card.delta ? `${card.delta.prevPct.toFixed(1)}%` : ''}
-                  </span>
-                  <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <ShareDelta delta={card.delta} labelKeyPrefix="trending.change" />
-                  </span>
-                </>
-              )}
+              <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>{card.totalCopies}</span>
             </div>
           ))}
         </>

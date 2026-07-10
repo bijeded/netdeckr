@@ -5,8 +5,8 @@ import type { TrendingCard } from '../lib/trendingCards'
 import i18n from '../i18n'
 
 const cards: TrendingCard[] = [
-  { cardName: 'Flashfreeze', imageUrl: null, sharePct: 22.5, delta: null },
-  { cardName: 'Soul-Guide Lantern', imageUrl: null, sharePct: 15.6, delta: null },
+  { cardName: 'Flashfreeze', imageUrl: null, sharePct: 22.5, totalCopies: 270 },
+  { cardName: 'Soul-Guide Lantern', imageUrl: null, sharePct: 15.6, totalCopies: 188 },
 ]
 
 afterEach(async () => {
