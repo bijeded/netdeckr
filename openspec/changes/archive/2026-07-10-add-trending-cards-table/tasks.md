@@ -35,8 +35,8 @@
 
 Live verification showed the mainboard trending dominated by nonbasic lands (Steam Vents, fetchlands) unlike the reference mockup (spells only), and copy-share deltas mostly flat over these short windows. Per the user: exclude **all** lands, drop the period delta, and show the **total copy count** instead.
 
-- [ ] 6.1 Schema: change `top_cards` to exclude **all** lands (`type_line ILIKE '%land%'`, not just basic); re-validate with `pglast`; schema PR + service-role redeploy + live re-verify (no lands in output)
+- [x] 6.1 Schema: change `top_cards` to exclude **all** lands (`type_line ILIKE '%land%'`, not just basic); re-validate with `pglast`; schema PR + service-role redeploy + live re-verify (no lands in output)
 - [x] 6.2 `trendingCards.ts`: drop the period-delta logic (`CardDelta`, `DELTA_EPS`, `MIN_PREV_DECKS`, prev params); `TrendingCard` gains `totalCopies`, loses `delta`; land exclusion is the RPC's job now. Update tests.
 - [x] 6.3 `useTrendingCards.ts`: drop the preceding-window call + `prevDeckCount` (main-current + side-current only); no delta suppression. Update tests.
 - [x] 6.4 `TrendingTable.tsx`: columns become rank · card · % share · copies (drop % previous + change chip); revert the unused `ShareDelta` `labelKeyPrefix` generalization. Update tests + locale (`trending.col.count`, drop `col.previous`/`col.change`/`change.*`; subtitle no longer "week over week").
-- [ ] 6.5 App integration + full suite + live re-verify across all five formats (no lands, copy count shown, filters narrow, empty states)
+- [x] 6.5 App integration + full suite + live re-verify across all five formats (no lands, copy count shown, filters narrow, empty states)
