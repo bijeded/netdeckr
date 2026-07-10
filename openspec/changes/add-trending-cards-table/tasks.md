@@ -14,8 +14,8 @@
 
 ## 3. Data hook
 
-- [ ] 3.1 Write tests for `useTrendingCards(format, window, filters)`: fetches the aggregation, produces mainboard top-10 (with delta) and sideboard top-10 (no delta), respects archetype/tier (via resolved archetype ids) and event filters, suppresses delta when an event filter is active
-- [ ] 3.2 Implement `useTrendingCards` (call the RPC/view for current + preceding windows; wire filter params; empty-state signaling)
+- [x] 3.1 Write tests for `useTrendingCards(format, window, filters)`: fetches the aggregation, produces mainboard top-10 (with delta) and sideboard top-10 (no delta), respects archetype/tier (via resolved archetype ids) and event filters, suppresses delta when an event filter is active
+- [x] 3.2 Implement `useTrendingCards` (call the RPC/view for current + preceding windows; wire filter params; empty-state signaling)
 
 ## 4. UI components (TDD)
 
