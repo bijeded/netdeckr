@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mtgtop8 import (  # noqa: E402
+    COLOR_IDENTITY_MIN_DECK_COUNT,
     COLOR_IDENTITY_MIN_DECK_SHARE,
     FORMATS,
     color_identity_from_decks,
@@ -88,6 +89,38 @@ def test_color_identity_from_decks_just_below_threshold_drops_color():
 def test_color_identity_from_decks_colorless_only_is_empty():
     decks = [set(), set(), set()]
     assert color_identity_from_decks(decks) == ""
+
+
+def test_color_identity_from_decks_drops_single_deck_splash_on_tiny_archetype():
+    # A 2-deck archetype: base UR in both decks, a black splash in only one.
+    # The splash is 0.5 share (above the 0.35 minimum) but appears in just 1 deck,
+    # below the absolute deck-count floor — so it must be dropped (the PAU Bogles
+    # → WUG leak). The base colors, in both decks, survive.
+    decks = [{"U", "R"}, {"U", "R", "B"}]
+    assert color_identity_from_decks(decks) == "UR"
+
+
+def test_color_identity_from_decks_one_deck_keeps_its_colors():
+    # A single-deck archetype: base and splash can't be distinguished, so the
+    # floor is capped at the deck count (1) and the deck's colors are kept —
+    # not blanked to gray.
+    assert color_identity_from_decks([{"W", "U", "G"}]) == "WUG"
+
+
+def test_color_identity_from_decks_floor_does_not_alter_large_fields():
+    # On a large field the share threshold dominates (0.35 * n >= the floor once
+    # n >= ~6), so the floor changes nothing: a color in 4 of 10 decks (>= 3.5)
+    # is kept, one in 3 of 10 (< 3.5) is dropped — exactly the share-only result.
+    kept = [{"G"} for _ in range(6)] + [{"G", "B"} for _ in range(4)]
+    assert color_identity_from_decks(kept) == "BG"
+    dropped = [{"G"} for _ in range(7)] + [{"G", "B"} for _ in range(3)]
+    assert color_identity_from_decks(dropped) == "G"
+
+
+def test_color_identity_min_deck_count_floor_is_at_least_two():
+    # The floor must be >= 2 for the single-deck-splash guard to bite on a
+    # 2-deck archetype; tests otherwise don't depend on the exact value.
+    assert COLOR_IDENTITY_MIN_DECK_COUNT >= 2
 
 
 def test_color_identity_from_decks_no_decks_is_empty():
