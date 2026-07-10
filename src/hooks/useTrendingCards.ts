@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
-import { WINDOW_DAYS, windowStartISO, type WindowCode } from '../lib/windows'
+import { windowStartISO, type WindowCode } from '../lib/windows'
 import { rankTrendingCards, type TopCardRow, type TrendingCard } from '../lib/trendingCards'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -31,7 +31,7 @@ const toRows = (data: TopCardQueryRow[] | null): TopCardRow[] =>
 export interface TrendingFilters {
   /** Restrict to these archetypes (an archetype or tier selection). null/omitted = all. */
   archetypeNames?: string[] | null
-  /** Restrict to a single event; suppresses the period delta. null/omitted = all. */
+  /** Restrict to a single event. null/omitted = all. */
   eventId?: number | null
 }
 
@@ -80,18 +80,13 @@ async function callTopCards(
 
 /**
  * The trending-cards tables for a format + time frame: the "En Tendencia"
- * mainboard table (ranked by copy share, with a period-over-period delta) and the
- * Top Sideboard Cards list (share only). Both derive from the `top_cards` RPC —
- * one call per window/board — so the browser never pulls raw deck_cards. The
- * mainboard delta compares the selected window to the immediately-preceding
- * equal-length window (both within the 30-day retention).
+ * mainboard table and the Top Sideboard Cards list, both ranked by copy share
+ * (with the total copy count). Each derives from the `top_cards` RPC — one call
+ * per board — so the browser never pulls raw deck_cards; lands are excluded
+ * server-side.
  *
  * Filters mirror the sidebar: `archetypeNames` (an archetype or tier selection)
- * narrows all calls via resolved ids; `eventId` narrows the current-window calls
- * and suppresses the delta (a single point-in-time event has no preceding period).
- * The preceding-window deck count is proxied by the top preceding card's deck
- * count — if even that is below the minimum, the window is too thin to compare, so
- * the delta is suppressed (see rankTrendingCards' MIN_PREV_DECKS guard).
+ * narrows both calls via resolved ids; `eventId` narrows them to a single event.
  */
 export function useTrendingCards(
   format: FormatCode,
@@ -111,10 +106,8 @@ export function useTrendingCards(
 
     const archetypeNames = namesKey ? (JSON.parse(namesKey) as string[]) : null
     const now = new Date()
-    const n = WINDOW_DAYS[metaWindow]
-    const selectedStart = windowStartISO(metaWindow, now) // now - n
-    const todayExclusive = isoOffset(now, -1) // tomorrow, so today's events are included
-    const precedingStart = isoOffset(now, 2 * n)
+    const start = windowStartISO(metaWindow, now) // now - n
+    const end = isoOffset(now, -1) // tomorrow, so today's events are included
 
     async function run() {
       const archetypeIds =
@@ -124,22 +117,12 @@ export function useTrendingCards(
             ? []
             : await resolveArchetypeIds(format, archetypeNames)
 
-      // The three slice queries are independent once ids are resolved - run them
-      // together. No meaningful preceding period under an event filter, so skip it.
-      const [mainCurrent, sideCurrent, mainPrev] = await Promise.all([
-        callTopCards(format, selectedStart, todayExclusive, 'main', archetypeIds, eventId),
-        callTopCards(format, selectedStart, todayExclusive, 'side', archetypeIds, eventId),
-        eventId !== null
-          ? Promise.resolve(null)
-          : callTopCards(format, precedingStart, selectedStart, 'main', archetypeIds, null),
+      const [main, side] = await Promise.all([
+        callTopCards(format, start, end, 'main', archetypeIds, eventId),
+        callTopCards(format, start, end, 'side', archetypeIds, eventId),
       ])
 
-      const prevDeckCount = mainPrev ? mainPrev.reduce((max, r) => Math.max(max, r.deckCount), 0) : 0
-
-      return {
-        trending: rankTrendingCards(mainCurrent, mainPrev, prevDeckCount),
-        sideboard: rankTrendingCards(sideCurrent, null, 0),
-      }
+      return { trending: rankTrendingCards(main), sideboard: rankTrendingCards(side) }
     }
 
     run()

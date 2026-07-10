@@ -23,6 +23,9 @@ import type { Tier } from './lib/tiers'
 import type { DeckRow } from './lib/deckSelection'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
+import { useTrendingCards } from './hooks/useTrendingCards'
+import { TrendingTable } from './components/TrendingTable'
+import { TopSideboardCards } from './components/TopSideboardCards'
 
 const SIDEBAR_MQ = '(max-width: 860px)'
 
@@ -147,6 +150,20 @@ function App() {
   // helper so the caption and the Event-filter dropdown never diverge.
   const selectedEvent = eventId !== null ? (events.find((e) => e.id === eventId) ?? null) : null
   const eventLabel = selectedEvent ? buildEventLabel(selectedEvent, i18n.language, t) : null
+
+  // Trending tables mirror the active slice: an isolated archetype narrows to that
+  // one, a tier to all of its (uncapped) archetypes, otherwise the whole field
+  // (null). The event filter is passed through to narrow the slice to that event.
+  const trendingArchetypeNames = archetypeFiltered
+    ? [archetypeName!]
+    : tierFiltered
+      ? breakdown.filter((a) => a.tier === tier).map((a) => a.name)
+      : null
+  const { trending, sideboard, loading: trendingLoading } = useTrendingCards(format, metaWindow, {
+    archetypeNames: trendingArchetypeNames,
+    eventId,
+  })
+
   const visibleBreakdown = archetypeFiltered
     ? breakdown.filter((a) => a.name === archetypeName)
     : tierFiltered
@@ -452,6 +469,15 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* Trending cards: desktop side-by-side (~2/3 trending, ~1/3 sideboard),
+                mobile stacked. Independent of the grid's data; only its own load. */}
+            {!trendingLoading && (
+              <div className="trending-layout">
+                <TrendingTable cards={trending} />
+                <TopSideboardCards cards={sideboard} />
+              </div>
+            )}
           </div>
         </main>
       </div>

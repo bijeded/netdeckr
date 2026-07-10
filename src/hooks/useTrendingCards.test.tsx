@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 
 // supabase.rpc('top_cards', params) -> thenable {data,error}, called once per
-// window/board. supabase.from('archetypes')... resolves selected names -> ids.
+// board. supabase.from('archetypes')... resolves selected names -> ids.
 const { rpc, from, archResult } = vi.hoisted(() => {
   const rpc = vi.fn()
   const archResult = { data: null as unknown, error: null as unknown }
@@ -22,23 +22,11 @@ function r(card_name: string, total_copies: number, deck_count = 1, image_url: s
   return { card_name, total_copies, deck_count, image_url }
 }
 
-/** Route each rpc call to canned data by board + whether it's the preceding window. */
-function routeRpc(map: {
-  mainCurrent?: unknown[]
-  mainPrev?: unknown[]
-  side?: unknown[]
-}) {
-  rpc.mockImplementation((_fn: string, params: Record<string, unknown>) => {
-    const isSide = params.p_board === 'side'
-    // The preceding call is the mainboard call whose window ends at the selected start.
-    const selectedStart = new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10)
-    const isPrev = !isSide && params.p_end <= selectedStart
-    let data: unknown[] = []
-    if (isSide) data = map.side ?? []
-    else if (isPrev) data = map.mainPrev ?? []
-    else data = map.mainCurrent ?? []
-    return Promise.resolve({ data, error: null })
-  })
+/** Route each rpc call to canned data by board. */
+function routeRpc(map: { main?: unknown[]; side?: unknown[] }) {
+  rpc.mockImplementation((_fn: string, params: Record<string, unknown>) =>
+    Promise.resolve({ data: params.p_board === 'side' ? (map.side ?? []) : (map.main ?? []), error: null }),
+  )
 }
 
 describe('useTrendingCards', () => {
@@ -48,50 +36,43 @@ describe('useTrendingCards', () => {
     archResult.error = null
   })
 
-  it('ranks the mainboard by copy share with a period delta and a share-only sideboard', async () => {
+  it('ranks the mainboard and sideboard by copy share with copy counts', async () => {
     routeRpc({
-      mainCurrent: [r('A', 60, 30), r('B', 40, 20)],
-      mainPrev: [r('A', 40, 20), r('B', 60, 25)],
+      main: [r('A', 60, 30), r('B', 40, 20)],
       side: [r('S1', 10, 8), r('S2', 5, 4)],
     })
     const { result } = renderHook(() => useTrendingCards('ST', '5days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(rpc).toHaveBeenCalledTimes(3)
+    // one call per board — no preceding-window call
+    expect(rpc).toHaveBeenCalledTimes(2)
     expect(result.current.trending.map((c) => c.cardName)).toEqual(['A', 'B'])
-    expect(result.current.trending[0]).toMatchObject({ sharePct: 60 })
-    expect(result.current.trending[0].delta).toMatchObject({ direction: 'up', valuePct: 20 })
-    // sideboard has no delta
+    expect(result.current.trending[0]).toMatchObject({ sharePct: 60, totalCopies: 60 })
     expect(result.current.sideboard.map((c) => c.cardName)).toEqual(['S1', 'S2'])
-    expect(result.current.sideboard.every((c) => c.delta === null)).toBe(true)
+    expect(result.current.sideboard[0]).toMatchObject({ totalCopies: 10 })
   })
 
   it('passes the selected format and both boards to the RPC', async () => {
-    routeRpc({ mainCurrent: [r('A', 1)], mainPrev: [r('A', 1)], side: [] })
+    routeRpc({ main: [r('A', 1)], side: [] })
     renderHook(() => useTrendingCards('MO', '2weeks'))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
     const boards = rpc.mock.calls.map((c) => c[1].p_board)
-    expect(boards).toContain('main')
-    expect(boards).toContain('side')
+    expect(boards).toEqual(expect.arrayContaining(['main', 'side']))
     expect(rpc.mock.calls.every((c) => c[1].p_format === 'MO')).toBe(true)
   })
 
-  it('suppresses the delta and skips the preceding call when an event filter is active', async () => {
-    routeRpc({ mainCurrent: [r('A', 10, 9)], side: [r('S1', 3)] })
+  it('passes the event id to both calls when an event filter is active', async () => {
+    routeRpc({ main: [r('A', 10, 9)], side: [r('S1', 3)] })
     const { result } = renderHook(() => useTrendingCards('ST', '5days', { eventId: 42 }))
     await waitFor(() => expect(result.current.loading).toBe(false))
-
-    // only main-current + side-current (no preceding window under an event filter)
-    expect(rpc).toHaveBeenCalledTimes(2)
-    expect(rpc.mock.calls.every((c) => c[1].p_event_id === 42 || c[1].p_board === undefined)).toBe(true)
-    expect(result.current.trending.every((c) => c.delta === null)).toBe(true)
+    expect(rpc.mock.calls.every((c) => c[1].p_event_id === 42)).toBe(true)
   })
 
   it('resolves selected archetype names to ids and passes them to the RPC', async () => {
     archResult.data = [{ id: 7, name: 'Izzet Prowess' }, { id: 9, name: 'Mono Red' }]
-    routeRpc({ mainCurrent: [r('A', 5, 4)], mainPrev: [r('A', 5, 4)], side: [] })
+    routeRpc({ main: [r('A', 5, 4)], side: [] })
     renderHook(() => useTrendingCards('ST', '5days', { archetypeNames: ['Izzet Prowess', 'Mono Red'] }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
 
     expect(from).toHaveBeenCalledWith('archetypes')
     expect(rpc.mock.calls.every((c) => {
@@ -101,23 +82,11 @@ describe('useTrendingCards', () => {
   })
 
   it('does not resolve archetypes when no archetype filter is set', async () => {
-    routeRpc({ mainCurrent: [r('A', 1)], mainPrev: [r('A', 1)], side: [] })
+    routeRpc({ main: [r('A', 1)], side: [] })
     renderHook(() => useTrendingCards('ST', '5days'))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
     expect(from).not.toHaveBeenCalled()
     expect(rpc.mock.calls.every((c) => c[1].p_archetype_ids == null)).toBe(true)
-  })
-
-  it('suppresses the delta when the preceding window is too thin', async () => {
-    // preceding top card is in only 2 decks -> below MIN_PREV_DECKS
-    routeRpc({
-      mainCurrent: [r('A', 60, 30), r('B', 40, 20)],
-      mainPrev: [r('A', 5, 2), r('B', 3, 1)],
-      side: [],
-    })
-    const { result } = renderHook(() => useTrendingCards('ST', '5days'))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.trending.every((c) => c.delta === null)).toBe(true)
   })
 
   it('exposes an error and empty tables on RPC failure', async () => {

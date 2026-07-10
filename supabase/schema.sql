@@ -228,13 +228,15 @@ grant select on public.formats, public.archetypes, public.events, public.decks,
 -- name for the requested slice (format + date window + board), with optional
 -- archetype and event narrowing to mirror the sidebar filters. Copy share is
 -- computed client-side as each card's total_copies over the sum of the returned
--- rows' copies (basic lands are excluded here, so they never dilute the share
--- nor consume a top-N slot). The frontend calls this per window/board:
--- main-current + main-previous (for the period delta) + side-current.
+-- rows' copies (lands are excluded here, so they never dilute the share nor
+-- consume a top-N slot). The frontend calls this per board: main + side.
 --
--- Basic-land exclusion uses `type_line ILIKE '%basic%land%'`, which matches both
--- "Basic Land — Plains" and "Basic Snow Land — Island"; a null type_line (a
--- Scryfall resolution miss) is kept so a resolution gap never hides a real card.
+-- Land exclusion uses `type_line ILIKE '%land%'`, which drops both basic and
+-- nonbasic lands (Basic Land, dual/fetch lands, Artifact Land, Urza's Saga) so
+-- the table shows spells rather than manabase; a null type_line (a Scryfall
+-- resolution miss) is kept so a resolution gap never hides a real card. (Tradeoff:
+-- a modal/split card with a land face, e.g. "Sorcery // Land", is also dropped —
+-- acceptable, the spells-only view is the intent.)
 -- SECURITY INVOKER (the default) so the caller's RLS applies — anon keeps its
 -- read-only access and no write path is exposed.
 -- ---------------------------------------------------------------------------
@@ -268,7 +270,7 @@ as $$
     and dc.board = p_board
     and e.event_date >= p_start
     and e.event_date <  p_end
-    and (dc.type_line is null or dc.type_line not ilike '%basic%land%')
+    and (dc.type_line is null or dc.type_line not ilike '%land%')
     and (p_archetype_ids is null or d.archetype_id = any (p_archetype_ids))
     and (p_event_id is null or d.event_id = p_event_id)
   group by dc.card_name
