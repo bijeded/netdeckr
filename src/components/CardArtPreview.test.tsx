@@ -35,6 +35,22 @@ describe('CardArtPreview', () => {
     expect(screen.queryByRole('img')).toBeNull()
   })
 
+  it('is not dismissed by the opening tap reaching the document (mobile)', () => {
+    // On real touch devices the pointerdown that opens the preview is still
+    // bubbling to `document` when React registers the dismiss listener, so that
+    // same tap would otherwise hide the preview instantly (net: nothing appears).
+    // A pointerdown whose target is the card name must not dismiss the preview.
+    render(<CardArtPreview name="Lightning Bolt" imageUrl={IMG} />)
+    const anchor = screen.getByText('Lightning Bolt')
+
+    fireEvent.pointerDown(anchor, { pointerType: 'touch', clientX: 30, clientY: 30 })
+    expect(screen.getByRole('img')).toBeInTheDocument()
+
+    // The opening gesture's pointerdown (target = the card name) reaches document.
+    fireEvent.pointerDown(anchor, { pointerType: 'touch' })
+    expect(screen.getByRole('img')).toBeInTheDocument()
+  })
+
   it('is a no-op when there is no image URL', () => {
     render(<CardArtPreview name="Homebrew" imageUrl={null} />)
     const anchor = screen.getByText('Homebrew')

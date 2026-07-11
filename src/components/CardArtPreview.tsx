@@ -35,16 +35,26 @@ export function CardArtPreview({ name, imageUrl }: CardArtPreviewProps) {
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const [failed, setFailed] = useState(false)
   const viaTouch = useRef(false)
+  const anchorRef = useRef<HTMLSpanElement>(null)
 
   const active = pos !== null && !failed
   const hide = () => setPos(null)
 
-  // Touch: dismiss on the next tap anywhere. The effect runs after the opening
-  // tap has finished propagating, so it never catches that tap itself.
+  // Touch: dismiss on the next tap anywhere outside the card name. The tap that
+  // *opened* the preview is skipped: on real touch devices React flushes this
+  // passive effect (registering the listener) before the opening pointerdown has
+  // finished bubbling to `document`, so without this guard that same tap would
+  // reach the listener and immediately hide the preview. Ignoring pointerdowns
+  // whose target is the anchor keeps the opening (and a re-tap) from dismissing,
+  // while a genuine outside tap still hides it.
   useEffect(() => {
     if (!active || !viaTouch.current) return
-    const onDocDown = () => hide()
-    document.addEventListener('pointerdown', onDocDown, { once: true })
+    const onDocDown = (e: PointerEvent) => {
+      const anchor = anchorRef.current
+      if (anchor && e.target instanceof Node && anchor.contains(e.target)) return
+      hide()
+    }
+    document.addEventListener('pointerdown', onDocDown)
     return () => document.removeEventListener('pointerdown', onDocDown)
   }, [active])
 
@@ -95,6 +105,7 @@ export function CardArtPreview({ name, imageUrl }: CardArtPreviewProps) {
   return (
     <>
       <span
+        ref={anchorRef}
         style={{ cursor: 'help' }}
         onPointerEnter={onPointerEnter}
         onPointerMove={onPointerMove}
