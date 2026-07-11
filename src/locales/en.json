@@ -95,13 +95,13 @@
     "es": "ES"
   },
   "trending": {
-    "title": "Trending",
-    "subtitle": "Top {{n}} · copies played",
+    "creaturesTitle": "Trending Creatures",
+    "spellsTitle": "Trending Spells",
     "sideboardTitle": "Top Sideboard Cards",
     "col": {
       "rank": "#",
       "card": "Card",
-      "current": "% Share",
+      "avg": "Avg",
       "count": "Copies"
     },
     "empty": "No trending cards yet",

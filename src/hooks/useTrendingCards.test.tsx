@@ -17,9 +17,15 @@ vi.mock('../lib/supabase', () => ({ supabase: { rpc, from } }))
 
 import { useTrendingCards } from './useTrendingCards'
 
-/** A raw RPC row. */
-function r(card_name: string, total_copies: number, deck_count = 1, image_url: string | null = null) {
-  return { card_name, total_copies, deck_count, image_url }
+/** A raw RPC row (now carries a creature/spell category). */
+function r(
+  card_name: string,
+  total_copies: number,
+  deck_count = 1,
+  category: 'creature' | 'spell' = 'spell',
+  image_url: string | null = null,
+) {
+  return { card_name, total_copies, deck_count, category, image_url }
 }
 
 /** Route each rpc call to canned data by board. */
@@ -36,9 +42,9 @@ describe('useTrendingCards', () => {
     archResult.error = null
   })
 
-  it('ranks the mainboard and sideboard by copy share with copy counts', async () => {
+  it('splits the mainboard into creatures and spells and ranks the sideboard', async () => {
     routeRpc({
-      main: [r('A', 60, 30), r('B', 40, 20)],
+      main: [r('Goblin', 60, 30, 'creature'), r('Bolt', 40, 20, 'spell'), r('Bear', 12, 6, 'creature')],
       side: [r('S1', 10, 8), r('S2', 5, 4)],
     })
     const { result } = renderHook(() => useTrendingCards('ST', '5days'))
@@ -46,8 +52,9 @@ describe('useTrendingCards', () => {
 
     // one call per board — no preceding-window call
     expect(rpc).toHaveBeenCalledTimes(2)
-    expect(result.current.trending.map((c) => c.cardName)).toEqual(['A', 'B'])
-    expect(result.current.trending[0]).toMatchObject({ sharePct: 60, totalCopies: 60 })
+    expect(result.current.creatures.map((c) => c.cardName)).toEqual(['Goblin', 'Bear'])
+    expect(result.current.creatures[0]).toMatchObject({ totalCopies: 60, avgCopies: 2 })
+    expect(result.current.spells.map((c) => c.cardName)).toEqual(['Bolt'])
     expect(result.current.sideboard.map((c) => c.cardName)).toEqual(['S1', 'S2'])
     expect(result.current.sideboard[0]).toMatchObject({ totalCopies: 10 })
   })
@@ -94,7 +101,8 @@ describe('useTrendingCards', () => {
     const { result } = renderHook(() => useTrendingCards('ST', '5days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.error).toEqual({ message: 'boom' })
-    expect(result.current.trending).toEqual([])
+    expect(result.current.creatures).toEqual([])
+    expect(result.current.spells).toEqual([])
     expect(result.current.sideboard).toEqual([])
   })
 })

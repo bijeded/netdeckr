@@ -39,8 +39,9 @@ beforeEach(() => {
   // Non-empty by default so the trending tables render (not their own frowny
   // empty-state), keeping the grid-empty assertions to a single frowny.
   useTrendingCards.mockReturnValue({
-    trending: [{ cardName: 'Trending Card', imageUrl: null, sharePct: 5, totalCopies: 100 }],
-    sideboard: [{ cardName: 'Sideboard Card', imageUrl: null, sharePct: 3, totalCopies: 40 }],
+    creatures: [{ cardName: 'Creature Card', imageUrl: null, totalCopies: 100, avgCopies: 4 }],
+    spells: [{ cardName: 'Spell Card', imageUrl: null, totalCopies: 80, avgCopies: 3 }],
+    sideboard: [{ cardName: 'Sideboard Card', imageUrl: null, totalCopies: 40, avgCopies: 2 }],
     loading: false,
     error: null,
   })
