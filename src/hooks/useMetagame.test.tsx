@@ -3,15 +3,26 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { corpusFetchStartISO } from '../lib/windows'
 
 // Chainable query-builder mock resolving to { data, error }.
-// decks -> select -> eq(format) -> gte(date) -> order(date desc) => result
-const { from, eq, gte, queryResult } = vi.hoisted(() => {
+// decks -> select -> eq(format) -> gte(date) -> order(date desc) -> order(id)
+//   -> range(from, to) => a page of rows (a slice of queryResult.data), so the
+// hook's pagination loop is exercised.
+const { from, eq, gte, range, queryResult } = vi.hoisted(() => {
   const queryResult = { data: null as unknown, error: null as unknown }
-  const order = vi.fn(() => Promise.resolve(queryResult))
+  const range = vi.fn((f: number, t: number) =>
+    Promise.resolve(
+      queryResult.error
+        ? { data: null, error: queryResult.error }
+        : { data: ((queryResult.data as unknown[]) ?? []).slice(f, t + 1), error: null },
+    ),
+  )
+  const orderChain = { range } as { range: typeof range; order: () => typeof orderChain }
+  const order = vi.fn(() => orderChain)
+  orderChain.order = order
   const gte = vi.fn((..._args: unknown[]) => ({ order }))
   const eq = vi.fn(() => ({ gte }))
   const select = vi.fn(() => ({ eq }))
   const from = vi.fn(() => ({ select }))
-  return { from, eq, gte, queryResult }
+  return { from, eq, gte, range, queryResult }
 })
 
 vi.mock('../lib/supabase', () => ({ supabase: { from } }))
@@ -101,6 +112,22 @@ describe('useMetagame', () => {
     expect(result.current.breakdown.map((a) => a.name)).toEqual(['Izzet Lesson'])
     // Recent finishes (all 1st) beat the 2-week baseline (which includes the 9-16s) → up.
     expect(result.current.breakdown[0].trend).toBe('up')
+  })
+
+  it('paginates past the 1000-row PostgREST cap to fetch the whole corpus', async () => {
+    // 1500 decks exceed PostgREST's default 1000-row page, so a single request
+    // would silently truncate the corpus (dropping the oldest rows under the
+    // date-desc order). The hook must page until a short page is returned.
+    queryResult.data = Array.from({ length: 1500 }, (_, i) =>
+      deckRow({ source_deck_id: `d${i}`, events: { id: 1, name: 'E', event_date: daysAgo(1) } }),
+    )
+    const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.totals.decks).toBe(1500)
+    expect(range).toHaveBeenCalledTimes(2)
+    expect(range).toHaveBeenNthCalledWith(1, 0, 999)
+    expect(range).toHaveBeenNthCalledWith(2, 1000, 1999)
   })
 
   it('returns an empty breakdown and map when there are no decks', async () => {
