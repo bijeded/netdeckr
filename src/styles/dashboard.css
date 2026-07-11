@@ -207,6 +207,37 @@
   columns: 2;
   column-gap: 18px;
 }
+/* Decklist modal header. Desktop: title/meta and the export/close actions sit
+   on one row (actions right-aligned). Mobile: the actions move to their own
+   right-aligned top row and the title/meta stack below at full width, so a long
+   archetype name never collides with the buttons. */
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  /* Actions come first in the DOM (so they can be the top row on mobile); on
+     desktop reorder them after the title/meta so they sit on the right. */
+  order: 1;
+}
+@media (max-width: 640px) {
+  .modal-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .modal-header-actions {
+    order: -1;
+    justify-content: flex-end;
+    margin-bottom: 14px;
+  }
+}
+
 /* Trending row: three tables (Creatures, Spells, Sideboard) 1/3 each on desktop. */
 .trending-layout {
   display: grid;

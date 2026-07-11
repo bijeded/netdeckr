@@ -204,19 +204,19 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
           boxShadow: '0 30px 80px rgba(0,0,0,.6)',
         }}
       >
-        {/* Header: actions on their own top row (right-aligned), then the title
-            and meta stacked below at full width so a long name never collides
-            with the buttons. */}
+        {/* Header. Desktop: title/meta on the left, actions on the right, same
+            row. Mobile (see .modal-header in dashboard.css): actions move to
+            their own right-aligned top row and the title/meta stack below at
+            full width so a long name never collides with the buttons. */}
         <div
+          className="modal-header"
           style={{
             padding: '16px 22px 16px',
             borderBottom: '1px solid var(--border-soft)',
             background: 'linear-gradient(120deg, var(--neon-tint-16), transparent 70%)',
-            display: 'flex',
-            flexDirection: 'column',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginBottom: 14 }}>
+          <div className="modal-header-actions">
             <button
               type="button"
               onClick={handleExport}
@@ -261,6 +261,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
               ✕
             </button>
           </div>
+          <div className="modal-header-info" style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7, flexWrap: 'wrap' }}>
             <ManaPips colors={deck.colorIdentity} size={13} />
             <span id="decklist-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-lg)', letterSpacing: 'var(--track-tight)' }}>
@@ -289,6 +290,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
               {notice.message}
             </div>
           )}
+          </div>
         </div>
 
         {/* Body */}
