@@ -1,0 +1,90 @@
+## ADDED Requirements
+
+### Requirement: Trending Creatures table
+
+The dashboard SHALL display a "Trending Creatures" / "Criaturas en Tendencia" table of the top 10 **mainboard creatures** for the current metagame view, ranked by **total copies** across the window's decks (copies summed across decks, so a 4-of contributes four times a 1-of). A card is a creature when its Scryfall `type_line` contains "Creature". **Lands** MUST be excluded. Each row SHALL show a zero-padded rank, the card name, an **average-copies-per-deck** value, and the **total copy count** (both mono). Average copies per deck is `total copies ÷ distinct decks running the card`, rounded to a whole number and rendered as `Nx` (e.g. `3x`). The table does NOT show a copy-share percentage. Card names are in English in both locales; all other chrome is localized (ES/EN).
+
+#### Scenario: Ranked by total copies
+- **WHEN** the selected format and time frame have decks with mainboard creatures
+- **THEN** the table lists the top 10 creatures by total copies, each showing rank, name, average copies per deck as `Nx`, and the total copy count
+
+#### Scenario: Average copies per deck
+- **WHEN** a creature has 34 total copies across 10 decks that run it
+- **THEN** its average column shows `3x` (34 ÷ 10 = 3.4, rounded)
+
+#### Scenario: Only creatures and no lands
+- **WHEN** the window's mainboards contain creatures, non-creature spells, and lands
+- **THEN** only creatures appear in this table, and no land appears
+
+### Requirement: Trending Spells table
+
+The dashboard SHALL display a "Trending Spells" / "Hechizos en Tendencia" table of the top 10 **mainboard non-land, non-creature cards** for the current metagame view, ranked by total copies (summed across decks). A card belongs here when its Scryfall `type_line` contains neither "Land" nor "Creature". Each row SHALL show a zero-padded rank, the card name, the average-copies-per-deck value (`Nx`, computed as for creatures), and the total copy count (both mono). The table does NOT show a copy-share percentage. Card names stay English in both locales; other chrome is localized.
+
+#### Scenario: Ranked by total copies
+- **WHEN** the selected format and time frame have decks with mainboard non-creature spells
+- **THEN** the table lists the top 10 non-land non-creature cards by total copies, each showing rank, name, average copies per deck as `Nx`, and the total copy count
+
+#### Scenario: Creatures and lands excluded
+- **WHEN** the window's mainboards contain creatures, non-creature spells, and lands
+- **THEN** only non-land non-creature cards appear in this table
+
+## MODIFIED Requirements
+
+### Requirement: Time-frame-aware trending
+
+The trending tables (Creatures, Spells, Sideboard) SHALL recompute their ranking, copy counts, and average-copies-per-deck for the selected time frame (`5days`/`2weeks`).
+
+#### Scenario: Switching the time frame
+- **WHEN** the user switches between Last 5 Days and 2 Weeks
+- **THEN** the rankings, copy counts, and average values recompute for that window
+
+### Requirement: Trending respects active filters
+
+The trending tables SHALL respect the sidebar filters. An active archetype or tier filter narrows the computation to that slice's decks; an active event filter narrows it to that event's decks. Copy counts and average-copies-per-deck are recomputed within the active slice.
+
+#### Scenario: Archetype or tier filter active
+- **WHEN** an archetype or tier filter is applied
+- **THEN** copy counts and averages are computed only over that filtered slice's decks
+
+#### Scenario: Event filter active
+- **WHEN** an event filter is applied
+- **THEN** copy counts and averages are recomputed within that event's decks
+
+#### Scenario: Filters cleared
+- **WHEN** all filters are cleared
+- **THEN** the tables revert to the full format + time-frame slice
+
+### Requirement: Top Sideboard Cards list
+
+The dashboard SHALL display a "Top Sideboard Cards" table of the top 10 cards by **total copies** computed over `board='side'` only, showing rank, card name, and the total copy count (mono). It SHALL render a header row matching the mainboard tables (for height parity) and does NOT show a copy-share percentage or an average-copies-per-deck column. It SHALL respect the same slice (format, time frame, archetype/tier/event filters) as the mainboard tables, exclude lands, and show a localized empty state when the slice has no sideboard cards.
+
+#### Scenario: Sideboard cards ranked
+- **WHEN** the active slice has sideboard cards
+- **THEN** the table shows a header row and the top 10 by total copies over `board='side'` with rank, card name, and copy count
+
+#### Scenario: Sideboard respects slice and time frame
+- **WHEN** the user changes the time frame or applies a filter
+- **THEN** the sideboard ranking and copy counts recompute for the same slice as the mainboard tables
+
+#### Scenario: No sideboard cards
+- **WHEN** the active slice has no sideboard cards
+- **THEN** a localized empty state is shown
+
+### Requirement: Responsive trending layout
+
+On desktop widths the three trending tables (Trending Creatures, Trending Spells, Top Sideboard Cards) SHALL sit side by side, each taking roughly one-third of the width. Below ~900px the three SHALL stack vertically in the order Creatures → Spells → Sideboard. The layout MUST stay legible at small widths (per the responsive convention).
+
+#### Scenario: Desktop three-up
+- **WHEN** the dashboard is viewed at a desktop width
+- **THEN** Trending Creatures, Trending Spells, and Top Sideboard Cards render side by side, each ~1/3 wide
+
+#### Scenario: Mobile stacked
+- **WHEN** the dashboard is viewed at a narrow width (below ~900px)
+- **THEN** the three tables stack vertically in the order Creatures, Spells, Sideboard, and stay legible
+
+## REMOVED Requirements
+
+### Requirement: Trending mainboard cards table
+
+**Reason**: The single mainboard "Trending" table is replaced by two type-partitioned tables (Trending Creatures + Trending Spells), and the copy-share metric is dropped in favor of total copies + average copies per deck.
+**Migration**: See the new "Trending Creatures table" and "Trending Spells table" requirements. The copy-share column and the "Top 10 · copies played" subtitle are removed; total copies and an average-copies-per-deck (`Nx`) column take their place.

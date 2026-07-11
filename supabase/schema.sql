@@ -221,26 +221,38 @@ grant select on public.formats, public.archetypes, public.events, public.decks,
   to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
--- Trending cards aggregation (change add-trending-cards-table).
--- Per-card copy counts for the "En Tendencia" trending table and the Top
--- Sideboard Cards list, aggregated server-side so the browser never pulls the
--- ~88k raw deck_cards lines the largest formats hold. Returns one row per card
--- name for the requested slice (format + date window + board), with optional
--- archetype and event narrowing to mirror the sidebar filters. Copy share is
--- computed client-side as each card's total_copies over the sum of the returned
--- rows' copies (lands are excluded here, so they never dilute the share nor
--- consume a top-N slot). The frontend calls this per board: main + side.
+-- Trending cards aggregation (changes add-trending-cards-table, revamp-trending-cards).
+-- Per-card copy counts for the trending tables (Trending Creatures, Trending
+-- Spells, Top Sideboard Cards), aggregated server-side so the browser never
+-- pulls the ~88k raw deck_cards lines the largest formats hold. Returns one row
+-- per card name for the requested slice (format + date window + board), with
+-- optional archetype and event narrowing to mirror the sidebar filters. Each row
+-- carries total_copies and deck_count (the frontend derives average copies per
+-- deck as total_copies / deck_count) plus a `category` of 'creature' or 'spell'
+-- so the mainboard can be split into the Trending Creatures / Trending Spells
+-- tables. The frontend calls this per board: main + side.
+--
+-- Category: a card is 'creature' when its Scryfall type_line contains "Creature"
+-- (incl. "Artifact Creature" etc., and any face of a modal/split card), else
+-- 'spell'; a null type_line is 'spell'. bool_or over the group keeps the
+-- expression valid under GROUP BY card_name (type_line isn't a group key).
 --
 -- Land exclusion uses `type_line ILIKE '%land%'`, which drops both basic and
 -- nonbasic lands (Basic Land, dual/fetch lands, Artifact Land, Urza's Saga) so
--- the table shows spells rather than manabase; a null type_line (a Scryfall
--- resolution miss) is kept so a resolution gap never hides a real card. (Tradeoff:
--- a modal/split card with a land face, e.g. "Sorcery // Land", is also dropped —
--- acceptable, the spells-only view is the intent.)
+-- the tables show spells/creatures rather than manabase; a null type_line (a
+-- Scryfall resolution miss) is kept so a resolution gap never hides a real card.
+-- (Tradeoff: a modal/split card with a land face, e.g. "Sorcery // Land", is also
+-- dropped — acceptable, the spells-only view is the intent.)
 -- SECURITY INVOKER (the default) so the caller's RLS applies — anon keeps its
 -- read-only access and no write path is exposed.
+--
+-- The return signature changed in revamp-trending-cards (added `category`), so
+-- the old function is dropped first — create-or-replace cannot alter a function's
+-- OUT columns in place.
 -- ---------------------------------------------------------------------------
-create or replace function public.top_cards(
+drop function if exists public.top_cards(text, date, date, text, bigint[], bigint);
+
+create function public.top_cards(
   p_format         text,
   p_start          date,
   p_end            date,
@@ -252,7 +264,8 @@ returns table (
   card_name    text,
   total_copies bigint,
   deck_count   bigint,
-  image_url    text
+  image_url    text,
+  category     text
 )
 language sql
 stable
@@ -262,7 +275,9 @@ as $$
   select dc.card_name,
          sum(dc.quantity)::bigint            as total_copies,
          count(distinct dc.deck_id)::bigint  as deck_count,
-         max(dc.image_url)                   as image_url
+         max(dc.image_url)                   as image_url,
+         case when bool_or(dc.type_line ilike '%creature%')
+              then 'creature' else 'spell' end as category
   from public.deck_cards dc
   join public.decks  d on d.id = dc.deck_id
   join public.events e on e.id = d.event_id
