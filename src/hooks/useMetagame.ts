@@ -68,6 +68,43 @@ export interface MetagameTotals {
 const EMPTY_TOTALS: MetagameTotals = { events: 0, archetypes: 0, decks: 0 }
 
 /**
+ * PostgREST caps a response at 1000 rows by default, so the corpus of a large
+ * format (Modern/Pauper run past that over 28 days) must be fetched page by page
+ * — otherwise the oldest rows are silently dropped under the date-desc order.
+ */
+const PAGE_SIZE = 1000
+
+/**
+ * Fetch every deck in the format's 28-day corpus, paging past PostgREST's 1000-row
+ * cap. A stable secondary `id` order keeps pages from overlapping or skipping rows
+ * when many share an `event_date`. Stops once a page comes back short.
+ */
+async function fetchCorpusDecks(
+  formatCode: FormatCode,
+): Promise<{ data: DeckQueryRow[] | null; error: unknown }> {
+  const all: DeckQueryRow[] = []
+  const startISO = corpusFetchStartISO()
+  for (let page = 0; ; page++) {
+    const fromRow = page * PAGE_SIZE
+    const { data, error } = await supabase
+      .from('decks')
+      .select(
+        'id, source_deck_id, player, placement, archetypes(name, color_identity, art_image_url, art_crop_url), events!inner(id, name, event_date, format_code, player_count)',
+      )
+      .eq('events.format_code', formatCode)
+      .gte('events.event_date', startISO)
+      .order('event_date', { referencedTable: 'events', ascending: false })
+      .order('id', { ascending: true })
+      .range(fromRow, fromRow + PAGE_SIZE - 1)
+    if (error) return { data: null, error }
+    const rows = (data as unknown as DeckQueryRow[] | null) ?? []
+    all.push(...rows)
+    if (rows.length < PAGE_SIZE) break
+  }
+  return { data: all, error: null }
+}
+
+/**
  * The metagame for a format, derived from one fetch of a **28-day** corpus (two
  * 2-week windows). The 2-week tier baseline and the selected window are date
  * subsets of it; the extra 14 days feed only the preceding slice of each
@@ -103,14 +140,7 @@ export function useMetagame(
     let active = true
     setLoading(true)
 
-    supabase
-      .from('decks')
-      .select(
-        'id, source_deck_id, player, placement, archetypes(name, color_identity, art_image_url, art_crop_url), events!inner(id, name, event_date, format_code, player_count)',
-      )
-      .eq('events.format_code', formatCode)
-      .gte('events.event_date', corpusFetchStartISO())
-      .order('event_date', { referencedTable: 'events', ascending: false })
+    fetchCorpusDecks(formatCode)
       .then(({ data: rows, error: queryError }) => {
         if (!active) return
         if (queryError) {
