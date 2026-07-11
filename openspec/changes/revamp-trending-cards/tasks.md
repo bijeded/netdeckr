@@ -1,7 +1,7 @@
 ## 1. Aggregation RPC — creature/spell category
 
-- [ ] 1.1 Extend `top_cards` in `supabase/schema.sql` to return a `category text` column (`creature` when `type_line` contains "Creature", else `spell`), computed with an aggregate expression valid under `GROUP BY card_name` (e.g. `case when bool_or(dc.type_line ilike '%creature%') then 'creature' else 'spell' end`); keep the existing land exclusion and update the function comment (creature/spell + MDFC note). Since the return signature changes, `drop function` then `create or replace`, and re-`grant execute` to anon/authenticated.
-- [ ] 1.2 Validate the changed SQL with `pglast`; hand off the manual service-role re-apply (assistant has anon key only). Confirm the RPC returns `category` for a live slice.
+- [x] 1.1 Extend `top_cards` in `supabase/schema.sql` to return a `category text` column (`creature` when `type_line` contains "Creature", else `spell`), computed with an aggregate expression valid under `GROUP BY card_name` (e.g. `case when bool_or(dc.type_line ilike '%creature%') then 'creature' else 'spell' end`); keep the existing land exclusion and update the function comment (creature/spell + MDFC note). Since the return signature changes, `drop function` then `create or replace`, and re-`grant execute` to anon/authenticated.
+- [x] 1.2 Validate the changed SQL with `pglast`; hand off the manual service-role re-apply (assistant has anon key only). Confirm the RPC returns `category` for a live slice.
 
 ## 2. Ranking lib — drop share, add avg + category
 

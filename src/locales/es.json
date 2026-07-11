@@ -95,13 +95,13 @@
     "es": "ES"
   },
   "trending": {
-    "title": "En Tendencia",
-    "subtitle": "Top {{n}} · copias jugadas",
+    "creaturesTitle": "Criaturas en Tendencia",
+    "spellsTitle": "Hechizos en Tendencia",
     "sideboardTitle": "Top Cartas de Sideboard",
     "col": {
       "rank": "#",
       "card": "Carta",
-      "current": "% Cuota",
+      "avg": "Prom.",
       "count": "Copias"
     },
     "empty": "Aún no hay cartas en tendencia",

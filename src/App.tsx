@@ -24,8 +24,7 @@ import type { DeckRow } from './lib/deckSelection'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 import { useTrendingCards } from './hooks/useTrendingCards'
-import { TrendingTable } from './components/TrendingTable'
-import { TopSideboardCards } from './components/TopSideboardCards'
+import { TopCardsTable } from './components/TopCardsTable'
 
 const SIDEBAR_MQ = '(max-width: 860px)'
 
@@ -159,7 +158,12 @@ function App() {
     : tierFiltered
       ? breakdown.filter((a) => a.tier === tier).map((a) => a.name)
       : null
-  const { trending, sideboard, loading: trendingLoading } = useTrendingCards(format, metaWindow, {
+  const {
+    creatures,
+    spells,
+    sideboard,
+    loading: trendingLoading,
+  } = useTrendingCards(format, metaWindow, {
     archetypeNames: trendingArchetypeNames,
     eventId,
   })
@@ -470,12 +474,28 @@ function App() {
               )}
             </div>
 
-            {/* Trending cards: desktop side-by-side (~2/3 trending, ~1/3 sideboard),
-                mobile stacked. Independent of the grid's data; only its own load. */}
+            {/* Trending cards: three tables 1/3 each on desktop (Creatures, Spells,
+                Sideboard), stacked below ~900px. Independent of the grid's data;
+                only its own load. */}
             {!trendingLoading && (
               <div className="trending-layout">
-                <TrendingTable cards={trending} />
-                <TopSideboardCards cards={sideboard} />
+                <TopCardsTable
+                  title={t('trending.creaturesTitle')}
+                  cards={creatures}
+                  showAvg
+                  emptyMessage={t('trending.empty')}
+                />
+                <TopCardsTable
+                  title={t('trending.spellsTitle')}
+                  cards={spells}
+                  showAvg
+                  emptyMessage={t('trending.empty')}
+                />
+                <TopCardsTable
+                  title={t('trending.sideboardTitle')}
+                  cards={sideboard}
+                  emptyMessage={t('trending.sideboardEmpty')}
+                />
               </div>
             )}
           </div>

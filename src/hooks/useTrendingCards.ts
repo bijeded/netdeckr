@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
 import { windowStartISO, type WindowCode } from '../lib/windows'
-import { rankTrendingCards, type TopCardRow, type TrendingCard } from '../lib/trendingCards'
+import {
+  rankTrendingCards,
+  partitionByCategory,
+  type CardCategory,
+  type TopCardRow,
+  type TrendingCard,
+} from '../lib/trendingCards'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -16,6 +22,7 @@ interface TopCardQueryRow {
   card_name: string
   total_copies: number
   deck_count: number
+  category: CardCategory
   image_url: string | null
 }
 
@@ -24,6 +31,7 @@ const toRows = (data: TopCardQueryRow[] | null): TopCardRow[] =>
     cardName: row.card_name,
     totalCopies: row.total_copies,
     deckCount: row.deck_count,
+    category: row.category,
     imageUrl: row.image_url,
   }))
 
@@ -36,13 +44,17 @@ export interface TrendingFilters {
 }
 
 interface TrendingState {
-  trending: TrendingCard[]
+  /** Top mainboard creatures, ranked by total copies. */
+  creatures: TrendingCard[]
+  /** Top mainboard non-land, non-creature spells, ranked by total copies. */
+  spells: TrendingCard[]
+  /** Top sideboard cards, ranked by total copies. */
   sideboard: TrendingCard[]
   loading: boolean
   error: unknown
 }
 
-const EMPTY: TrendingState = { trending: [], sideboard: [], loading: false, error: null }
+const EMPTY: TrendingState = { creatures: [], spells: [], sideboard: [], loading: false, error: null }
 
 /** Resolve selected archetype names to their per-format ids for the RPC filter. */
 async function resolveArchetypeIds(format: FormatCode, names: string[]): Promise<number[]> {
@@ -79,11 +91,12 @@ async function callTopCards(
 }
 
 /**
- * The trending-cards tables for a format + time frame: the "En Tendencia"
- * mainboard table and the Top Sideboard Cards list, both ranked by copy share
- * (with the total copy count). Each derives from the `top_cards` RPC — one call
- * per board — so the browser never pulls raw deck_cards; lands are excluded
- * server-side.
+ * The trending-cards tables for a format + time frame: Trending Creatures and
+ * Trending Spells (the mainboard split by card category) plus the Top Sideboard
+ * Cards list, each ranked by total copies (with an average-copies-per-deck
+ * value). Derives from the `top_cards` RPC — one call per board, the mainboard
+ * rows partitioned by category — so the browser never pulls raw deck_cards;
+ * lands are excluded server-side.
  *
  * Filters mirror the sidebar: `archetypeNames` (an archetype or tier selection)
  * narrows both calls via resolved ids; `eventId` narrows them to a single event.
@@ -122,13 +135,18 @@ export function useTrendingCards(
         callTopCards(format, start, end, 'side', archetypeIds, eventId),
       ])
 
-      return { trending: rankTrendingCards(main), sideboard: rankTrendingCards(side) }
+      const { creatures, spells } = partitionByCategory(main)
+      return {
+        creatures: rankTrendingCards(creatures),
+        spells: rankTrendingCards(spells),
+        sideboard: rankTrendingCards(side),
+      }
     }
 
     run()
-      .then(({ trending, sideboard }) => {
+      .then(({ creatures, spells, sideboard }) => {
         if (!active) return
-        setState({ trending, sideboard, loading: false, error: null })
+        setState({ creatures, spells, sideboard, loading: false, error: null })
       })
       .catch((error) => {
         if (!active) return

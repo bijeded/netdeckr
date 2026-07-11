@@ -2,12 +2,13 @@ import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CardArtPreview } from './CardArtPreview'
 import { EmptyState } from './EmptyState'
-import { TRENDING_TOP_N, type TrendingCard } from '../lib/trendingCards'
+import type { TrendingCard } from '../lib/trendingCards'
 
-// The "En Tendencia" trending table: the top mainboard cards for the current
-// metagame view, ranked by copy share, each with its total copy count. Lands are
-// excluded upstream (in the top_cards RPC) so this shows spells/creatures.
-// Ported from the design's trending grid.
+// A trending-cards table used for all three surfaces: Trending Creatures,
+// Trending Spells (both with `showAvg`), and Top Sideboard Cards (without).
+// Rows are rank · card · [avg Nx] · copies. Lands are excluded upstream (in the
+// top_cards RPC); the mainboard/sideboard split and the creature/spell partition
+// happen in the hook. Ported from the design's trending grid.
 
 const containerStyle: CSSProperties = {
   border: '1px solid var(--border-soft)',
@@ -32,15 +33,6 @@ const numCellStyle: CSSProperties = {
   fontWeight: 'var(--fw-medium)',
 }
 
-const rowStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '34px 1fr 92px 92px',
-  alignItems: 'center',
-  gap: 8,
-  padding: '11px 20px',
-  borderBottom: '1px solid rgba(255,255,255,.035)',
-}
-
 /** A card name with its dashed underline + hover/touch art preview. */
 export function TrendingCardName({ card }: { card: TrendingCard }) {
   return (
@@ -50,15 +42,30 @@ export function TrendingCardName({ card }: { card: TrendingCard }) {
   )
 }
 
-interface TrendingTableProps {
+interface TopCardsTableProps {
+  /** Localized table title (e.g. "Trending Creatures"). */
+  title: string
   cards: TrendingCard[]
+  /** Show the average-copies-per-deck column (mainboard tables only). */
+  showAvg?: boolean
+  /** Localized empty-state message. */
+  emptyMessage: string
 }
 
-export function TrendingTable({ cards }: TrendingTableProps) {
+export function TopCardsTable({ title, cards, showAvg = false, emptyMessage }: TopCardsTableProps) {
   const { t } = useTranslation()
 
+  const rowStyle: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: showAvg ? '34px 1fr 64px 72px' : '34px 1fr 72px',
+    alignItems: 'center',
+    gap: 8,
+    padding: '11px 20px',
+    borderBottom: '1px solid rgba(255,255,255,.035)',
+  }
+
   return (
-    <section style={containerStyle} aria-label={t('trending.title')}>
+    <section style={containerStyle} aria-label={title}>
       <div
         style={{
           display: 'flex',
@@ -88,21 +95,18 @@ export function TrendingTable({ cards }: TrendingTableProps) {
             letterSpacing: 'var(--track-snug)',
           }}
         >
-          {t('trending.title')}
+          {title}
         </h2>
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
-          {t('trending.subtitle', { n: TRENDING_TOP_N })}
-        </span>
       </div>
 
       {cards.length === 0 ? (
-        <EmptyState message={t('trending.empty')} />
+        <EmptyState message={emptyMessage} />
       ) : (
         <>
           <div style={{ ...rowStyle, borderBottom: '1px solid var(--border-hair)' }}>
             <span style={headerCellStyle}>{t('trending.col.rank')}</span>
             <span style={headerCellStyle}>{t('trending.col.card')}</span>
-            <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.current')}</span>
+            {showAvg && <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.avg')}</span>}
             <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.count')}</span>
           </div>
 
@@ -114,7 +118,7 @@ export function TrendingTable({ cards }: TrendingTableProps) {
               <span style={{ fontSize: 'var(--fs-base)', fontWeight: 'var(--fw-medium)' }}>
                 <TrendingCardName card={card} />
               </span>
-              <span style={numCellStyle}>{card.sharePct.toFixed(1)}%</span>
+              {showAvg && <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>{card.avgCopies}x</span>}
               <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>{card.totalCopies}</span>
             </div>
           ))}

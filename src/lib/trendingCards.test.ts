@@ -1,23 +1,44 @@
 import { describe, it, expect } from 'vitest'
-import { rankTrendingCards, TRENDING_TOP_N, type TopCardRow } from './trendingCards'
+import {
+  rankTrendingCards,
+  partitionByCategory,
+  TRENDING_TOP_N,
+  type TopCardRow,
+} from './trendingCards'
 
 /** Build a TopCardRow with sensible defaults. */
-function row(cardName: string, totalCopies: number, deckCount = 1, imageUrl: string | null = null): TopCardRow {
-  return { cardName, totalCopies, deckCount, imageUrl }
+function row(
+  cardName: string,
+  totalCopies: number,
+  deckCount = 1,
+  category: 'creature' | 'spell' = 'spell',
+  imageUrl: string | null = null,
+): TopCardRow {
+  return { cardName, totalCopies, deckCount, category, imageUrl }
 }
 
-describe('rankTrendingCards — copy share, count, and ranking', () => {
-  it('computes copy share as a card copies over the summed copies of the slice', () => {
-    const rows = [row('A', 60), row('B', 30), row('C', 10)] // total 100
-    const result = rankTrendingCards(rows)
-    expect(result[0]).toMatchObject({ cardName: 'A', sharePct: 60, totalCopies: 60 })
-    expect(result[1]).toMatchObject({ cardName: 'B', sharePct: 30, totalCopies: 30 })
-    expect(result[2]).toMatchObject({ cardName: 'C', sharePct: 10, totalCopies: 10 })
-  })
-
+describe('rankTrendingCards — total copies, average, and ranking', () => {
   it('carries the raw total copy count per card', () => {
     const result = rankTrendingCards([row('A', 42, 12)])
     expect(result[0].totalCopies).toBe(42)
+  })
+
+  it('computes average copies per deck as copies / decks running it, rounded', () => {
+    // 34 copies across 10 decks -> 3.4 -> 3x
+    expect(rankTrendingCards([row('A', 34, 10)])[0].avgCopies).toBe(3)
+    // 35 across 10 -> 3.5 -> 4x (round half up)
+    expect(rankTrendingCards([row('B', 35, 10)])[0].avgCopies).toBe(4)
+    // 40 across 10 -> 4x
+    expect(rankTrendingCards([row('C', 40, 10)])[0].avgCopies).toBe(4)
+  })
+
+  it('yields 0 average (not NaN) when a card has zero decks', () => {
+    expect(rankTrendingCards([row('A', 0, 0)])[0].avgCopies).toBe(0)
+  })
+
+  it('does not expose a copy-share percentage', () => {
+    const result = rankTrendingCards([row('A', 10, 2)])
+    expect(result[0]).not.toHaveProperty('sharePct')
   })
 
   it('weights copies, not deck presence (a 4-of outranks a widely-run 1-of)', () => {
@@ -44,13 +65,25 @@ describe('rankTrendingCards — copy share, count, and ranking', () => {
     expect(rankTrendingCards([])).toEqual([])
   })
 
-  it('yields 0% (not NaN) when the slice has zero copies', () => {
-    const result = rankTrendingCards([row('A', 0)])
-    expect(result[0].sharePct).toBe(0)
+  it('carries the card image url through', () => {
+    const result = rankTrendingCards([row('A', 5, 1, 'spell', 'http://img/a.png')])
+    expect(result[0].imageUrl).toBe('http://img/a.png')
+  })
+})
+
+describe('partitionByCategory — split mainboard rows by card type', () => {
+  it('separates creatures from spells', () => {
+    const rows = [
+      row('Goblin', 8, 4, 'creature'),
+      row('Bolt', 12, 4, 'spell'),
+      row('Bear', 4, 2, 'creature'),
+    ]
+    const { creatures, spells } = partitionByCategory(rows)
+    expect(creatures.map((r) => r.cardName).sort()).toEqual(['Bear', 'Goblin'])
+    expect(spells.map((r) => r.cardName)).toEqual(['Bolt'])
   })
 
-  it('carries the card image url through', () => {
-    const result = rankTrendingCards([row('A', 5, 1, 'http://img/a.png')])
-    expect(result[0].imageUrl).toBe('http://img/a.png')
+  it('returns empty groups for an empty input', () => {
+    expect(partitionByCategory([])).toEqual({ creatures: [], spells: [] })
   })
 })
