@@ -1,45 +1,57 @@
 # trending-cards-view
 
 ## Purpose
-The dashboard's trending-cards surface: an "En Tendencia" / "Trending" mainboard table (top cards ranked by copy share, with a total copy count) and a Top Sideboard Cards list, both derived at read time from the scraped decks via the `top_cards` aggregation. Lands are excluded so the tables show spells and creatures; the tables are time-frame aware, respect the sidebar filters, and localize their chrome (ES/EN) while keeping card names in English.
+The dashboard's trending-cards surface: three tables derived at read time from the scraped decks via the `top_cards` aggregation — **Trending Creatures** and **Trending Spells** (the mainboard split by card type) and a **Top Sideboard Cards** table. Each ranks its slice by total copies; the mainboard tables also show an average-copies-per-deck value. Lands are excluded so the tables show spells and creatures; the tables are time-frame aware, respect the sidebar filters, and localize their chrome (ES/EN) while keeping card names in English.
 
 ## Requirements
 
-### Requirement: Trending mainboard cards table
+### Requirement: Trending Creatures table
 
-The dashboard SHALL display an "En Tendencia" / "Trending" table of the top 10 mainboard cards for the current metagame view, ranked by **copy share** — each card's total mainboard copies across the window's decks divided by the total mainboard copies of all eligible cards in that slice. Copies MUST be summed across decks so a 4-of contributes four times a 1-of. **Lands** (basic and nonbasic — any card whose Scryfall `type_line` contains "Land") MUST be excluded from the ranking and the share denominator, so the table shows spells and creatures rather than manabase. Each row SHALL show a zero-padded rank, the card name, the copy share (mono, one decimal), and the **total number of copies** of that card in the slice (mono integer). The table does NOT show a period-over-period delta. Card names are in English in both locales; all other chrome is localized (ES/EN).
+The dashboard SHALL display a "Trending Creatures" / "Criaturas en Tendencia" table of the top 10 **mainboard creatures** for the current metagame view, ranked by **total copies** across the window's decks (copies summed across decks, so a 4-of contributes four times a 1-of). A card is a creature when its Scryfall `type_line` contains "Creature". **Lands** MUST be excluded. Each row SHALL show a zero-padded rank, the card name, an **average-copies-per-deck** value, and the **total copy count** (both mono). Average copies per deck is `total copies ÷ distinct decks running the card`, rounded to a whole number and rendered as `Nx` (e.g. `3x`). The table does NOT show a copy-share percentage. Card names are in English in both locales; all other chrome is localized (ES/EN).
 
-#### Scenario: Ranked by copy share with a copy count
-- **WHEN** the selected format and time frame have decks with eligible mainboard cards
-- **THEN** the table lists the top 10 non-land cards by copy share, each showing rank, name, copy share as a mono one-decimal percentage, and the total copies as a mono integer
+#### Scenario: Ranked by total copies
+- **WHEN** the selected format and time frame have decks with mainboard creatures
+- **THEN** the table lists the top 10 creatures by total copies, each showing rank, name, average copies per deck as `Nx`, and the total copy count
 
-#### Scenario: Copies are weighted
-- **WHEN** a card appears as a 4-of in some decks and a 1-of in others
-- **THEN** its copy share and copy count reflect the summed copies (a 4-of contributes four times a 1-of), not deck presence
+#### Scenario: Average copies per deck
+- **WHEN** a creature has 34 total copies across 10 decks that run it
+- **THEN** its average column shows `3x` (34 ÷ 10 = 3.4, rounded)
 
-#### Scenario: Lands excluded
-- **WHEN** the window's mainboards contain lands (basic lands, dual lands, fetchlands, Urza's Saga, etc.)
-- **THEN** none of them appear in the table, and they do not count toward the share denominator
+#### Scenario: Only creatures and no lands
+- **WHEN** the window's mainboards contain creatures, non-creature spells, and lands
+- **THEN** only creatures appear in this table, and no land appears
+
+### Requirement: Trending Spells table
+
+The dashboard SHALL display a "Trending Spells" / "Hechizos en Tendencia" table of the top 10 **mainboard non-land, non-creature cards** for the current metagame view, ranked by total copies (summed across decks). A card belongs here when its Scryfall `type_line` contains neither "Land" nor "Creature". Each row SHALL show a zero-padded rank, the card name, the average-copies-per-deck value (`Nx`, computed as for creatures), and the total copy count (both mono). The table does NOT show a copy-share percentage. Card names stay English in both locales; other chrome is localized.
+
+#### Scenario: Ranked by total copies
+- **WHEN** the selected format and time frame have decks with mainboard non-creature spells
+- **THEN** the table lists the top 10 non-land non-creature cards by total copies, each showing rank, name, average copies per deck as `Nx`, and the total copy count
+
+#### Scenario: Creatures and lands excluded
+- **WHEN** the window's mainboards contain creatures, non-creature spells, and lands
+- **THEN** only non-land non-creature cards appear in this table
 
 ### Requirement: Time-frame-aware trending
 
-The trending table SHALL recompute its ranking, copy share, and copy count for the selected time frame (`5days`/`2weeks`).
+The trending tables (Creatures, Spells, Sideboard) SHALL recompute their ranking, copy counts, and average-copies-per-deck for the selected time frame (`5days`/`2weeks`).
 
 #### Scenario: Switching the time frame
 - **WHEN** the user switches between Last 5 Days and 2 Weeks
-- **THEN** the ranking, percentages, and copy counts recompute for that window
+- **THEN** the rankings, copy counts, and average values recompute for that window
 
 ### Requirement: Trending respects active filters
 
-The trending tables SHALL respect the sidebar filters. An active archetype or tier filter narrows the computation to that slice's decks; an active event filter narrows it to that event's decks. Copy share and copy count are recomputed within the active slice.
+The trending tables SHALL respect the sidebar filters. An active archetype or tier filter narrows the computation to that slice's decks; an active event filter narrows it to that event's decks. Copy counts and average-copies-per-deck are recomputed within the active slice.
 
 #### Scenario: Archetype or tier filter active
 - **WHEN** an archetype or tier filter is applied
-- **THEN** copy share and copy count are computed only over that filtered slice's decks
+- **THEN** copy counts and averages are computed only over that filtered slice's decks
 
 #### Scenario: Event filter active
 - **WHEN** an event filter is applied
-- **THEN** copy share and copy count are recomputed within that event's decks
+- **THEN** copy counts and averages are recomputed within that event's decks
 
 #### Scenario: Filters cleared
 - **WHEN** all filters are cleared
@@ -55,15 +67,15 @@ When the active slice has no eligible cards for a table's board, that table SHAL
 
 ### Requirement: Top Sideboard Cards list
 
-The dashboard SHALL display a "Top Sideboard Cards" list of the top 10 cards by copy share computed over `board='side'` only, showing rank, card name, and copy-share percentage. It SHALL respect the same slice (format, time frame, archetype/tier/event filters) as the trending mainboard table, exclude lands, and show a localized empty state when the slice has no sideboard cards.
+The dashboard SHALL display a "Top Sideboard Cards" table of the top 10 cards by **total copies** computed over `board='side'` only, showing rank, card name, and the total copy count (mono). It SHALL render a header row matching the mainboard tables (for height parity) and does NOT show a copy-share percentage or an average-copies-per-deck column. It SHALL respect the same slice (format, time frame, archetype/tier/event filters) as the mainboard tables, exclude lands, and show a localized empty state when the slice has no sideboard cards.
 
 #### Scenario: Sideboard cards ranked
 - **WHEN** the active slice has sideboard cards
-- **THEN** the list shows the top 10 by copy share over `board='side'` with rank, card name, and percentage
+- **THEN** the table shows a header row and the top 10 by total copies over `board='side'` with rank, card name, and copy count
 
 #### Scenario: Sideboard respects slice and time frame
 - **WHEN** the user changes the time frame or applies a filter
-- **THEN** the sideboard ranking and percentages recompute for the same slice as the trending table
+- **THEN** the sideboard ranking and copy counts recompute for the same slice as the mainboard tables
 
 #### Scenario: No sideboard cards
 - **WHEN** the active slice has no sideboard cards
@@ -83,12 +95,12 @@ Each card row in the trending and sideboard tables SHALL preview the card's full
 
 ### Requirement: Responsive trending layout
 
-On desktop widths the trending mainboard table and the Top Sideboard Cards list SHALL sit side by side, with the trending table taking roughly two-thirds of the width and the sideboard list roughly one-third. On mobile widths the two SHALL stack vertically with the trending table above the sideboard list. The layout MUST stay legible at small widths (per the responsive convention).
+On desktop widths the three trending tables (Trending Creatures, Trending Spells, Top Sideboard Cards) SHALL sit side by side, each taking roughly one-third of the width. Below ~900px the three SHALL stack vertically in the order Creatures → Spells → Sideboard. The layout MUST stay legible at small widths (per the responsive convention).
 
-#### Scenario: Desktop side-by-side
+#### Scenario: Desktop three-up
 - **WHEN** the dashboard is viewed at a desktop width
-- **THEN** the trending table (~2/3) and the Top Sideboard Cards list (~1/3) render side by side
+- **THEN** Trending Creatures, Trending Spells, and Top Sideboard Cards render side by side, each ~1/3 wide
 
 #### Scenario: Mobile stacked
-- **WHEN** the dashboard is viewed at a mobile width
-- **THEN** the trending table renders above the Top Sideboard Cards list, stacked vertically and legible
+- **WHEN** the dashboard is viewed at a narrow width (below ~900px)
+- **THEN** the three tables stack vertically in the order Creatures, Spells, Sideboard, and stay legible
