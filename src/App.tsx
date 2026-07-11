@@ -298,7 +298,7 @@ function App() {
         <main className="app-main">
           <div className="app-content">
             {/* Format header */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
               <h1
                 style={{
                   fontFamily: 'var(--font-display)',
