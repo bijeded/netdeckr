@@ -1,13 +1,13 @@
 # trending-cards-view
 
 ## Purpose
-The dashboard's trending-cards surface: three tables derived at read time from the scraped decks via the `top_cards` aggregation — **Trending Creatures** and **Trending Spells** (the mainboard split by card type) and a **Top Sideboard Cards** table. Each ranks its slice by total copies; the mainboard tables also show an average-copies-per-deck value. Lands are excluded so the tables show spells and creatures; the tables are time-frame aware, respect the sidebar filters, and localize their chrome (ES/EN) while keeping card names in English.
+The dashboard's trending-cards surface: three tables derived at read time from the scraped decks via the `top_cards` aggregation — **Top Creatures** and **Top Spells** (the mainboard split by card type) and a **Top Sideboard Cards** table. Each ranks its slice by total copies; the mainboard tables also show an average-copies-per-deck value. Lands are excluded so the tables show spells and creatures; the tables are time-frame aware, respect the sidebar filters, and localize their chrome (ES/EN) while keeping card names in English.
 
 ## Requirements
 
 ### Requirement: Trending Creatures table
 
-The dashboard SHALL display a "Trending Creatures" / "Criaturas en Tendencia" table of the top 10 **mainboard creatures** for the current metagame view, ranked by **total copies** across the window's decks (copies summed across decks, so a 4-of contributes four times a 1-of). A card is a creature when its Scryfall `type_line` contains "Creature". **Lands** MUST be excluded. Each row SHALL show a zero-padded rank, the card name, an **average-copies-per-deck** value, and the **total copy count** (both mono). Average copies per deck is `total copies ÷ distinct decks running the card`, rounded to a whole number and rendered as `Nx` (e.g. `3x`). The table does NOT show a copy-share percentage. Card names are in English in both locales; all other chrome is localized (ES/EN).
+The dashboard SHALL display a "Top Creatures" / "Top Criaturas" table of the top 10 **mainboard creatures** for the current metagame view, ranked by **total copies** across the window's decks (copies summed across decks, so a 4-of contributes four times a 1-of). A card is a creature when its Scryfall `type_line` contains "Creature". **Lands** MUST be excluded. Each row SHALL show a zero-padded rank, the card name, an **average-copies-per-deck** value, and the **total copy count** (both mono). Average copies per deck is `total copies ÷ distinct decks running the card`, rounded to a whole number and rendered as `Nx` (e.g. `3x`). The table does NOT show a copy-share percentage. Card names are in English in both locales; all other chrome (including the "Top Creatures"/"Top Criaturas" title) is localized (ES/EN).
 
 #### Scenario: Ranked by total copies
 - **WHEN** the selected format and time frame have decks with mainboard creatures
@@ -21,9 +21,13 @@ The dashboard SHALL display a "Trending Creatures" / "Criaturas en Tendencia" ta
 - **WHEN** the window's mainboards contain creatures, non-creature spells, and lands
 - **THEN** only creatures appear in this table, and no land appears
 
+#### Scenario: Localized title
+- **WHEN** the UI language is English then Spanish
+- **THEN** the table title reads "Top Creatures" then "Top Criaturas", while card names stay in English
+
 ### Requirement: Trending Spells table
 
-The dashboard SHALL display a "Trending Spells" / "Hechizos en Tendencia" table of the top 10 **mainboard non-land, non-creature cards** for the current metagame view, ranked by total copies (summed across decks). A card belongs here when its Scryfall `type_line` contains neither "Land" nor "Creature". Each row SHALL show a zero-padded rank, the card name, the average-copies-per-deck value (`Nx`, computed as for creatures), and the total copy count (both mono). The table does NOT show a copy-share percentage. Card names stay English in both locales; other chrome is localized.
+The dashboard SHALL display a "Top Spells" / "Top Hechizos" table of the top 10 **mainboard non-land, non-creature cards** for the current metagame view, ranked by total copies (summed across decks). A card belongs here when its Scryfall `type_line` contains neither "Land" nor "Creature". Each row SHALL show a zero-padded rank, the card name, the average-copies-per-deck value (`Nx`, computed as for creatures), and the total copy count (both mono). The table does NOT show a copy-share percentage. Card names stay English in both locales; other chrome (including the "Top Spells"/"Top Hechizos" title) is localized.
 
 #### Scenario: Ranked by total copies
 - **WHEN** the selected format and time frame have decks with mainboard non-creature spells
@@ -32,6 +36,10 @@ The dashboard SHALL display a "Trending Spells" / "Hechizos en Tendencia" table 
 #### Scenario: Creatures and lands excluded
 - **WHEN** the window's mainboards contain creatures, non-creature spells, and lands
 - **THEN** only non-land non-creature cards appear in this table
+
+#### Scenario: Localized title
+- **WHEN** the UI language is English then Spanish
+- **THEN** the table title reads "Top Spells" then "Top Hechizos", while card names stay in English
 
 ### Requirement: Time-frame-aware trending
 
