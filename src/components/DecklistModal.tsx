@@ -204,49 +204,19 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
           boxShadow: '0 30px 80px rgba(0,0,0,.6)',
         }}
       >
-        {/* Header */}
+        {/* Header. Desktop: title/meta on the left, actions on the right, same
+            row. Mobile (see .modal-header in dashboard.css): actions move to
+            their own right-aligned top row and the title/meta stack below at
+            full width so a long name never collides with the buttons. */}
         <div
+          className="modal-header"
           style={{
-            padding: '20px 22px',
+            padding: '16px 22px 16px',
             borderBottom: '1px solid var(--border-soft)',
             background: 'linear-gradient(120deg, var(--neon-tint-16), transparent 70%)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 16,
           }}
         >
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
-              <ManaPips colors={deck.colorIdentity} size={13} />
-              <span id="decklist-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-lg)', letterSpacing: 'var(--track-tight)' }}>
-                {deck.archetypeName}
-              </span>
-              <span style={badgeStyle}>{badge.label}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', color: 'var(--text-faint)', fontSize: 'var(--fs-sm)' }}>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 'var(--fw-semibold)' }}>{deck.player}</span>
-              <span>·</span>
-              <span>{deck.eventName}</span>
-              <span>·</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)' }}>{formatDate(deck.eventDate, i18n.language)}</span>
-            </div>
-            {notice && (
-              <div
-                role="alert"
-                aria-live="polite"
-                style={{
-                  marginTop: 10,
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--fs-xs)',
-                  color: notice.tone === 'error' ? 'var(--down)' : 'var(--up)',
-                }}
-              >
-                {notice.message}
-              </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '0 0 auto' }}>
+          <div className="modal-header-actions">
             <button
               type="button"
               onClick={handleExport}
@@ -279,6 +249,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
               style={{
                 width: 34,
                 height: 34,
+                flex: '0 0 auto',
                 borderRadius: 'var(--r-md)',
                 border: '1px solid var(--border-line)',
                 background: 'var(--surface-subtle)',
@@ -289,6 +260,36 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
             >
               ✕
             </button>
+          </div>
+          <div className="modal-header-info" style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7, flexWrap: 'wrap' }}>
+            <ManaPips colors={deck.colorIdentity} size={13} />
+            <span id="decklist-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 'var(--fw-bold)', fontSize: 'var(--fs-lg)', letterSpacing: 'var(--track-tight)' }}>
+              {deck.archetypeName}
+            </span>
+            <span style={badgeStyle}>{badge.label}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', color: 'var(--text-faint)', fontSize: 'var(--fs-sm)' }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 'var(--fw-semibold)' }}>{deck.player}</span>
+            <span>·</span>
+            <span>{deck.eventName}</span>
+            <span>·</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)' }}>{formatDate(deck.eventDate, i18n.language)}</span>
+          </div>
+          {notice && (
+            <div
+              role="alert"
+              aria-live="polite"
+              style={{
+                marginTop: 10,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--fs-xs)',
+                color: notice.tone === 'error' ? 'var(--down)' : 'var(--up)',
+              }}
+            >
+              {notice.message}
+            </div>
+          )}
           </div>
         </div>
 
