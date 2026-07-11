@@ -17,39 +17,11 @@ interface StatCardProps {
  */
 export function StatCard({ value, label, color = 'var(--text-primary)', style }: StatCardProps) {
   return (
-    <div
-      style={{
-        padding: '10px 16px',
-        border: '1px solid var(--border-soft)',
-        background: 'var(--surface-faint)',
-        borderRadius: 'var(--r-lg)',
-        minWidth: 96,
-        textAlign: 'right',
-        ...style,
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--fs-stat-sm)',
-          fontWeight: 'var(--fw-bold)',
-          color,
-          lineHeight: 1,
-        }}
-      >
+    <div className="stat-card" style={style}>
+      <div className="stat-card-value" style={{ color }}>
         {value}
       </div>
-      <div
-        style={{
-          fontSize: 'var(--fs-3xs)',
-          color: 'var(--text-muted)',
-          letterSpacing: '.08em',
-          textTransform: 'uppercase',
-          marginTop: 5,
-        }}
-      >
-        {label}
-      </div>
+      <div className="stat-card-label">{label}</div>
     </div>
   )
 }

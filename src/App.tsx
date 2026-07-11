@@ -252,19 +252,32 @@ function App() {
               display: 'inline-block',
             }}
           />
-          <span
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 'var(--fw-heavy)',
-              fontSize: 'var(--fs-lg)',
-            }}
-          >
-            {t('app.title')}
+          <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 'var(--fw-heavy)',
+                fontSize: 'var(--fs-lg)',
+              }}
+            >
+              {t('app.title')}
+            </span>
+            <span
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--fs-3xs)',
+                letterSpacing: 'var(--track-wide)',
+                textTransform: 'uppercase',
+                color: 'var(--text-faint)',
+                marginTop: 2,
+              }}
+            >
+              {t('app.subtitle')}
+            </span>
           </span>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--sp-4)', alignItems: 'center' }}>
+        <div className="topbar-formats">
           <FormatSwitcher value={format} onChange={setFormat} />
-          <LanguageToggle />
         </div>
       </header>
 
@@ -292,6 +305,9 @@ function App() {
                 setTier(null)
               }}
             />
+            <div className="sidebar-language">
+              <LanguageToggle />
+            </div>
           </div>
         </aside>
 
@@ -325,10 +341,7 @@ function App() {
                 {windowLabel}
               </span>
               {/* StatCard strip: right-aligned on the title row (title stays left). */}
-              <div
-                data-testid="stat-strip"
-                style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--sp-3)', flexWrap: 'wrap' }}
-              >
+              <div data-testid="stat-strip" className="stat-strip">
                 <StatCard value={stat(stripTotals.events)} label={t('stats.events')} />
                 <StatCard value={stat(stripTotals.archetypes)} label={t('stats.archetypes')} />
                 <StatCard value={stat(stripTotals.decks)} label={t('stats.decks')} />
