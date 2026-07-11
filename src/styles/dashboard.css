@@ -14,12 +14,103 @@
 
 .topbar {
   flex: 0 0 auto;
-  height: var(--topbar-h);
+  min-height: var(--topbar-h);
   display: flex;
   align-items: center;
   gap: var(--sp-4);
   padding: 0 var(--sp-5);
   border-bottom: 1px solid var(--border-hair);
+}
+
+/* Format-switcher cluster: pushed to the right of the topbar on desktop. */
+.topbar-formats {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* The format pills scroll-without-scrollbar on overflow (see mobile rule); on
+   desktop they simply wrap. */
+.format-switcher {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  scrollbar-width: none; /* Firefox */
+}
+.format-switcher::-webkit-scrollbar {
+  display: none; /* WebKit/Blink */
+}
+
+/* Header StatCard strip: right-aligned on the title row on desktop. */
+.stat-strip {
+  margin-left: auto;
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.stat-card {
+  padding: 10px 16px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-faint);
+  border-radius: var(--r-lg);
+  min-width: 96px;
+  text-align: right;
+}
+.stat-card-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-stat-sm);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+.stat-card-label {
+  font-size: var(--fs-3xs);
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+/* Language selector pinned to the bottom of the filter sidebar, detached from
+   the filter groups by a hairline separator. */
+.sidebar-language {
+  margin-top: auto;
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border-hair);
+}
+
+/* Phone layout: the topbar reflows to two rows (logo row, then a full-width
+   format-pill row), and the StatCard strip drops below the title as one row. */
+@media (max-width: 640px) {
+  .topbar {
+    flex-wrap: wrap;
+    padding-top: var(--sp-2);
+    padding-bottom: var(--sp-2);
+  }
+  .topbar-formats {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+  }
+  .format-switcher {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .stat-strip {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: var(--sp-2);
+    margin-top: var(--sp-3);
+  }
+  .stat-card {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 10px;
+  }
+  .stat-card-value {
+    font-size: var(--fs-md);
+  }
 }
 
 .sidebar-toggle {
@@ -51,6 +142,8 @@
   background: var(--surface-faint);
   overflow-y: auto;
   transition: margin-left var(--dur) var(--ease);
+  display: flex;
+  flex-direction: column;
 }
 .sidebar[data-open='false'] {
   margin-left: -292px; /* collapse fully, including the border/shadow */
@@ -65,6 +158,7 @@
   box-shadow: 8px 0 40px rgba(0, 0, 0, 0.5);
 }
 .sidebar-inner {
+  flex: 1 0 auto;
   padding: var(--sp-6) var(--sp-5);
   display: flex;
   flex-direction: column;
@@ -118,7 +212,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--sp-5);
-  margin-top: var(--sp-6);
+  margin-top: var(--sp-8);
   align-items: start;
 }
 /* Stack the three trending tables (Creatures -> Spells -> Sideboard) below the

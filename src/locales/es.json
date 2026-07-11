@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "MetaStack",
+    "subtitle": "MTG Metagame Snapshot",
     "tagline": "Sigue los metajuegos de Magic: The Gathering desde torneos reales"
   },
   "formats": {
@@ -95,8 +96,8 @@
     "es": "ES"
   },
   "trending": {
-    "creaturesTitle": "Criaturas en Tendencia",
-    "spellsTitle": "Hechizos en Tendencia",
+    "creaturesTitle": "Top Criaturas",
+    "spellsTitle": "Top Hechizos",
     "sideboardTitle": "Top Cartas de Sideboard",
     "col": {
       "rank": "#",

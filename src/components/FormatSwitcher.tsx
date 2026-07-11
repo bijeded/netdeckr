@@ -10,7 +10,7 @@ interface FormatSwitcherProps {
 export function FormatSwitcher({ value, onChange }: FormatSwitcherProps) {
   const { t } = useTranslation()
   return (
-    <div style={{ display: 'inline-flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
+    <div className="format-switcher">
       {FORMATS.map((format) => {
         const active = format.code === value
         return (
