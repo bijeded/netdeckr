@@ -90,14 +90,14 @@ describe('useMetagame', () => {
 
   it('narrows the breakdown to the selected window and computes a trend vs the 2-week baseline', async () => {
     queryResult.data = [
-      // Recent, strong Izzet decks (inside the 5-day window).
+      // Recent, strong Izzet decks (inside the 7-day window).
       deckRow({ source_deck_id: 'r1', placement: '1', events: { name: 'E', event_date: daysAgo(1) } }),
       deckRow({ source_deck_id: 'r2', placement: '1', events: { name: 'E', event_date: daysAgo(1) } }),
       deckRow({ source_deck_id: 'r3', placement: '1', events: { name: 'E', event_date: daysAgo(2) } }),
-      // Older, weaker Izzet decks (inside 2 weeks, outside 5 days) — lower the baseline.
+      // Older, weaker Izzet decks (inside 2 weeks, outside 7 days) — lower the baseline.
       deckRow({ source_deck_id: 'o1', placement: '9-16', events: { name: 'E', event_date: daysAgo(10) } }),
       deckRow({ source_deck_id: 'o2', placement: '9-16', events: { name: 'E', event_date: daysAgo(11) } }),
-      // Mono Red only appears outside the 5-day window → excluded from the 5-day breakdown.
+      // Mono Red only appears outside the 7-day window → excluded from the 7-day breakdown.
       deckRow({
         source_deck_id: 'm1',
         placement: '1',
@@ -105,10 +105,10 @@ describe('useMetagame', () => {
         events: { name: 'E', event_date: daysAgo(10) },
       }),
     ]
-    const { result } = renderHook(() => useMetagame('ST', '5days'))
+    const { result } = renderHook(() => useMetagame('ST', '7days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    // Only Izzet Lesson has decks within the last 5 days.
+    // Only Izzet Lesson has decks within the last 7 days.
     expect(result.current.breakdown.map((a) => a.name)).toEqual(['Izzet Lesson'])
     // Recent finishes (all 1st) beat the 2-week baseline (which includes the 9-16s) → up.
     expect(result.current.breakdown[0].trend).toBe('up')

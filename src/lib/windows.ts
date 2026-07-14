@@ -1,21 +1,21 @@
 // The two time windows the dashboard offers, with the same meaning, for every
 // format. `code` is a format-independent logical key (the `?w=` param) that
 // selects a client-side date range over the decks (see WINDOW_DAYS); `i18nKey`
-// resolves the localized label via react-i18next. Last 2 Weeks contains Last 5
+// resolves the localized label via react-i18next. Last 2 Weeks contains Last 7
 // Days as a date subset.
 export const WINDOWS = [
-  { code: '5days', i18nKey: 'windows.last5Days', isDefault: true },
+  { code: '7days', i18nKey: 'windows.last7Days', isDefault: true },
   { code: '2weeks', i18nKey: 'windows.last2Weeks', isDefault: false },
 ] as const
 
 export type WindowCode = (typeof WINDOWS)[number]['code']
 
-export const DEFAULT_WINDOW: WindowCode = '5days'
+export const DEFAULT_WINDOW: WindowCode = '7days'
 
 // Lookback in days for each window, used to scope decklists (which are stored by
 // event date, not window) to the selected time frame.
 export const WINDOW_DAYS: Record<WindowCode, number> = {
-  '5days': 5,
+  '7days': 7,
   '2weeks': 14,
 }
 

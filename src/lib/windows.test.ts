@@ -13,14 +13,14 @@ import {
 
 describe('windows', () => {
   it('lists the two supported logical windows in order with i18n keys', () => {
-    expect(WINDOWS.map((w) => w.code)).toEqual(['5days', '2weeks'])
-    const last5Days = WINDOWS.find((w) => w.code === '5days')
-    expect(last5Days?.i18nKey).toBe('windows.last5Days')
+    expect(WINDOWS.map((w) => w.code)).toEqual(['7days', '2weeks'])
+    const last7Days = WINDOWS.find((w) => w.code === '7days')
+    expect(last7Days?.i18nKey).toBe('windows.last7Days')
   })
 
-  it('marks Last 5 Days as the default window', () => {
-    expect(DEFAULT_WINDOW).toBe('5days')
-    expect(WINDOWS.find((w) => w.isDefault)?.code).toBe('5days')
+  it('marks Last 7 Days as the default window', () => {
+    expect(DEFAULT_WINDOW).toBe('7days')
+    expect(WINDOWS.find((w) => w.isDefault)?.code).toBe('7days')
   })
 
   it('validates known window codes', () => {
@@ -32,22 +32,24 @@ describe('windows', () => {
 
   it('normalizes an unknown, missing, or retired code to the default', () => {
     expect(normalizeWindow('2months')).toBe<WindowCode>(DEFAULT_WINDOW)
+    expect(normalizeWindow('5days')).toBe<WindowCode>(DEFAULT_WINDOW)
     expect(normalizeWindow('nope')).toBe(DEFAULT_WINDOW)
     expect(normalizeWindow(null)).toBe(DEFAULT_WINDOW)
   })
 
-  it('does not recognize the retired 2months code', () => {
+  it('does not recognize the retired 2months or 5days codes', () => {
     expect(isWindowCode('2months')).toBe(false)
+    expect(isWindowCode('5days')).toBe(false)
   })
 
   it('maps each window to its lookback in days', () => {
-    expect(WINDOW_DAYS['5days']).toBe(5)
+    expect(WINDOW_DAYS['7days']).toBe(7)
     expect(WINDOW_DAYS['2weeks']).toBe(14)
   })
 
   it('computes the window start as an ISO date N days before now', () => {
     const now = new Date('2026-07-01T12:00:00Z')
-    expect(windowStartISO('5days', now)).toBe('2026-06-26')
+    expect(windowStartISO('7days', now)).toBe('2026-06-24')
     expect(windowStartISO('2weeks', now)).toBe('2026-06-17')
   })
 

@@ -381,9 +381,9 @@ describe('App dashboard', () => {
     expect(setFormat).toHaveBeenCalledWith('MO')
   })
 
-  it('defaults to the Last 5 Days window and shows it in the header pill', () => {
+  it('defaults to the Last 7 Days window and shows it in the header pill', () => {
     render(<App />)
-    expect(screen.getByTestId('window-pill').textContent).toBe('Last 5 days')
+    expect(screen.getByTestId('window-pill').textContent).toBe('Last 7 days')
   })
 
   it('renders the Time Frame filter inside the sidebar', () => {
@@ -919,6 +919,6 @@ describe('App dashboard', () => {
     expect(screen.getByText('Evento')).toBeInTheDocument()
     expect(screen.getByText('Arquetipo')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
-    expect(screen.getByTestId('window-pill').textContent).toBe('Últimos 5 días')
+    expect(screen.getByTestId('window-pill').textContent).toBe('Últimos 7 días')
   })
 })

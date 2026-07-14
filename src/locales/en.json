@@ -25,7 +25,7 @@
     "noResults": "No decks match these filters."
   },
   "windows": {
-    "last5Days": "Last 5 days",
+    "last7Days": "Last 7 days",
     "last2Weeks": "Last 2 weeks"
   },
   "dashboard": {

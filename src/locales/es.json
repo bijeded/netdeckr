@@ -25,7 +25,7 @@
     "noResults": "Ningún mazo coincide con estos filtros."
   },
   "windows": {
-    "last5Days": "Últimos 5 días",
+    "last7Days": "Últimos 7 días",
     "last2Weeks": "Últimas 2 semanas"
   },
   "dashboard": {

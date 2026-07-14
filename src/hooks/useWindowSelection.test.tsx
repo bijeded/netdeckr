@@ -11,9 +11,9 @@ describe('useWindowSelection', () => {
   beforeEach(() => setUrl('/'))
   afterEach(() => setUrl('/'))
 
-  it('defaults to Last 5 Days when the URL has no window', () => {
+  it('defaults to Last 7 Days when the URL has no window', () => {
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('5days')
+    expect(result.current.window).toBe('7days')
   })
 
   it('reads a valid window from the ?w= param', () => {
@@ -25,13 +25,19 @@ describe('useWindowSelection', () => {
   it('falls back to the default for an invalid ?w= param', () => {
     setUrl('?w=999')
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('5days')
+    expect(result.current.window).toBe('7days')
   })
 
   it('falls back to the default for the retired 2months window', () => {
     setUrl('?w=2months')
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('5days')
+    expect(result.current.window).toBe('7days')
+  })
+
+  it('falls back to the default for the retired 5days window (legacy links)', () => {
+    setUrl('?w=5days')
+    const { result } = renderHook(() => useWindowSelection())
+    expect(result.current.window).toBe('7days')
   })
 
   it('updates state and persists the selection to the URL', () => {
@@ -53,13 +59,13 @@ describe('useWindowSelection', () => {
   it('normalizes an invalid value passed to setWindow', () => {
     const { result } = renderHook(() => useWindowSelection())
     act(() => result.current.setWindow('BAD' as WindowCode))
-    expect(result.current.window).toBe('5days')
-    expect(new URLSearchParams(window.location.search).get('w')).toBe('5days')
+    expect(result.current.window).toBe('7days')
+    expect(new URLSearchParams(window.location.search).get('w')).toBe('7days')
   })
 
   it('syncs the window when the URL changes via back/forward navigation', () => {
     const { result } = renderHook(() => useWindowSelection())
-    expect(result.current.window).toBe('5days')
+    expect(result.current.window).toBe('7days')
     act(() => {
       window.history.replaceState({}, '', '?w=2weeks')
       window.dispatchEvent(new PopStateEvent('popstate'))
