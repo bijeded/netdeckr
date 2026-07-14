@@ -9,7 +9,7 @@ function readWindowFromUrl(): WindowCode {
 /**
  * The active time window / scope, backed by the `?w=` URL param so the selection
  * survives a reload. Independent of the `?f=` format param (both are preserved).
- * Defaults to Last 5 Days when the param is missing or invalid, and stays in
+ * Defaults to Last 7 Days when the param is missing or invalid, and stays in
  * sync with browser back/forward navigation.
  */
 export function useWindowSelection() {

@@ -47,7 +47,7 @@ describe('useTrendingCards', () => {
       main: [r('Goblin', 60, 30, 'creature'), r('Bolt', 40, 20, 'spell'), r('Bear', 12, 6, 'creature')],
       side: [r('S1', 10, 8), r('S2', 5, 4)],
     })
-    const { result } = renderHook(() => useTrendingCards('ST', '5days'))
+    const { result } = renderHook(() => useTrendingCards('ST', '7days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // one call per board — no preceding-window call
@@ -70,7 +70,7 @@ describe('useTrendingCards', () => {
 
   it('passes the event id to both calls when an event filter is active', async () => {
     routeRpc({ main: [r('A', 10, 9)], side: [r('S1', 3)] })
-    const { result } = renderHook(() => useTrendingCards('ST', '5days', { eventId: 42 }))
+    const { result } = renderHook(() => useTrendingCards('ST', '7days', { eventId: 42 }))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(rpc.mock.calls.every((c) => c[1].p_event_id === 42)).toBe(true)
   })
@@ -78,7 +78,7 @@ describe('useTrendingCards', () => {
   it('resolves selected archetype names to ids and passes them to the RPC', async () => {
     archResult.data = [{ id: 7, name: 'Izzet Prowess' }, { id: 9, name: 'Mono Red' }]
     routeRpc({ main: [r('A', 5, 4)], side: [] })
-    renderHook(() => useTrendingCards('ST', '5days', { archetypeNames: ['Izzet Prowess', 'Mono Red'] }))
+    renderHook(() => useTrendingCards('ST', '7days', { archetypeNames: ['Izzet Prowess', 'Mono Red'] }))
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
 
     expect(from).toHaveBeenCalledWith('archetypes')
@@ -90,7 +90,7 @@ describe('useTrendingCards', () => {
 
   it('does not resolve archetypes when no archetype filter is set', async () => {
     routeRpc({ main: [r('A', 1)], side: [] })
-    renderHook(() => useTrendingCards('ST', '5days'))
+    renderHook(() => useTrendingCards('ST', '7days'))
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
     expect(from).not.toHaveBeenCalled()
     expect(rpc.mock.calls.every((c) => c[1].p_archetype_ids == null)).toBe(true)
@@ -98,7 +98,7 @@ describe('useTrendingCards', () => {
 
   it('exposes an error and empty tables on RPC failure', async () => {
     rpc.mockImplementation(() => Promise.resolve({ data: null, error: { message: 'boom' } }))
-    const { result } = renderHook(() => useTrendingCards('ST', '5days'))
+    const { result } = renderHook(() => useTrendingCards('ST', '7days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.error).toEqual({ message: 'boom' })
     expect(result.current.creatures).toEqual([])
