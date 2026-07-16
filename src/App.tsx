@@ -320,7 +320,12 @@ function App() {
         <main className="app-main">
           <div className="app-content">
             {page !== null ? (
-              <LegalPage title={legalTitle} sections={legalSections ?? []} onNavigate={setPage} />
+              <LegalPage
+                title={legalTitle}
+                sections={legalSections ?? []}
+                onNavigate={setPage}
+                onBack={() => setPage(null)}
+              />
             ) : (
               <>
                 {/* Format header */}
@@ -524,10 +529,9 @@ function App() {
               </>
             )}
           </div>
+          <Footer onNavigate={setPage} />
         </main>
       </div>
-
-      <Footer onNavigate={setPage} />
 
       {selectedDeck && <DecklistModal deck={selectedDeck} format={format} onClose={() => setSelectedDeck(null)} />}
     </div>
