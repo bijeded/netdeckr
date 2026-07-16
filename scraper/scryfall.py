@@ -212,7 +212,7 @@ def load_bulk_index(path: str) -> CardIndex:
 
 
 # Scryfall asks API clients to send a descriptive User-Agent.
-_USER_AGENT = "Netdeckr/1.0 (https://github.com/bijeded/metastack)"
+_USER_AGENT = "Netdeckr/1.0 (https://github.com/bijeded/netdeckr)"
 
 
 def _default_fetch_meta() -> dict:

@@ -28,7 +28,7 @@ from mtgtop8 import FORMATS, event_url, format_url, meta_id_for
 from scryfall import sync_bulk
 from supabase_writer import SupabaseWriter
 
-USER_AGENT = "Netdeckr/0.1 (metagame dashboard; +https://github.com/bijeded/metastack)"
+USER_AGENT = "Netdeckr/0.1 (metagame dashboard; +https://github.com/bijeded/netdeckr)"
 REQUEST_DELAY_SECONDS = 2  # respectful rate limiting between requests (fair use)
 REQUEST_TIMEOUT_SECONDS = 30
 RETENTION_DAYS = 30  # data older than this is pruned each run
