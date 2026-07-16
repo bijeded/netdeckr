@@ -56,3 +56,11 @@
 - [x] 9.10 Privacy Policy: add a "Last changed: DD-MM-YYYY" note at the end of the page, styled distinctly from body copy
 - [x] 9.11 Update `specs/legal-pages/spec.md`, `design.md`, and `proposal.md` to match the revised content model and requirements
 - [x] 9.12 Re-run `npm run test`, `npm run lint`, `npm run type-check`, and re-verify in the dev server
+
+## 10. Review feedback (PR #145, round 2)
+
+- [x] 10.1 "Who made this": credit DMM Studios (link on "DMM Studios") as the builder, for Stackeados (link on "Stackeados", https://www.youtube.com/@stackeados) — a Mexican Spanish-language Magic: The Gathering podcast
+- [x] 10.2 Mobile footer: keep the nav links and language toggle on the same row at narrow widths (drop the forced column-stack media rule)
+- [x] 10.3 Add a way back to the dashboard from a legal page independent of the browser back button: the topbar logo/title becomes a button (`aria-label` "Go to dashboard"/"Ir al dashboard") that clears the `page` param
+- [x] 10.4 Update `specs/legal-pages/spec.md` and `specs/site-footer/spec.md` for the new "return to dashboard" requirement, the Stackeados credit, and the same-row mobile footer requirement; add a design.md decision for the logo-as-home-link choice
+- [x] 10.5 Re-run `npm run test`, `npm run lint`, `npm run type-check`, and re-verify in the dev server (including at a mobile viewport width and the logo-click return path)

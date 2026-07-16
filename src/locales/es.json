@@ -2,7 +2,8 @@
   "app": {
     "title": "MetaStack",
     "subtitle": "MTG Metagame Snapshot",
-    "tagline": "Sigue los metajuegos de Magic: The Gathering desde torneos reales"
+    "tagline": "Sigue los metajuegos de Magic: The Gathering desde torneos reales",
+    "home": "Ir al dashboard"
   },
   "formats": {
     "standard": "Standard",

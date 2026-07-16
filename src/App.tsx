@@ -229,7 +229,24 @@ function App() {
             ≡
           </button>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
+        <button
+          type="button"
+          onClick={() => setPage(null)}
+          aria-label={t('app.home')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--sp-3)',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            margin: 0,
+            font: 'inherit',
+            color: 'inherit',
+            textAlign: 'left',
+            cursor: 'pointer',
+          }}
+        >
           <span
             aria-hidden="true"
             style={{
@@ -265,7 +282,7 @@ function App() {
               {t('app.subtitle')}
             </span>
           </span>
-        </div>
+        </button>
         <div className="topbar-formats">
           <FormatSwitcher value={format} onChange={setFormat} />
         </div>

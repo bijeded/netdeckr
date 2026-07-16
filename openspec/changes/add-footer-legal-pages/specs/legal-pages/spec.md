@@ -32,6 +32,14 @@ When a legal page is active, the app SHALL keep the topbar (logo and format swit
 - **WHEN** a legal page is active
 - **THEN** the filter sidebar (and its toggle affordance) is not rendered
 
+### Requirement: Return to the dashboard from a legal page
+
+The app SHALL provide an explicit, always-visible way to leave a legal page and return to the dashboard, independent of the browser's back button. Activating the topbar logo/title SHALL clear the `page` param and return to the dashboard.
+
+#### Scenario: Logo returns to the dashboard
+- **WHEN** a legal page is active and the user activates the topbar logo/title
+- **THEN** the app returns to the dashboard (the `page` param is cleared) and the filter sidebar reappears
+
 ### Requirement: Typed per-locale legal content
 
 Each legal page's long-form content SHALL be authored as a typed `Section[]` (heading, paragraph, list, or link entries) in a dedicated per-locale content module (not in `en.json`/`es.json`, not in Markdown), and rendered through one shared legal-page component shared by both pages. The active locale's module SHALL be selected based on the current i18next language.
@@ -60,9 +68,9 @@ The How It Works page SHALL explain, in plain, direct language (not condescendin
 - **WHEN** the How It Works page is displayed
 - **THEN** the words "Privacy Policy" within the "what we know about you" section are a link that navigates to the Privacy Policy page, without a full page reload
 
-#### Scenario: DMM Studios credit
+#### Scenario: DMM Studios and Stackeados credit
 - **WHEN** the How It Works page is displayed
-- **THEN** it credits DMM Studios as the site's developer, with the link applied only to the words "DMM Studios", linking to https://studiosdmm.com.mx/
+- **THEN** it credits DMM Studios as the site's developer (link applied only to the words "DMM Studios", linking to https://studiosdmm.com.mx/) and Stackeados, a Mexican Spanish-language Magic: The Gathering podcast, as who the site was built for (link applied only to the word "Stackeados", linking to https://www.youtube.com/@stackeados)
 
 #### Scenario: Scryfall credit
 - **WHEN** the How It Works page is displayed

@@ -50,7 +50,13 @@ export const howItWorksEs: Section[] = [
   { type: 'heading', text: 'Quién hizo esto' },
   {
     type: 'paragraph',
-    text: ['Hecho por ', { text: 'DMM Studios', href: 'https://studiosdmm.com.mx/' }, '.'],
+    text: [
+      'Hecho por ',
+      { text: 'DMM Studios', href: 'https://studiosdmm.com.mx/' },
+      ' para ',
+      { text: 'Stackeados', href: 'https://www.youtube.com/@stackeados' },
+      ', un podcast mexicano sobre Magic: The Gathering en español.',
+    ],
   },
   { type: 'heading', text: 'Créditos' },
   {

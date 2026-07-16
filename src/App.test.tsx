@@ -958,6 +958,15 @@ describe('Footer & legal pages', () => {
     expect(screen.getByText('MetaStack')).toBeInTheDocument()
   })
 
+  it('returns to the dashboard when the logo is clicked from a legal page', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'How it works' })))
+    expect(screen.queryByTestId('sidebar')).toBeNull()
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'Go to dashboard' })))
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument()
+    expect(new URLSearchParams(window.location.search).has('page')).toBe(false)
+  })
+
   it('preserves other URL params when navigating to and from a legal page', () => {
     render(<App />)
     act(() => {

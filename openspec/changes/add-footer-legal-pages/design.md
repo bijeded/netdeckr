@@ -70,6 +70,10 @@ This string is short enough to live in `en.json`/`es.json` as an ordinary transl
 
 The Privacy Policy content module explicitly separates what's live today (analytics — cookieless, described in present tense, without naming the underlying vendor/platform, so the copy doesn't read as an endorsement or change meaning if the provider is swapped) from what's planned (error tracking — "we use tools to help us find and fix errors," present-tense-but-generic since no vendor is chosen; ads — explicit future tense, "we may in the future work with an advertising partner," with a commitment that the policy will be updated when/if that happens). This avoids the page claiming capabilities (e.g. a named error-tracking vendor) that don't exist in the codebase yet. The page ends with a "Last changed" date stamp so readers can tell how current the disclosure is without diffing the page themselves.
 
+### 6. Returning to the dashboard: the topbar logo, not the format pills
+
+Once a legal page hides the sidebar, the only originally-shipped way back was the browser's back button — easy to miss for a visitor who arrived via a shared link rather than by clicking the footer. The fix is the standard "click the logo to go home" pattern: the topbar logo/title becomes a button that clears the `page` param (`setPage(null)`). The format pills were deliberately left alone — they set `format`, not `page`, and overloading them to also leave a legal page would be a second, less-obvious way to trigger the same effect; one clear affordance beats two overlapping ones.
+
 ## Risks / Trade-offs
 
 - **[Risk]** The two locale content modules (`howItWorks.en.ts` / `.es.ts`, `privacy.en.ts` / `.es.ts`) can drift structurally (one locale gets a section the other doesn't) with nothing enforcing parity, unlike `en.json`/`es.json` which has `parity.test.ts`. → **Mitigation**: add a lightweight parity test comparing section *types* (not text) between each locale pair, analogous to the existing JSON parity test; flagged as a task.

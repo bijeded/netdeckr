@@ -46,8 +46,8 @@ The footer SHALL display the Wizards of the Coast Fan Content Policy attribution
 
 ### Requirement: Responsive footer
 
-The footer SHALL remain legible and usable at narrow (mobile) viewport widths, consistent with the app's existing responsive convention (filter panel collapses on mobile).
+The footer SHALL remain legible and usable at narrow (mobile) viewport widths, consistent with the app's existing responsive convention (filter panel collapses on mobile). The navigation links ("How it works", "Privacy policy") and the language toggle SHALL stay on the same row/level as each other at mobile widths, not stacked into separate rows; the legal legend wraps onto its own line below.
 
 #### Scenario: Narrow viewport
 - **WHEN** the app is viewed at a narrow (mobile) width
-- **THEN** the footer's links, language toggle, and legal legend remain legible and tappable, wrapping or stacking as needed rather than overflowing or becoming unreadable
+- **THEN** the footer's links, language toggle, and legal legend remain legible and tappable, and the links and language toggle stay on the same row rather than stacking into separate rows

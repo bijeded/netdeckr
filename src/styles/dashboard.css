@@ -304,13 +304,6 @@
   color: var(--text-faint);
   line-height: 1.4;
 }
-@media (max-width: 640px) {
-  .footer-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--sp-3);
-  }
-}
 
 /* How It Works / Privacy Policy pages, rendered by LegalPage in place of the
    dashboard's main content. */
