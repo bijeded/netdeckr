@@ -3,32 +3,60 @@ import type { Section } from './types'
 export const howItWorksEn: Section[] = [
   {
     type: 'paragraph',
-    text: 'MetaStack shows what Magic: The Gathering decks people are actually playing in real tournaments, and how often each one wins. Here is how it works, in plain terms.',
+    text: [
+      "MetaStack shows what Magic: The Gathering decks people are actually playing in real tournaments, and how well each one performs. Here's how it works.",
+    ],
   },
   { type: 'heading', text: 'Where the information comes from' },
   {
     type: 'paragraph',
-    text: 'Every day, a small program (we call it "the scraper") visits MTGTop8, a website that publishes results from Magic tournaments all over the world — things anyone can already see, like "this deck came in 3rd place at this event." The scraper reads those public results and saves them.',
+    text: [
+      'Twice a day, we visit MTGTop8, a site that publishes results from Magic tournaments around the world, and read those public results — things like which deck a player used and how it finished.',
+    ],
   },
   {
     type: 'paragraph',
-    text: 'The scraper also looks up each card mentioned in those decks on Scryfall, a public database of Magic card information and images, so we can show you card names, art, and mana colors.',
+    text: [
+      'We also look up each card mentioned in those decks on Scryfall, a public database of Magic card information and images, so we can show you card names, art, and mana colors.',
+    ],
   },
   { type: 'heading', text: 'What MetaStack does with it' },
   {
     type: 'paragraph',
-    text: 'MetaStack takes all of those tournament results and counts things: how many decks of each type showed up, how often each one won, which cards appear the most. That counting is what you see on the dashboard — it is just math done on public tournament data, nothing more mysterious than that.',
+    text: [
+      "MetaStack turns those results into a live picture of the metagame — which archetypes are being played, and how well they're actually performing. Here's what each part of the dashboard means:",
+    ],
+  },
+  {
+    type: 'list',
+    items: [
+      'Events, Archetypes, Decks — how many tournaments, distinct deck types, and total decklists are included for the selected format and time frame.',
+      'Metagame share — the percentage of decks in view that belong to an archetype. This measures popularity, not strength.',
+      'Share delta — how that share changed compared to the previous period of the same length (for example, this week versus last week).',
+      "Tier (T1, T2, T3, or Rogue) — how well an archetype actually performs, based on how deep its decks tend to finish in tournaments, weighted so results from bigger events count for more. This is about performance, not popularity, so a heavily-played but underperforming archetype can rank below a smaller one that keeps winning.",
+      "The arrow next to the tier — whether that archetype's recent performance is trending up, down, or holding steady compared to the previous stretch.",
+      'Top Creatures, Top Spells, and Top Sideboard Cards — the individual cards played the most across the decks in view, ranked by total copies, with an average number of copies per deck for the two mainboard tables.',
+    ],
   },
   { type: 'heading', text: 'What we know about you' },
   {
     type: 'paragraph',
-    text: 'Nothing, really. MetaStack does not have accounts, logins, or profiles. You do not type anything in, and we do not ask for your name, email, or any personal information just to use the site. (See our Privacy Policy for the full details, including things like site analytics.)',
+    text: [
+      "We don't collect anything about you to run MetaStack. There are no accounts, logins, or profiles — you don't type anything in, and we never ask for your name, email, or any other personal information just to use the site. See our ",
+      { text: 'Privacy Policy', internal: 'privacy' },
+      ' for the full details, including analytics.',
+    ],
   },
   { type: 'heading', text: 'Who made this' },
-  { type: 'link', text: 'Built by DMM Studios', href: 'https://studiosdmm.com.mx/' },
+  {
+    type: 'paragraph',
+    text: ['Built by ', { text: 'DMM Studios', href: 'https://studiosdmm.com.mx/' }, '.'],
+  },
   { type: 'heading', text: 'Credits' },
   {
     type: 'paragraph',
-    text: 'Card images and data via Scryfall. MetaStack is an unofficial fan project and is not produced or endorsed by Wizards of the Coast — see the notice in the footer for details.',
+    text: [
+      'Card images and data via Scryfall. MetaStack is an unofficial fan project and is not produced or endorsed by Wizards of the Coast.',
+    ],
   },
 ]

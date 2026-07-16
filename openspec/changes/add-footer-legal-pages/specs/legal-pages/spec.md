@@ -46,15 +46,23 @@ Each legal page's long-form content SHALL be authored as a typed `Section[]` (he
 
 ### Requirement: How It Works content
 
-The How It Works page SHALL explain, in plain language understandable to a 13-year-old, how MetaStack processes information: that it reads publicly available tournament results (via a scraper from MTGTop8) and publicly available card data (via Scryfall), and shows patterns and statistics derived from that data. It SHALL state that MetaStack has no user accounts and does not collect anything personal from visitors themselves. It SHALL credit DMM Studios as the site's developer with a link to their website, and SHALL include a Scryfall data/image credit line.
+The How It Works page SHALL explain, in plain, direct language (not condescending, not aimed below the reader), how MetaStack processes information: that it periodically reads publicly available tournament results from MTGTop8 and publicly available card data from Scryfall, and turns that into the metagame view shown on the dashboard. It SHALL explain, in accessible terms, what each dashboard data point means — the Events/Archetypes/Decks stat cards, metagame share, share delta, the Tier classification (including a one-sentence explanation of how Tier is decided, distinct from popularity), the tier trend arrow, and the Top Creatures/Top Spells/Top Sideboard Cards tables. It SHALL state that MetaStack has no user accounts and does not collect anything personal from visitors, with an inline link on the words "Privacy Policy" that navigates to the Privacy Policy page. It SHALL credit DMM Studios as the site's developer, with the link applied only to the words "DMM Studios" (not the surrounding sentence). It SHALL include a Scryfall data/image credit line, without a cross-reference to the footer notice.
 
 #### Scenario: Plain-language data explanation
 - **WHEN** the How It Works page is displayed
-- **THEN** it explains, without technical jargon, that MetaStack reads public tournament and card data and shows patterns derived from it, and that it has no accounts and collects nothing personal from visitors
+- **THEN** it explains, in plain and respectful (not childish) language, that MetaStack reads public tournament and card data and turns it into the dashboard's metagame view, and that it has no accounts and collects nothing personal from visitors
+
+#### Scenario: Dashboard data points explained
+- **WHEN** the How It Works page is displayed
+- **THEN** it explains what the stat cards, metagame share, share delta, Tier (including how Tier is decided in one sentence), the tier trend arrow, and the Top Creatures/Top Spells/Top Sideboard Cards tables each mean
+
+#### Scenario: Inline link to the Privacy Policy
+- **WHEN** the How It Works page is displayed
+- **THEN** the words "Privacy Policy" within the "what we know about you" section are a link that navigates to the Privacy Policy page, without a full page reload
 
 #### Scenario: DMM Studios credit
 - **WHEN** the How It Works page is displayed
-- **THEN** it includes a "Built by DMM Studios" credit with a link to https://studiosdmm.com.mx/
+- **THEN** it credits DMM Studios as the site's developer, with the link applied only to the words "DMM Studios", linking to https://studiosdmm.com.mx/
 
 #### Scenario: Scryfall credit
 - **WHEN** the How It Works page is displayed
@@ -62,11 +70,11 @@ The How It Works page SHALL explain, in plain language understandable to a 13-ye
 
 ### Requirement: Privacy Policy content
 
-The Privacy Policy page SHALL disclose MetaStack's data practices, distinguishing what is currently live from what is planned: Vercel Analytics (described in present tense, as cookieless/privacy-friendly and currently in use), error tracking (described as planned/intended without naming a specific unconfirmed vendor), and potential future advertising (described in future tense, noting the provider is not yet determined and that the policy will be updated when finalized). It SHALL state that MetaStack has no user accounts, collects no personal data beyond aggregate analytics, and that its Supabase data access is anonymous/read-only. It SHALL note that the underlying tournament and card data (MTGTop8, Scryfall) is public data, not personal data about site visitors.
+The Privacy Policy page SHALL disclose MetaStack's data practices, distinguishing what is currently live from what is planned: analytics (described in present tense, as cookieless/privacy-friendly and currently in use, without naming the underlying vendor/platform), error tracking (described as planned/intended without naming a specific unconfirmed vendor), and potential future advertising (described in future tense, noting the provider is not yet determined and that the policy will be updated when finalized). It SHALL state that MetaStack has no user accounts, collects no personal data beyond aggregate analytics, and that its Supabase data access is anonymous/read-only. It SHALL note that the underlying tournament and card data (MTGTop8, Scryfall) is public data, not personal data about site visitors. It SHALL end with a "Last changed" date stamp.
 
 #### Scenario: Present-tense analytics disclosure
 - **WHEN** the Privacy Policy page is displayed
-- **THEN** it states that Vercel Analytics is currently used and describes it as cookieless/privacy-friendly
+- **THEN** it states that analytics is currently used and describes it as cookieless/privacy-friendly, without naming a specific vendor/platform
 
 #### Scenario: Planned error tracking disclosure
 - **WHEN** the Privacy Policy page is displayed
@@ -79,3 +87,7 @@ The Privacy Policy page SHALL disclose MetaStack's data practices, distinguishin
 #### Scenario: No accounts, no personal data collection
 - **WHEN** the Privacy Policy page is displayed
 - **THEN** it states there are no user accounts and no personal data is collected from visitors beyond aggregate analytics, and that Supabase access from the browser is anonymous/read-only
+
+#### Scenario: Last-changed date stamp
+- **WHEN** the Privacy Policy page is displayed
+- **THEN** a "Last changed" date stamp is shown at the end of the page, styled distinctly from body copy

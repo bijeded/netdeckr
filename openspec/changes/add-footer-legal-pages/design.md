@@ -56,6 +56,8 @@ Alternatives considered:
 
 Footer-level and nav-level copy (the "How it works" / "Privacy policy" link text, the footer's Wizards Fan Content Policy legend, any headings that are just short labels) stays in `en.json`/`es.json` via `t()`, per the existing convention — only the long-form page bodies move to the new content modules.
 
+A paragraph's `text` is a `Segment[]`, not a single string: most paragraphs are a single-element array, but two sentences need a link on only part of the sentence (the words "DMM Studios", the words "Privacy Policy") rather than the whole paragraph. A segment is plain text, an external link (`{ text, href }`, opens in a new tab), or an internal link (`{ text, internal: LegalPageCode }`) that calls `LegalPage`'s `onNavigate` prop — the same `setPage` callback the footer already uses — so an in-page cross-reference to the Privacy Policy triggers client-side navigation, not a full reload. A `note` section type (mono font, faint color, matching the app's date-stamp convention) covers the Privacy Policy's "Last changed" line without overloading `paragraph` styling.
+
 ### 4. Wizards Fan Content Policy legend — exact template, MetaStack-specific fill-in
 
 The footer legend uses Wizards' own required template (confirmed via their published Fan Content Policy), not MTGTop8's footer wording:
@@ -66,7 +68,7 @@ This string is short enough to live in `en.json`/`es.json` as an ordinary transl
 
 ### 5. Privacy policy tense discipline
 
-The Privacy Policy content module explicitly separates what's live today (Vercel Analytics — cookieless, described in present tense) from what's planned (error tracking — "we use tools to help us find and fix errors," present-tense-but-generic since no vendor is chosen; ads — explicit future tense, "we may in the future work with an advertising partner," with a commitment that the policy will be updated when/if that happens). This avoids the page claiming capabilities (e.g. a named error-tracking vendor) that don't exist in the codebase yet.
+The Privacy Policy content module explicitly separates what's live today (analytics — cookieless, described in present tense, without naming the underlying vendor/platform, so the copy doesn't read as an endorsement or change meaning if the provider is swapped) from what's planned (error tracking — "we use tools to help us find and fix errors," present-tense-but-generic since no vendor is chosen; ads — explicit future tense, "we may in the future work with an advertising partner," with a commitment that the policy will be updated when/if that happens). This avoids the page claiming capabilities (e.g. a named error-tracking vendor) that don't exist in the codebase yet. The page ends with a "Last changed" date stamp so readers can tell how current the disclosure is without diffing the page themselves.
 
 ## Risks / Trade-offs
 

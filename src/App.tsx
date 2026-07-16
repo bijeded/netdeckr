@@ -303,7 +303,7 @@ function App() {
         <main className="app-main">
           <div className="app-content">
             {page !== null ? (
-              <LegalPage title={legalTitle} sections={legalSections ?? []} />
+              <LegalPage title={legalTitle} sections={legalSections ?? []} onNavigate={setPage} />
             ) : (
               <>
                 {/* Format header */}
