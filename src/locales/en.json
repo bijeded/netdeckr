@@ -2,7 +2,8 @@
   "app": {
     "title": "MetaStack",
     "subtitle": "MTG Metagame Snapshot",
-    "tagline": "Track Magic: The Gathering metagames from real tournaments"
+    "tagline": "Track Magic: The Gathering metagames from real tournaments",
+    "home": "Go to dashboard"
   },
   "formats": {
     "standard": "Standard",
@@ -107,5 +108,11 @@
     },
     "empty": "No trending cards yet",
     "sideboardEmpty": "No sideboard cards yet"
+  },
+  "footer": {
+    "nav": "Legal pages",
+    "howItWorks": "How it works",
+    "privacy": "Privacy policy",
+    "legend": "MetaStack is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC."
   }
 }
