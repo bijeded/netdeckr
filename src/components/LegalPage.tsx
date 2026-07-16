@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Section, Segment } from '../content/legal/types'
 import type { LegalPageCode } from '../hooks/useLegalPage'
 
@@ -6,6 +7,7 @@ interface LegalPageProps {
   title: string
   sections: Section[]
   onNavigate: (page: LegalPageCode) => void
+  onBack: () => void
 }
 
 function renderSegment(segment: Segment, key: number, onNavigate: (page: LegalPageCode) => void) {
@@ -32,10 +34,16 @@ function renderSegment(segment: Segment, key: number, onNavigate: (page: LegalPa
 /** Shared renderer for the How It Works and Privacy Policy pages: a title plus
  * a Section[] of heading/paragraph/list/note entries, styled with the app's
  * design tokens. Paragraph segments may be plain text, external links, or
- * internal links that navigate to another legal page via `onNavigate`. */
-export function LegalPage({ title, sections, onNavigate }: LegalPageProps) {
+ * internal links that navigate to another legal page via `onNavigate`. A
+ * breadcrumb-style back button above the title returns to the dashboard via
+ * `onBack`. */
+export function LegalPage({ title, sections, onNavigate, onBack }: LegalPageProps) {
+  const { t } = useTranslation()
   return (
     <div className="legal-page">
+      <button type="button" className="legal-page-back" onClick={onBack}>
+        <span aria-hidden="true">←</span> {t('legal.backToDashboard')}
+      </button>
       <h1 className="legal-page-title">{title}</h1>
       {sections.map((section, index) => {
         switch (section.type) {

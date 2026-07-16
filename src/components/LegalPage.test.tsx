@@ -5,8 +5,17 @@ import type { Section } from '../content/legal/types'
 
 describe('LegalPage', () => {
   it('renders the title as a heading', () => {
-    render(<LegalPage title="How it works" sections={[]} onNavigate={vi.fn()} />)
+    render(<LegalPage title="How it works" sections={[]} onNavigate={vi.fn()} onBack={vi.fn()} />)
     expect(screen.getByRole('heading', { level: 1, name: 'How it works' })).toBeInTheDocument()
+  })
+
+  it('renders a breadcrumb back button that calls onBack', () => {
+    const onBack = vi.fn()
+    render(<LegalPage title="Title" sections={[]} onNavigate={vi.fn()} onBack={onBack} />)
+    const back = screen.getByRole('button', { name: 'Go to dashboard' })
+    expect(back.textContent).toContain('←')
+    fireEvent.click(back)
+    expect(onBack).toHaveBeenCalledTimes(1)
   })
 
   it('renders heading, paragraph, list, and note sections', () => {
@@ -16,7 +25,7 @@ describe('LegalPage', () => {
       { type: 'list', items: ['First', 'Second'] },
       { type: 'note', text: 'A note' },
     ]
-    render(<LegalPage title="Title" sections={sections} onNavigate={vi.fn()} />)
+    render(<LegalPage title="Title" sections={sections} onNavigate={vi.fn()} onBack={vi.fn()} />)
     expect(screen.getByRole('heading', { level: 2, name: 'A heading' })).toBeInTheDocument()
     expect(screen.getByText('A paragraph')).toBeInTheDocument()
     expect(screen.getByText('First')).toBeInTheDocument()
@@ -28,7 +37,7 @@ describe('LegalPage', () => {
     const sections: Section[] = [
       { type: 'paragraph', text: ['Built by ', { text: 'DMM Studios', href: 'https://studiosdmm.com.mx/' }] },
     ]
-    render(<LegalPage title="Title" sections={sections} onNavigate={vi.fn()} />)
+    render(<LegalPage title="Title" sections={sections} onNavigate={vi.fn()} onBack={vi.fn()} />)
     const link = screen.getByRole('link', { name: 'DMM Studios' })
     expect(link).toHaveAttribute('href', 'https://studiosdmm.com.mx/')
     expect(link).toHaveAttribute('target', '_blank')
@@ -41,7 +50,7 @@ describe('LegalPage', () => {
     const sections: Section[] = [
       { type: 'paragraph', text: ['See our ', { text: 'Privacy Policy', internal: 'privacy' }, ' for details.'] },
     ]
-    render(<LegalPage title="Title" sections={sections} onNavigate={onNavigate} />)
+    render(<LegalPage title="Title" sections={sections} onNavigate={onNavigate} onBack={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Privacy Policy' }))
     expect(onNavigate).toHaveBeenCalledWith('privacy')
   })
