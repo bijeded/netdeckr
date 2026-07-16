@@ -1,13 +1,13 @@
-# MetaStack — Handoff for the Next Change
+# Netdeckr — Handoff for the Next Change
 
-Paste-ready context to continue MetaStack in a new chat. Discovery and project-init are **done** — do not re-run them.
+Paste-ready context to continue Netdeckr in a new chat. Discovery and project-init are **done** — do not re-run them.
 
 ## Where things are
 - **Repo:** `github.com/bijeded/metastack` (public). Local: `/Users/franciscovenegas/Desktop/Cowork/Metastack`
 - **Live app:** https://metastack-three.vercel.app (auto-deploys on merge to `main`; preview per PR, but previews are Vercel-auth-protected — open while logged in)
 - **Source-of-truth docs:** `CLAUDE.md` (stack, commands, conventions, deploy, design tokens) and `openspec/project.md`
 - **Living specs:** `openspec/specs/` — incl. `metagame-breakdown-view/`, `metagame-data-pipeline/`, `archetype-decklists-view/`, `card-art-display/`, `scryfall-card-mapping/`, `trending-cards-view/`
-- **Design system:** `design/` (tokens in `design/tokens/`, reference components, `design/MetaStack.dc.html` prototype). Theme wired via `src/styles/tokens.css`; dashboard layout in `src/styles/dashboard.css`.
+- **Design system:** `design/` (tokens in `design/tokens/`, reference components, `design/Netdeckr.dc.html` prototype). Theme wired via `src/styles/tokens.css`; dashboard layout in `src/styles/dashboard.css`.
 
 ## What's shipped (all changes archived under `openspec/changes/archive/`)
 1. **`view-metagame-breakdown`** — pick a format → top-20 archetype breakdown, format persisted in `?f=`, "Updated X ago" freshness, loading/empty/error states, ES/EN.

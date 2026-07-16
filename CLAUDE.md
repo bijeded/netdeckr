@@ -1,7 +1,7 @@
-# MetaStack
+# Netdeckr
 
 ## Project overview
-MetaStack is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and a time frame (Last 5 Days / 2 Weeks) to explore the metagame; planned filters (event, archetype) and features (archetype decklists, trending/top cards, MTG Arena export) extend from there. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
+Netdeckr is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and a time frame (Last 5 Days / 2 Weeks) to explore the metagame; planned filters (event, archetype) and features (archetype decklists, trending/top cards, MTG Arena export) extend from there. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
 
 Shipped so far: format switcher, the metagame archetype breakdown, the time-frame + event/archetype/tier filters (in a filter sidebar), a header StatCard strip, performance-based tier badges with trend/share-delta indicators, archetype decklists with card art and MTG Arena export, and the trending-cards surface — Trending Creatures, Trending Spells, and Top Sideboard Cards tables (ranked by total copies, with an average-copies-per-deck column on the mainboard tables). See `openspec/specs/` for living specs and `openspec/changes/archive/` for completed changes.
 
@@ -91,8 +91,8 @@ web (responsive)
 - Platform: none (v1) — Sentry candidate later
 
 ## Design
-- Claude Design project: https://claude.ai/design/p/ada1f717-bbb1-4011-8f5a-e5b010ca9f60?file=MetaStack.dc.html
-- Reference in repo: `design/` — exported design system (tokens, components, guidelines, dashboard UI kit). Source of truth is `design/MetaStack.dc.html` (interactive prototype, all states). Read `design/readme.md` first.
+- Claude Design project: https://claude.ai/design/p/ada1f717-bbb1-4011-8f5a-e5b010ca9f60?file=Netdeckr.dc.html
+- Reference in repo: `design/` — exported design system (tokens, components, guidelines, dashboard UI kit). Source of truth is `design/Netdeckr.dc.html` (interactive prototype, all states). Read `design/readme.md` first.
 - **Vibe:** dark-mode competitive-gaming telemetry. Near-black canvas, a single electric violet accent glowing against it. Restrained, dense, data-first. No emoji — **except the 🏆 trophy, used solely to mark event wins on archetype cards** (see the `WinTrophy` component); iconography is otherwise a few unicode glyphs (`≡ ✕ ⬇ ▲ ▼ – ✓ → ←`).
 - **Copy:** UI copy is fully localized in **both Spanish and English** via react-i18next (no hardcoded strings). MTG proper nouns (card names, archetype names like "Izzet Cauldron") stay in English in *both* locales — that's how the community reads them. Terse noun labels, no marketing voice. The design mockup shows the Spanish locale; the English locale mirrors it (e.g. Fecha→Date, Arquetipo→Archetype, En Tendencia→Trending).
 - **Design tokens** (see `design/tokens/`):
@@ -100,7 +100,7 @@ web (responsive)
   - Type: `--font-display` Sora (titles/labels, hero 46px/800/-.03em), `--font-body` IBM Plex Sans (body/filters), `--font-mono` JetBrains Mono (ALL data — %, deltas, dates, ranks). Fonts via Google Fonts CDN import.
   - Spacing: 8/11/14/18/22px rhythm. Radii 6 chips · 9 buttons · 11 deck cards · 15 archetype cards · 16 panels · 18 modal · 999 pills. Sidebar 280px, topbar 62px, content max 1240px.
   - Numbers: mono, one decimal for % (`14.2%`), signed deltas (`+2.1`/`-1.7`), zero-padded ranks (`01`), abbreviated dates (`24 — 28 Jun 2026`).
-- **Components** (in `design/components/` as `.jsx` + `.d.ts` + `.prompt.md`): `core/` Button, IconButton, Pill · `mana/` ManaPip, ManaPips · `data/` TierBadge (+`tierFor`), ChangeIndicator, StatCard · `archetype/` ArchetypeCard (signature card). Reference implementations mount from `window.MetaStack`; port them into `src/components/` as real React+TS when building.
+- **Components** (in `design/components/` as `.jsx` + `.d.ts` + `.prompt.md`): `core/` Button, IconButton, Pill · `mana/` ManaPip, ManaPips · `data/` TierBadge (+`tierFor`), ChangeIndicator, StatCard · `archetype/` ArchetypeCard (signature card). Reference implementations mount from `window.Netdeckr`; port them into `src/components/` as real React+TS when building.
 - **Key screens** (`design/ui_kits/dashboard/` + prototype): dashboard = topbar (diamond logo + format Pills) + 280px filter sidebar (Fecha, Tamaño de eventos, Arquetipo) + header (format title + neon date pill + StatCard strip) + archetype grid `repeat(auto-fill,minmax(248px,1fr))` + "En Tendencia" trending table. Plus expanded-archetype deck-card state and the deck modal (main/sideboard + "Exportar a MTG Arena").
 
 ## Framework-specific review rules

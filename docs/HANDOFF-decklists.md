@@ -1,4 +1,4 @@
-# Continuation prompt — MetaStack `view-archetype-decklists`
+# Continuation prompt — Netdeckr `view-archetype-decklists`
 
 > **STATUS: DONE & ARCHIVED (2026-07-02).** The `view-archetype-decklists` change is fully shipped (tasks 1–5), synced, and archived at `openspec/changes/archive/2026-07-02-view-archetype-decklists/`. See `docs/HANDOFF.md` → "What's shipped" #3 for the summary. The backfill review surfaced a real defect (case-variant duplicate archetype rows) that was carved out into the separate **`fix-archetype-name-casing`** proposal (proposed, not yet implemented). This file is kept for historical context only — start from `docs/HANDOFF.md`.
 
@@ -36,7 +36,7 @@ The daily scrape ran (backfill complete) but the user reported "it didn't get al
 - Parser reference: `scraper/mtgtop8.py` (`parse_event_list`, `parse_event_decks`, `parse_decklist`); real MTGTop8 event page shape documented in the parser docstrings/fixtures. Never hit live MTGTop8 in CI — fixtures only; regenerate fixtures deliberately.
 
 ## Remaining tasks in the change
-- **Task 4 — MTG Arena export** (`tasks.md` §4): `arenaExport.ts` util building Arena text (`Deck`/`Sideboard`, `"<qty> <name>"`), preferring Scryfall canonical name + non-foil set/collector, falling back to scraped name. Standard/Pioneer → copy to clipboard + localized toast (handle clipboard failure); Modern/Pauper/Pre-Modern → `.txt` download. Wire an export button into `DecklistModal` (design prototype has it in the modal header; see `design/MetaStack.dc.html` ~line 210). The `onSelect` seam + modal already exist.
+- **Task 4 — MTG Arena export** (`tasks.md` §4): `arenaExport.ts` util building Arena text (`Deck`/`Sideboard`, `"<qty> <name>"`), preferring Scryfall canonical name + non-foil set/collector, falling back to scraped name. Standard/Pioneer → copy to clipboard + localized toast (handle clipboard failure); Modern/Pauper/Pre-Modern → `.txt` download. Wire an export button into `DecklistModal` (design prototype has it in the modal header; see `design/Netdeckr.dc.html` ~line 210). The `onSelect` seam + modal already exist.
 - **Prereq to do WELL:** there is **no Scryfall sync in the repo** (CLAUDE.md describes one aspirationally). `deck_cards.scryfall_name/set_code/collector_number` are currently null, so export falls back to scraped names. Before/alongside task 4, draft a **separate OpenSpec change** (e.g. `add-scryfall-mapping`) for a Scryfall bulk-sync + scrape-time card mapping that populates those columns. Confirm with the user whether to land it before task 4 or ship export on the fallback first.
 - **Task 5 — wrap-up** (`tasks.md` §5): full suite (`npm run lint && npm run type-check && npm run test && cd scraper && ./venv/bin/pytest`); then `/opsx:sync` deltas into `openspec/specs/` and `/opsx:archive` the change via a `chore:` PR.
 

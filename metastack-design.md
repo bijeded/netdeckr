@@ -1,4 +1,4 @@
-# MetaStack - MTG Metagame Breakdown
+# Netdeckr - MTG Metagame Breakdown
 
 Dashboard web para seguimiento del metagame de Magic: The Gathering, con datos de torneos reales, de Standard, Pioneer, Modern, Pauper y Pre-Modern.
 
@@ -10,7 +10,7 @@ El dashboard deberá mostrar la siguiente información:
 
 ### Barra superior
 
-Una pequeña barra superior que contendrá el logo/nombre de la aplicación web (se llamará "MetaStack" y como subtítulo "MTG Metagame Breakdown") y los filtros, en forma de pills, de los formatos: 
+Una pequeña barra superior que contendrá el logo/nombre de la aplicación web (se llamará "Netdeckr" y como subtítulo "MTG Metagame Breakdown") y los filtros, en forma de pills, de los formatos: 
 
 - Standard (default)
 - Pioneer

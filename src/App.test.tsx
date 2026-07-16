@@ -955,7 +955,7 @@ describe('Footer & legal pages', () => {
     render(<App />)
     act(() => fireEvent.click(screen.getByRole('button', { name: 'How it works' })))
     expect(screen.getByRole('button', { name: 'Modern' })).toBeInTheDocument()
-    expect(screen.getByText('MetaStack')).toBeInTheDocument()
+    expect(screen.getByText('Netdeckr')).toBeInTheDocument()
   })
 
   it('returns to the dashboard when the logo is clicked from a legal page', () => {

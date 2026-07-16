@@ -4,7 +4,7 @@ export const howItWorksEn: Section[] = [
   {
     type: 'paragraph',
     text: [
-      "MetaStack shows what Magic: The Gathering decks people are actually playing in real tournaments, and how well each one performs. Here's how it works.",
+      "Netdeckr shows what Magic: The Gathering decks people are actually playing in real tournaments, and how well each one performs. Here's how it works.",
     ],
   },
   { type: 'heading', text: 'Where the information comes from' },
@@ -20,11 +20,11 @@ export const howItWorksEn: Section[] = [
       'We also look up each card mentioned in those decks on Scryfall, a public database of Magic card information and images, so we can show you card names, art, and mana colors.',
     ],
   },
-  { type: 'heading', text: 'What MetaStack does with it' },
+  { type: 'heading', text: 'What Netdeckr does with it' },
   {
     type: 'paragraph',
     text: [
-      "MetaStack turns those results into a live picture of the metagame — which archetypes are being played, and how well they're actually performing. Here's what each part of the dashboard means:",
+      "Netdeckr turns those results into a live picture of the metagame — which archetypes are being played, and how well they're actually performing. Here's what each part of the dashboard means:",
     ],
   },
   {
@@ -42,7 +42,7 @@ export const howItWorksEn: Section[] = [
   {
     type: 'paragraph',
     text: [
-      "We don't collect anything about you to run MetaStack. There are no accounts, logins, or profiles — you don't type anything in, and we never ask for your name, email, or any other personal information just to use the site. See our ",
+      "We don't collect anything about you to run Netdeckr. There are no accounts, logins, or profiles — you don't type anything in, and we never ask for your name, email, or any other personal information just to use the site. See our ",
       { text: 'Privacy Policy', internal: 'privacy' },
       ' for the full details, including analytics.',
     ],
@@ -62,7 +62,7 @@ export const howItWorksEn: Section[] = [
   {
     type: 'paragraph',
     text: [
-      'Card images and data via Scryfall. MetaStack is an unofficial fan project and is not produced or endorsed by Wizards of the Coast.',
+      'Card images and data via Scryfall. Netdeckr is an unofficial fan project and is not produced or endorsed by Wizards of the Coast.',
     ],
   },
 ]
