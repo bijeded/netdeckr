@@ -117,5 +117,10 @@
   },
   "legal": {
     "backToDashboard": "Go to dashboard"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "message": "The dashboard hit an unexpected error. Try reloading the page.",
+    "reload": "Reload page"
   }
 }

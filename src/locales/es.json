@@ -117,5 +117,10 @@
   },
   "legal": {
     "backToDashboard": "Ir al dashboard"
+  },
+  "error": {
+    "title": "Algo salió mal",
+    "message": "El dashboard tuvo un error inesperado. Intenta recargar la página.",
+    "reload": "Recargar página"
   }
 }
