@@ -13,7 +13,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/react": "^10.66.0",
     "@supabase/supabase-js": "^2.45.0",
+    "@vercel/speed-insights": "^2.0.0",
     "i18next": "^24.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
