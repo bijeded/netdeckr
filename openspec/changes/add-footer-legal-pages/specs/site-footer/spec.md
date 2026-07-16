@@ -1,0 +1,53 @@
+## ADDED Requirements
+
+### Requirement: Persistent footer
+
+The app SHALL render a footer in the app shell that is visible both on the main dashboard and on any legal page (`?page=how-it-works`, `?page=privacy`). The footer SHALL be rendered once, as a sibling of the topbar and the main content area, not duplicated per view.
+
+#### Scenario: Footer visible on dashboard
+- **WHEN** no `?page=` param is set (the dashboard is showing)
+- **THEN** the footer is rendered at the bottom of the app shell
+
+#### Scenario: Footer visible on legal pages
+- **WHEN** `?page=how-it-works` or `?page=privacy` is set
+- **THEN** the footer is still rendered, unchanged, alongside the legal page content
+
+### Requirement: Footer navigation links
+
+The footer SHALL contain a "How it works" link and a "Privacy policy" link, both localized (ES/EN) via the existing react-i18next convention. Activating a link SHALL navigate to the corresponding legal page without a full page reload.
+
+#### Scenario: How it works link
+- **WHEN** the user activates the "How it works" / "Cómo funciona" footer link
+- **THEN** the app navigates to the How It Works page via client-side navigation (no full reload)
+
+#### Scenario: Privacy policy link
+- **WHEN** the user activates the "Privacy policy" / "Política de privacidad" footer link
+- **THEN** the app navigates to the Privacy Policy page via client-side navigation (no full reload)
+
+### Requirement: Language toggle lives in the footer
+
+The language toggle (EN/ES) SHALL be rendered in the footer, not in the filter sidebar, so it remains reachable when the sidebar is hidden (on legal pages). It SHALL behave exactly as the existing sidebar-hosted toggle did (same component, same `i18n.changeLanguage` behavior).
+
+#### Scenario: Toggle reachable on the dashboard
+- **WHEN** the dashboard is showing
+- **THEN** the language toggle is present in the footer (not in the sidebar)
+
+#### Scenario: Toggle reachable on a legal page
+- **WHEN** a legal page is showing (sidebar hidden)
+- **THEN** the language toggle is still present, in the footer, and switching language re-renders the current legal page's content in the new locale
+
+### Requirement: Wizards of the Coast Fan Content Policy legend
+
+The footer SHALL display the Wizards of the Coast Fan Content Policy attribution legend, using Wizards' required template filled in for MetaStack: "MetaStack is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC." (localized ES/EN, preserving the required legal terms — "unofficial," "not approved/endorsed" — in both locales). It SHALL NOT reproduce another site's footer wording verbatim.
+
+#### Scenario: Legend present on every view
+- **WHEN** the app renders the footer, on the dashboard or any legal page
+- **THEN** the Wizards Fan Content Policy legend is visible in the footer, in the current locale
+
+### Requirement: Responsive footer
+
+The footer SHALL remain legible and usable at narrow (mobile) viewport widths, consistent with the app's existing responsive convention (filter panel collapses on mobile).
+
+#### Scenario: Narrow viewport
+- **WHEN** the app is viewed at a narrow (mobile) width
+- **THEN** the footer's links, language toggle, and legal legend remain legible and tappable, wrapping or stacking as needed rather than overflowing or becoming unreadable

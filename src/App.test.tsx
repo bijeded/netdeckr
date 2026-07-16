@@ -922,3 +922,70 @@ describe('App dashboard', () => {
     expect(screen.getByTestId('window-pill').textContent).toBe('Últimos 7 días')
   })
 })
+
+describe('Footer & legal pages', () => {
+  it('renders the footer with both legal links and the language toggle on the dashboard', () => {
+    render(<App />)
+    expect(screen.getByRole('button', { name: 'How it works' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Privacy policy' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument()
+  })
+
+  it('no longer renders the language toggle inside the sidebar', () => {
+    render(<App />)
+    const sidebar = screen.getByTestId('sidebar')
+    expect(within(sidebar).queryByRole('button', { name: 'EN' })).toBeNull()
+  })
+
+  it('navigates to the How It Works page and hides the sidebar', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'How it works' })))
+    expect(screen.getByRole('heading', { name: 'How it works' })).toBeInTheDocument()
+    expect(screen.queryByTestId('sidebar')).toBeNull()
+  })
+
+  it('navigates to the Privacy Policy page and hides the sidebar', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'Privacy policy' })))
+    expect(screen.getByRole('heading', { name: 'Privacy policy' })).toBeInTheDocument()
+    expect(screen.queryByTestId('sidebar')).toBeNull()
+  })
+
+  it('keeps the topbar and format switcher visible on a legal page', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'How it works' })))
+    expect(screen.getByRole('button', { name: 'Modern' })).toBeInTheDocument()
+    expect(screen.getByText('MetaStack')).toBeInTheDocument()
+  })
+
+  it('preserves other URL params when navigating to and from a legal page', () => {
+    render(<App />)
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Last 2 weeks' }))
+    })
+    expect(new URLSearchParams(window.location.search).get('w')).toBe('2weeks')
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'How it works' })))
+    const params = new URLSearchParams(window.location.search)
+    expect(params.get('w')).toBe('2weeks')
+    expect(params.get('page')).toBe('how-it-works')
+  })
+
+  it('returns to the dashboard when the URL page param is cleared via back/forward navigation', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'How it works' })))
+    expect(screen.queryByTestId('sidebar')).toBeNull()
+    act(() => {
+      window.history.replaceState({}, '', '/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument()
+  })
+
+  it('re-renders the legal page content in the new locale when the language toggle is used', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'How it works' })))
+    expect(screen.getByRole('heading', { name: 'How it works' })).toBeInTheDocument()
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'ES' })))
+    expect(screen.getByRole('heading', { name: 'Cómo funciona' })).toBeInTheDocument()
+  })
+})

@@ -25,44 +25,32 @@ import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 import { useTrendingCards } from './hooks/useTrendingCards'
 import { TopCardsTable } from './components/TopCardsTable'
+import { useLegalPage } from './hooks/useLegalPage'
+import { Footer } from './components/Footer'
+import { LegalPage } from './components/LegalPage'
+import { howItWorksEn } from './content/legal/howItWorks.en'
+import { howItWorksEs } from './content/legal/howItWorks.es'
+import { privacyEn } from './content/legal/privacy.en'
+import { privacyEs } from './content/legal/privacy.es'
 
 const SIDEBAR_MQ = '(max-width: 860px)'
-
-function LanguageToggle() {
-  const { i18n, t } = useTranslation()
-  return (
-    <div style={{ display: 'inline-flex', gap: 4 }} aria-label={t('language.label')}>
-      {(['en', 'es'] as const).map((lng) => {
-        const active = i18n.language.startsWith(lng)
-        return (
-          <button
-            key={lng}
-            type="button"
-            aria-pressed={active}
-            onClick={() => i18n.changeLanguage(lng)}
-            style={{
-              padding: '4px 9px',
-              borderRadius: 'var(--r-sm)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--fs-2xs)',
-              cursor: 'pointer',
-              border: `1px solid ${active ? 'var(--neon-border)' : 'var(--border-line)'}`,
-              background: active ? 'var(--neon-tint-16)' : 'transparent',
-              color: active ? 'var(--neon-text-soft)' : 'var(--text-faint)',
-            }}
-          >
-            {t(`language.${lng}`)}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
 
 function App() {
   const { t, i18n } = useTranslation()
   const { format, setFormat } = useFormatSelection()
   const { window: metaWindow, setWindow } = useWindowSelection()
+  const { page, setPage } = useLegalPage()
+  // The active legal page's content, in the current locale. Only meaningful
+  // when `page` is non-null (guarded at the render site below).
+  const legalSections =
+    page === null ? null : i18n.language.startsWith('es')
+      ? page === 'how-it-works'
+        ? howItWorksEs
+        : privacyEs
+      : page === 'how-it-works'
+        ? howItWorksEn
+        : privacyEn
+  const legalTitle = page === null ? '' : t(page === 'how-it-works' ? 'footer.howItWorks' : 'footer.privacy')
 
   // Filters (in-memory only — not persisted in the URL). null = "All".
   const [eventId, setEventId] = useState<number | null>(null)
@@ -230,15 +218,17 @@ function App() {
     <div className="app-shell">
       {/* Topbar */}
       <header className="topbar">
-        <button
-          type="button"
-          className="sidebar-toggle"
-          aria-label={t('filters.toggle')}
-          aria-expanded={sidebarOpen}
-          onClick={() => setSidebarOpen((open) => !open)}
-        >
-          ≡
-        </button>
+        {page === null && (
+          <button
+            type="button"
+            className="sidebar-toggle"
+            aria-label={t('filters.toggle')}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            ≡
+          </button>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
           <span
             aria-hidden="true"
@@ -283,37 +273,40 @@ function App() {
 
       {/* Body: sidebar + scrolling content */}
       <div className="app-body">
-        <aside
-          data-testid="sidebar"
-          data-open={sidebarOpen}
-          className={`sidebar${narrow ? ' sidebar--drawer' : ''}`}
-        >
-          <div className="sidebar-inner">
-            <WindowSelector value={metaWindow} onChange={setWindow} />
-            <EventSelector value={eventId} events={events} onChange={setEventId} />
-            <ArchetypeSelector
-              value={archetypeName}
-              archetypes={breakdown.map((a) => a.name)}
-              onChange={setArchetypeName}
-            />
-            <TierSelector value={tier} onChange={setTier} />
-            <ClearFiltersButton
-              disabled={!filtersActive}
-              onClear={() => {
-                setEventId(null)
-                setArchetypeName(null)
-                setTier(null)
-              }}
-            />
-            <div className="sidebar-language">
-              <LanguageToggle />
+        {page === null && (
+          <aside
+            data-testid="sidebar"
+            data-open={sidebarOpen}
+            className={`sidebar${narrow ? ' sidebar--drawer' : ''}`}
+          >
+            <div className="sidebar-inner">
+              <WindowSelector value={metaWindow} onChange={setWindow} />
+              <EventSelector value={eventId} events={events} onChange={setEventId} />
+              <ArchetypeSelector
+                value={archetypeName}
+                archetypes={breakdown.map((a) => a.name)}
+                onChange={setArchetypeName}
+              />
+              <TierSelector value={tier} onChange={setTier} />
+              <ClearFiltersButton
+                disabled={!filtersActive}
+                onClear={() => {
+                  setEventId(null)
+                  setArchetypeName(null)
+                  setTier(null)
+                }}
+              />
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
 
         <main className="app-main">
           <div className="app-content">
-            {/* Format header */}
+            {page !== null ? (
+              <LegalPage title={legalTitle} sections={legalSections ?? []} />
+            ) : (
+              <>
+                {/* Format header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
               <h1
                 style={{
@@ -511,9 +504,13 @@ function App() {
                 />
               </div>
             )}
+              </>
+            )}
           </div>
         </main>
       </div>
+
+      <Footer onNavigate={setPage} />
 
       {selectedDeck && <DecklistModal deck={selectedDeck} format={format} onClose={() => setSelectedDeck(null)} />}
     </div>
