@@ -17,6 +17,7 @@ import { StatCard } from './components/StatCard'
 import { ArchetypeCard } from './components/ArchetypeCard'
 import { DeckCard } from './components/DeckCard'
 import { DecklistModal } from './components/DecklistModal'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import { GRID_DISPLAY_CAP } from './lib/metagame'
 import { TierSelector } from './components/TierSelector'
 import type { Tier } from './lib/tiers'
@@ -534,6 +535,7 @@ function App() {
       </div>
 
       {selectedDeck && <DecklistModal deck={selectedDeck} format={format} onClose={() => setSelectedDeck(null)} />}
+      <SpeedInsights />
     </div>
   )
 }
