@@ -1,4 +1,4 @@
-/* MetaStack theme — single source of truth is design/tokens/*, imported here so
+/* Netdeckr theme — single source of truth is design/tokens/*, imported here so
    the app and the exported design system never drift. */
 @import '../../design/tokens/fonts.css';
 @import '../../design/tokens/colors.css';

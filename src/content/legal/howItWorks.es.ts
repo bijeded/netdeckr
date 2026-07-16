@@ -4,7 +4,7 @@ export const howItWorksEs: Section[] = [
   {
     type: 'paragraph',
     text: [
-      'MetaStack muestra qué mazos de Magic: The Gathering está jugando la gente en torneos reales, y qué tan bien le va a cada uno. Así es como funciona.',
+      'Netdeckr muestra qué mazos de Magic: The Gathering está jugando la gente en torneos reales, y qué tan bien le va a cada uno. Así es como funciona.',
     ],
   },
   { type: 'heading', text: 'De dónde viene la información' },
@@ -20,11 +20,11 @@ export const howItWorksEs: Section[] = [
       'También buscamos cada carta mencionada en esos mazos en Scryfall, una base de datos pública de información e imágenes de cartas de Magic, para poder mostrarte los nombres, el arte y los colores de maná.',
     ],
   },
-  { type: 'heading', text: 'Qué hace MetaStack con esa información' },
+  { type: 'heading', text: 'Qué hace Netdeckr con esa información' },
   {
     type: 'paragraph',
     text: [
-      'MetaStack convierte esos resultados en una imagen del metajuego en tiempo real — qué arquetipos se están jugando y qué tan bien les está yendo. Esto es lo que significa cada parte del dashboard:',
+      'Netdeckr convierte esos resultados en una imagen del metajuego en tiempo real — qué arquetipos se están jugando y qué tan bien les está yendo. Esto es lo que significa cada parte del dashboard:',
     ],
   },
   {
@@ -42,7 +42,7 @@ export const howItWorksEs: Section[] = [
   {
     type: 'paragraph',
     text: [
-      'No recopilamos nada sobre ti para operar MetaStack. No hay cuentas, inicios de sesión ni perfiles — no escribes nada, y nunca te pedimos tu nombre, correo ni ningún otro dato personal solo para usar el sitio. Consulta nuestra ',
+      'No recopilamos nada sobre ti para operar Netdeckr. No hay cuentas, inicios de sesión ni perfiles — no escribes nada, y nunca te pedimos tu nombre, correo ni ningún otro dato personal solo para usar el sitio. Consulta nuestra ',
       { text: 'Política de Privacidad', internal: 'privacy' },
       ' para todos los detalles, incluyendo las analíticas.',
     ],
@@ -62,7 +62,7 @@ export const howItWorksEs: Section[] = [
   {
     type: 'paragraph',
     text: [
-      'Imágenes y datos de cartas vía Scryfall. MetaStack es un proyecto de fans no oficial y no está producido ni respaldado por Wizards of the Coast.',
+      'Imágenes y datos de cartas vía Scryfall. Netdeckr es un proyecto de fans no oficial y no está producido ni respaldado por Wizards of the Coast.',
     ],
   },
 ]

@@ -500,11 +500,11 @@ The dashboard SHALL display a StatCard strip in the header, right-aligned on the
 
 ### Requirement: Topbar app subtitle
 
-The topbar SHALL display a localized subtitle "MTG Metagame Snapshot" (same text in both locales — it is an MTG proper-noun-style tagline) directly beneath the "MetaStack" wordmark, styled as secondary/muted text distinct from the wordmark. The subtitle SHALL sit within the topbar logo cluster (not under the format `<h1>` title) and SHALL be provided via react-i18next (`app.subtitle`).
+The topbar SHALL display a localized subtitle "MTG Metagame Snapshot" (same text in both locales — it is an MTG proper-noun-style tagline) directly beneath the "Netdeckr" wordmark, styled as secondary/muted text distinct from the wordmark. The subtitle SHALL sit within the topbar logo cluster (not under the format `<h1>` title) and SHALL be provided via react-i18next (`app.subtitle`).
 
 #### Scenario: Subtitle renders under the wordmark
 - **WHEN** the dashboard loads
-- **THEN** "MTG Metagame Snapshot" is shown directly below the "MetaStack" wordmark in the topbar
+- **THEN** "MTG Metagame Snapshot" is shown directly below the "Netdeckr" wordmark in the topbar
 
 #### Scenario: Subtitle comes from i18n
 - **WHEN** the UI language is switched between English and Spanish

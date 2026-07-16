@@ -13,7 +13,7 @@ interface StatCardProps {
 /**
  * Small right-aligned header summary metric (value + uppercase micro-label),
  * ported from the design system's StatCard. The value uses the mono font per
- * MetaStack's "all data is mono" convention.
+ * Netdeckr's "all data is mono" convention.
  */
 export function StatCard({ value, label, color = 'var(--text-primary)', style }: StatCardProps) {
   return (

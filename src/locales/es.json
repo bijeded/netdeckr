@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "MetaStack",
+    "title": "Netdeckr",
     "subtitle": "MTG Metagame Snapshot",
     "tagline": "Sigue los metajuegos de Magic: The Gathering desde torneos reales",
     "home": "Ir al dashboard"
@@ -113,7 +113,7 @@
     "nav": "Páginas legales",
     "howItWorks": "Cómo funciona",
     "privacy": "Política de privacidad",
-    "legend": "MetaStack es contenido de fans no oficial permitido bajo la Fan Content Policy. No aprobado ni respaldado por Wizards. Parte de los materiales utilizados son propiedad de Wizards of the Coast. ©Wizards of the Coast LLC."
+    "legend": "Netdeckr es contenido de fans no oficial permitido bajo la Fan Content Policy. No aprobado ni respaldado por Wizards. Parte de los materiales utilizados son propiedad de Wizards of the Coast. ©Wizards of the Coast LLC."
   },
   "legal": {
     "backToDashboard": "Ir al dashboard"

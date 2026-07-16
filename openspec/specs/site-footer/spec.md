@@ -47,7 +47,7 @@ The language toggle (EN/ES) SHALL be rendered in the footer, not in the filter s
 
 ### Requirement: Wizards of the Coast Fan Content Policy legend
 
-The footer SHALL display the Wizards of the Coast Fan Content Policy attribution legend, using Wizards' required template filled in for MetaStack: "MetaStack is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC." (localized ES/EN, preserving the required legal terms — "unofficial," "not approved/endorsed" — in both locales). It SHALL NOT reproduce another site's footer wording verbatim.
+The footer SHALL display the Wizards of the Coast Fan Content Policy attribution legend, using Wizards' required template filled in for Netdeckr: "Netdeckr is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC." (localized ES/EN, preserving the required legal terms — "unofficial," "not approved/endorsed" — in both locales). It SHALL NOT reproduce another site's footer wording verbatim.
 
 #### Scenario: Legend present on every view
 - **WHEN** the app renders the footer, on the dashboard or any legal page

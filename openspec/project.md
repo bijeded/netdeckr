@@ -1,7 +1,7 @@
-# MetaStack
+# Netdeckr
 
 ## Purpose
-MetaStack tracks Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern using real tournament data from MTGTop8. It exists to give players a fast, filterable view of what decks are winning, which cards are trending, and lets them export any decklist straight into MTG Arena.
+Netdeckr tracks Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern using real tournament data from MTGTop8. It exists to give players a fast, filterable view of what decks are winning, which cards are trending, and lets them export any decklist straight into MTG Arena.
 
 ## Users
 - Professional MTG players — deep metagame analysis, archetype breakdowns, trends over multiple time windows.

@@ -1,4 +1,4 @@
--- MetaStack — database schema
+-- Netdeckr — database schema
 -- Applied manually to the Supabase project (see CLAUDE.md → Database).
 -- Idempotent: safe to re-run. Public data, read-only from the browser via RLS;
 -- writes happen only from the daily scraper using the service-role key.
