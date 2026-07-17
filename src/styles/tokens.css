@@ -1,6 +1,8 @@
 /* Netdeckr theme — single source of truth is design/tokens/*, imported here so
-   the app and the exported design system never drift. */
-@import '../../design/tokens/fonts.css';
+   the app and the exported design system never drift.
+   NOTE: fonts are intentionally NOT imported here — they load via <link> tags in
+   index.html to avoid a render-blocking CSS @import waterfall. design/tokens/
+   fonts.css stays the design-system reference. */
 @import '../../design/tokens/colors.css';
 @import '../../design/tokens/typography.css';
 @import '../../design/tokens/spacing.css';
