@@ -30,7 +30,14 @@
 
 ## 6. Ship and repair production data
 
-- [ ] 6.1 Open the PR; confirm `ci` passes (lint, type-check, `npm run test`, `pytest`)
+> **Blocked 2026-08-06:** 6.2-6.5 need GitHub Actions, which is in a major outage
+> (incident opened 15:22 UTC). Two `backfill-scryfall` dispatches were reaped after
+> 15 min with no runner assigned. Code fix merged as `634b0d3` (PR #157) and verified
+> green locally on `main` (149 pytest, 389 vitest, lint, tsc). Production data is
+> unrepaired: `deck_cards` null `image_url` still at the 42,438 baseline.
+> Resume by re-dispatching `scrape.yml` with `format=backfill-scryfall`.
+
+- [x] 6.1 Open the PR; confirm `ci` passes (lint, type-check, `npm run test`, `pytest`)
 - [ ] 6.2 After merge, trigger the `backfill-scryfall` mode via `workflow_dispatch` and confirm it exits successfully
 - [ ] 6.3 Verify the `deck_cards` null-`image_url` count has dropped substantially from its 42,438 baseline (`?image_url=is.null` with `Prefer: count=exact`)
 - [ ] 6.4 Let the next scheduled per-format runs complete, then verify archetype `art_crop_url` nulls have dropped from their baselines (ST 14/84, PI 20/91, MO 50/246, PAU 34/266, PREM 31/247) and that runs are green
