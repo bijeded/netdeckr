@@ -16,8 +16,11 @@ MTGTop8 emits) still resolve.
 """
 from __future__ import annotations
 
+import contextlib
+import gzip
 import json
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 import requests
@@ -200,15 +203,45 @@ class CardIndex:
                 by_name.setdefault(key, printing)
         return cls(by_name)
 
+    def __len__(self) -> int:
+        return len(self._by_name)
+
     def resolve(self, name: str) -> Printing | None:
         """Return the canonical printing for a scraped card name, or None on a miss."""
         return self._by_name.get(_normalize(name))
 
 
+def _bulk_rows(path: str) -> Iterator[dict]:
+    """Yield card records from a gzipped-JSONL bulk file, one per line.
+
+    Streamed rather than parsed whole: the decompressed dataset is ~2 GB, and only
+    the resulting index needs to stay resident. A malformed line is reported with
+    the file and line number — bare decode errors are thin diagnostics against a
+    two-million-line stream.
+    """
+    with gzip.open(path, "rt", encoding="utf-8") as f:
+        for lineno, line in enumerate(f, start=1):
+            if not line.strip():
+                continue
+            try:
+                yield json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{path}: malformed JSON on line {lineno}: {exc}") from exc
+
+
 def load_bulk_index(path: str) -> CardIndex:
-    """Build a CardIndex from a Scryfall bulk JSON file on disk."""
-    with open(path) as f:
-        return CardIndex.from_bulk_rows(json.load(f))
+    """Build a CardIndex from a Scryfall bulk file on disk (gzipped JSONL).
+
+    An index with no cards is an error, not a valid result: an empty ``CardIndex``
+    is still truthy, so returning one would let every card silently miss and put
+    unenriched rows back in the database — the failure this module exists to make
+    impossible. An empty or record-less file is the shape a truncated download or
+    an upstream format change takes.
+    """
+    index = CardIndex.from_bulk_rows(_bulk_rows(path))
+    if not index:
+        raise RuntimeError(f"Scryfall bulk file yielded no card records: {path}")
+    return index
 
 
 # Scryfall asks API clients to send a descriptive User-Agent.
@@ -220,7 +253,13 @@ def _default_fetch_meta() -> dict:
 
 
 def _default_download(uri: str, dest: str) -> None:
-    """Stream the (large) bulk file to disk so it is never held in memory."""
+    """Stream the (large) bulk file to disk so it is never held in memory.
+
+    Written byte-for-byte, staying gzipped at rest (~77 MB vs ~2 GB decompressed) —
+    which is what ``gzip.open`` wants on the read side. Scryfall serves the file as
+    ``Content-Type: application/gzip`` with no ``Content-Encoding``, so requests
+    passes the bytes through instead of transparently decompressing them.
+    """
     with requests.get(uri, headers={"User-Agent": _USER_AGENT}, stream=True, timeout=300) as resp:
         resp.raise_for_status()
         with open(dest, "wb") as f:
@@ -231,20 +270,44 @@ def _default_download(uri: str, dest: str) -> None:
 def sync_bulk(cache_dir, *, today: str, fetch_meta=_default_fetch_meta, download=_default_download) -> CardIndex:
     """Return a CardIndex for today, downloading the bulk file only once per day.
 
-    Reuses a cached ``default_cards-<today>.json`` in ``cache_dir`` when present;
+    Reuses a cached ``default_cards-<today>.jsonl.gz`` in ``cache_dir`` when present;
     otherwise resolves the ``default_cards`` download URI from Scryfall's bulk-data
     metadata and streams the file to the cache. ``today`` is an ISO date string so
     the cache key rotates daily (and the GH Actions cache can key on the same date).
+
+    Scryfall publishes the dataset as gzipped JSONL under ``jsonl_download_uri``;
+    the ``.jsonl.gz`` suffix keeps a cache entry written for an older encoding from
+    being read as if it were the current format. A missing key is raised rather
+    than tolerated: silently falling back is what let an earlier upstream rename go
+    unnoticed while every scrape wrote unenriched rows.
     """
     cache_dir = str(cache_dir)
     os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f"default_cards-{today}.json")
+    cache_path = os.path.join(cache_dir, f"default_cards-{today}.jsonl.gz")
 
     if not os.path.exists(cache_path):
         meta = fetch_meta()
         entry = next((d for d in meta["data"] if d["type"] == "default_cards"), None)
         if entry is None:
             raise RuntimeError("Scryfall bulk-data metadata has no 'default_cards' entry")
-        download(entry["download_uri"], cache_path)
+        uri = entry.get("jsonl_download_uri")
+        if not uri:
+            raise RuntimeError(
+                "Scryfall 'default_cards' entry has no 'jsonl_download_uri' "
+                "(upstream bulk-data format may have changed)"
+            )
+        # Download aside, then rename into place: a network drop mid-transfer would
+        # otherwise leave a truncated file at the day's cache path, which every
+        # later per-format run would reuse (and CI would then cache across jobs).
+        # os.replace is atomic within a filesystem, so the cache path only ever
+        # holds a complete file.
+        partial = f"{cache_path}.part"
+        try:
+            download(uri, partial)
+            os.replace(partial, cache_path)
+        finally:
+            # Suppressed: cleanup failing must not mask the download error above.
+            with contextlib.suppress(OSError):
+                os.remove(partial)
 
     return load_bulk_index(cache_path)

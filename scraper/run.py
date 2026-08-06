@@ -41,15 +41,17 @@ SCRYFALL_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".
 def build_card_resolver():
     """Sync Scryfall bulk data and return a card resolver, or None on failure.
 
-    Best-effort: card enrichment is optional, so a Scryfall outage must not fail
-    the scrape — the writer simply leaves the Scryfall columns null in that case.
+    A None return is a hard stop for every caller — the scrape and the maintenance
+    modes alike — not a degraded mode: rows written without enrichment are never
+    revisited. Callers translate it into a non-zero exit so the failure is visible
+    in the run's status rather than buried in its logs.
     The bulk file is cached per day, so repeated runs the same day don't re-download.
     """
     try:
         today = datetime.now(timezone.utc).date().isoformat()
         return sync_bulk(SCRYFALL_CACHE_DIR, today=today)
-    except Exception as exc:  # noqa: BLE001 — enrichment is optional
-        print(f"[error] scryfall bulk sync: {exc} (deck cards will be unenriched)", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 — reported to the caller, which aborts
+        print(f"[error] scryfall bulk sync: {exc} (run will abort)", file=sys.stderr)
         return None
 
 
@@ -199,7 +201,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     formats = formats_to_scrape(argv, FORMATS)
-    writer = SupabaseWriter(url, key, card_resolver=build_card_resolver())
+    # Enrichment is not optional: a run without a resolver writes deck_cards whose
+    # Scryfall columns are null, and nothing in the daily loop ever re-enriches them
+    # (--backfill-scryfall is manual), so those rows stay art-less for good. Skipping
+    # a run is cheap and self-correcting — the next one re-fetches the same two-week
+    # window — so fail before writing anything, loudly enough to turn the run red.
+    resolver = build_card_resolver()
+    if resolver is None:
+        print(
+            "Scryfall bulk sync unavailable; refusing to write unenriched decks",
+            file=sys.stderr,
+        )
+        return 1
+    writer = SupabaseWriter(url, key, card_resolver=resolver)
     now = datetime.now(timezone.utc).isoformat()
 
     # Decklist pass: for each format, gather the two-week window's events and store
