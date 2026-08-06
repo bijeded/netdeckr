@@ -1,20 +1,31 @@
+import gzip
 import json
 import os
 import sys
 from unittest.mock import MagicMock
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scryfall import CardIndex, _normalize, load_bulk_index, sync_bulk  # noqa: E402
 
 FIXTURE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "fixtures", "scryfall_default_cards_sample.json"
+    os.path.dirname(os.path.abspath(__file__)), "fixtures", "scryfall_default_cards_sample.jsonl.gz"
 )
 
 
 def _rows():
-    with open(FIXTURE) as f:
-        return json.load(f)
+    """The fixture's card records. Scryfall ships bulk data as gzipped JSONL."""
+    with gzip.open(FIXTURE, "rt", encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def _write_bulk(dest, rows):
+    """Write rows in Scryfall's on-disk bulk format (gzipped JSONL)."""
+    with gzip.open(dest, "wt", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row) + "\n")
 
 
 def _index():
@@ -282,7 +293,7 @@ def test_load_bulk_index_reads_a_file_into_an_index():
 def test_sync_reuses_cached_file_when_fresh(tmp_path):
     cache_dir = tmp_path / "scryfall"
     cache_dir.mkdir()
-    (cache_dir / "default_cards-2026-07-02.json").write_text(json.dumps(_rows()))
+    _write_bulk(cache_dir / "default_cards-2026-07-02.jsonl.gz", _rows())
     fetch_meta = MagicMock()
     download = MagicMock()
 
@@ -296,16 +307,121 @@ def test_sync_reuses_cached_file_when_fresh(tmp_path):
 def test_sync_downloads_when_cache_absent(tmp_path):
     cache_dir = tmp_path / "scryfall"
     fetch_meta = MagicMock(
-        return_value={"data": [{"type": "default_cards", "download_uri": "https://scry/dl.json"}]}
+        return_value={
+            "data": [
+                {"type": "default_cards", "jsonl_download_uri": "https://scry/dl.jsonl.gz"}
+            ]
+        }
     )
 
     def fake_download(uri, dest):
-        assert uri == "https://scry/dl.json"
-        with open(dest, "w") as f:
-            json.dump(_rows(), f)
+        assert uri == "https://scry/dl.jsonl.gz"
+        _write_bulk(dest, _rows())
 
     index = sync_bulk(cache_dir, today="2026-07-02", fetch_meta=fetch_meta, download=fake_download)
 
     assert index.resolve("Fire").name == "Fire // Ice"
     fetch_meta.assert_called_once()
-    assert (cache_dir / "default_cards-2026-07-02.json").exists()
+    assert (cache_dir / "default_cards-2026-07-02.jsonl.gz").exists()
+
+
+def test_sync_reads_the_jsonl_download_uri(tmp_path):
+    """Regression: Scryfall renamed `download_uri` to `jsonl_download_uri`. Reading
+    the old key raised KeyError, which the caller swallowed into unenriched rows."""
+    cache_dir = tmp_path / "scryfall"
+    fetch_meta = MagicMock(
+        return_value={
+            "data": [
+                {
+                    "type": "default_cards",
+                    "jsonl_download_uri": "https://scry/correct.jsonl.gz",
+                    "download_uri": "https://scry/stale.json",
+                }
+            ]
+        }
+    )
+    seen = []
+
+    def fake_download(uri, dest):
+        seen.append(uri)
+        _write_bulk(dest, _rows())
+
+    sync_bulk(cache_dir, today="2026-07-02", fetch_meta=fetch_meta, download=fake_download)
+
+    assert seen == ["https://scry/correct.jsonl.gz"]
+
+
+def test_sync_raises_when_download_uri_missing(tmp_path):
+    """An upstream key rename must fail loudly, naming the cause."""
+    cache_dir = tmp_path / "scryfall"
+    fetch_meta = MagicMock(return_value={"data": [{"type": "default_cards"}]})
+
+    with pytest.raises(RuntimeError, match="jsonl_download_uri"):
+        sync_bulk(cache_dir, today="2026-07-02", fetch_meta=fetch_meta, download=MagicMock())
+
+
+def test_sync_raises_when_default_cards_entry_missing(tmp_path):
+    cache_dir = tmp_path / "scryfall"
+    fetch_meta = MagicMock(return_value={"data": [{"type": "oracle_cards"}]})
+
+    with pytest.raises(RuntimeError, match="default_cards"):
+        sync_bulk(cache_dir, today="2026-07-02", fetch_meta=fetch_meta, download=MagicMock())
+
+
+def test_empty_bulk_file_raises_rather_than_yielding_an_empty_index(tmp_path):
+    """An empty index is truthy, so returning one would silently reinstate the
+    unenriched-write failure this module's hard-stop exists to prevent."""
+    path = tmp_path / "default_cards-2026-07-02.jsonl.gz"
+    _write_bulk(path, [])
+
+    with pytest.raises(RuntimeError, match="no card records"):
+        load_bulk_index(str(path))
+
+
+def test_sync_raises_when_downloaded_file_has_no_records(tmp_path):
+    cache_dir = tmp_path / "scryfall"
+    fetch_meta = MagicMock(
+        return_value={
+            "data": [{"type": "default_cards", "jsonl_download_uri": "https://scry/dl.jsonl.gz"}]
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="no card records"):
+        sync_bulk(
+            cache_dir,
+            today="2026-07-02",
+            fetch_meta=fetch_meta,
+            download=lambda uri, dest: _write_bulk(dest, []),
+        )
+
+
+def test_download_failure_leaves_no_reusable_cache_file(tmp_path):
+    """A truncated download must not become the day's cache: every later run would
+    reuse it and fail, and CI would then cache the corrupt file across jobs."""
+    cache_dir = tmp_path / "scryfall"
+
+    def failing_download(uri, dest):
+        with open(dest, "wb") as f:
+            f.write(b"\x1f\x8b partial...")
+        raise OSError("connection reset mid-download")
+
+    fetch_meta = MagicMock(
+        return_value={
+            "data": [{"type": "default_cards", "jsonl_download_uri": "https://scry/dl.jsonl.gz"}]
+        }
+    )
+
+    with pytest.raises(OSError):
+        sync_bulk(cache_dir, today="2026-07-02", fetch_meta=fetch_meta, download=failing_download)
+
+    assert not (cache_dir / "default_cards-2026-07-02.jsonl.gz").exists()
+
+
+def test_malformed_line_names_the_file_and_line(tmp_path):
+    path = tmp_path / "default_cards-2026-07-02.jsonl.gz"
+    with gzip.open(path, "wt", encoding="utf-8") as f:
+        f.write(json.dumps(_rows()[0]) + "\n")
+        f.write("{not json\n")
+
+    with pytest.raises(ValueError, match="line 2"):
+        load_bulk_index(str(path))

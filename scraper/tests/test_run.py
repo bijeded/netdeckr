@@ -197,3 +197,40 @@ def test_scrape_returns_failure_when_every_format_fails(monkeypatch):
 
     assert run.main(["run.py"]) == 1
     writer.stamp_format_updated.assert_not_called()
+
+
+def test_scrape_fails_when_bulk_sync_unavailable(monkeypatch):
+    """A scrape that cannot enrich must fail loudly rather than write null-enriched
+    rows: nothing in the daily loop re-enriches them, so a silent pass is permanent
+    data loss, and a green run is what let an upstream break go unnoticed."""
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    monkeypatch.setattr(run, "build_card_resolver", lambda: None)  # Scryfall down
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock())
+    # Belt and braces: a regression that drops the guard must fail this test, not
+    # fall through into a live MTGTop8 scrape.
+    scrape = MagicMock(return_value=0)
+    monkeypatch.setattr(run, "sync_decklists", scrape)
+
+    rc = run.main(["run.py", "ST"])
+
+    assert rc == 1
+    # aborted before any write path was constructed — no unenriched rows
+    run.SupabaseWriter.assert_not_called()
+    scrape.assert_not_called()
+
+
+def test_scrape_proceeds_when_resolver_available(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    resolver = object()
+    monkeypatch.setattr(run, "build_card_resolver", lambda: resolver)
+    writer = MagicMock()
+    writer.existing_event_ids.return_value = set()
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+    monkeypatch.setattr(run, "sync_decklists", MagicMock(return_value=3))
+
+    rc = run.main(["run.py", "ST"])
+
+    assert rc == 0
+    assert run.SupabaseWriter.call_args.kwargs.get("card_resolver") is resolver
