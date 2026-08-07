@@ -11,7 +11,7 @@ import type { CSSProperties } from 'react'
  * is still bright. The fix is an actual dark layer.
  *
  * At 82% the worst case — pure-white art — composites to ~#35363b, which every
- * tier and trend color clears 4.5:1 against (ratios in design/tokens/colors.css).
+ * tier and trend color clears 4.5:1 against (ratios in src/styles/tokens/colors.css).
  * The remaining 18% plus the blur is what keeps the chip reading as glass rather
  * than as an opaque block: the art stays visible behind it as texture.
  *

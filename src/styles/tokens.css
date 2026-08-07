@@ -1,11 +1,11 @@
-/* Netdeckr theme — single source of truth is design/tokens/*, imported here so
-   the app and the exported design system never drift.
+/* Netdeckr theme. These token files are the source of truth — they used to live
+   in design/ and be imported across the repo boundary, which made a reference
+   folder load-bearing and let the two drift apart.
    NOTE: fonts are intentionally NOT imported here — they load via <link> tags in
-   index.html to avoid a render-blocking CSS @import waterfall. design/tokens/
-   fonts.css stays the design-system reference. */
-@import '../../design/tokens/colors.css';
-@import '../../design/tokens/typography.css';
-@import '../../design/tokens/spacing.css';
+   index.html to avoid a render-blocking CSS @import waterfall. */
+@import './tokens/colors.css';
+@import './tokens/typography.css';
+@import './tokens/spacing.css';
 
 @keyframes mtg-spin {
   to {
