@@ -244,10 +244,28 @@ describe('useMetagame', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Distinct events (deduped by id), ordered most-recent-first, carrying the
-    // tournament size (null when the event has no player_count).
+    // tournament size (null when the event has no player_count) and the number
+    // of decks the event contributes to the window corpus.
     expect(result.current.events).toEqual([
-      { id: 10, name: 'RCQ', eventDate: daysAgo(1), playerCount: 128 },
-      { id: 20, name: 'PTQ', eventDate: daysAgo(4), playerCount: null },
+      { id: 10, name: 'RCQ', eventDate: daysAgo(1), playerCount: 128, deckCount: 2 },
+      { id: 20, name: 'PTQ', eventDate: daysAgo(4), playerCount: null, deckCount: 1 },
+    ])
+  })
+
+  it('counts each event\'s decks before the event filter, so every option keeps its weight', async () => {
+    queryResult.data = [
+      deckRow({ source_deck_id: 'a', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'b', events: { id: 10, name: 'RCQ', event_date: daysAgo(1) } }),
+      deckRow({ source_deck_id: 'c', events: { id: 20, name: 'PTQ', event_date: daysAgo(4) } }),
+    ]
+    // Filtered down to event 10 — the other event's count must survive, since the
+    // Events modal has to list every option while one of them is selected.
+    const { result } = renderHook(() => useMetagame('ST', '7days', { eventId: 10 }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.events.map((e) => [e.id, e.deckCount])).toEqual([
+      [10, 2],
+      [20, 1],
     ])
   })
 

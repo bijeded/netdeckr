@@ -50,6 +50,12 @@ export interface EventOption {
   eventDate: string
   /** Tournament size (player_count); null when MTGTop8 didn't report it. */
   playerCount: number | null
+  /**
+   * Decks this event contributes to the window corpus. Counted before the event
+   * filter is applied, so the Events filter modal can show every event's weight
+   * even while one of them is selected.
+   */
+  deckCount: number
 }
 
 /** Optional client-side view filters applied over the fetched corpus. */
@@ -164,7 +170,7 @@ export function useMetagame(
         // Distinct events present in the window corpus (before the event filter),
         // for the Event filter options — first occurrence wins, query is date-desc.
         const eventOptions: EventOption[] = []
-        const seenEventIds = new Set<number>()
+        const seenEventIds = new Map<number, EventOption>()
 
         // 2-week corpus: placements per archetype + breakdown input for the tier
         // reference field. Selected subset: display groups + breakdown input +
@@ -210,9 +216,20 @@ export function useMetagame(
           // Event options come from the window corpus, independent of the event filter.
           if (inWindow) {
             const evtId = row.events?.id
-            if (evtId != null && !seenEventIds.has(evtId)) {
-              seenEventIds.add(evtId)
-              eventOptions.push({ id: evtId, name: row.events?.name ?? '', eventDate, playerCount })
+            if (evtId != null) {
+              const seen = seenEventIds.get(evtId)
+              if (seen) seen.deckCount += 1
+              else {
+                const option: EventOption = {
+                  id: evtId,
+                  name: row.events?.name ?? '',
+                  eventDate,
+                  playerCount,
+                  deckCount: 1,
+                }
+                seenEventIds.set(evtId, option)
+                eventOptions.push(option)
+              }
             }
           }
 

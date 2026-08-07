@@ -23,6 +23,9 @@
     "allTiers": "All tiers",
     "tierLabel": "Tier {{n}}",
     "clear": "Clear filters",
+    "reset": "Reset",
+    "deckCount_one": "{{count}} deck",
+    "deckCount_other": "{{count}} decks",
     "noResults": "No decks match these filters."
   },
   "windows": {

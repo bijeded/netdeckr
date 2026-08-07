@@ -7,8 +7,8 @@ import type { EventOption } from '../hooks/useMetagame'
 afterEach(() => i18n.changeLanguage('en'))
 
 const EVENTS: EventOption[] = [
-  { id: 10, name: 'RCQ Madrid', eventDate: '2026-07-05', playerCount: 128 },
-  { id: 20, name: 'PTQ Lyon', eventDate: '2026-07-01', playerCount: null },
+  { id: 10, name: 'RCQ Madrid', eventDate: '2026-07-05', playerCount: 128, deckCount: 8 },
+  { id: 20, name: 'PTQ Lyon', eventDate: '2026-07-01', playerCount: null, deckCount: 5 },
 ]
 
 describe('EventSelector', () => {

@@ -1,14 +1,11 @@
 import { useTranslation } from 'react-i18next'
-import type { Tier } from '../lib/tiers'
+import { TIER_ORDER, type Tier } from '../lib/tiers'
 
 interface TierSelectorProps {
   /** Selected tier, or null for "All tiers". */
   value: Tier | null
   onChange: (tier: Tier | null) => void
 }
-
-/** The four tiers in display order; the fringe tier reuses the shared "Rogue"/"Otros" label. */
-const TIER_ORDER: Tier[] = ['T1', 'T2', 'T3', 'Otros']
 
 /**
  * Sidebar filter: single-tier select. An "All tiers" default plus one option per

@@ -23,6 +23,9 @@
     "allTiers": "Todos los tiers",
     "tierLabel": "Tier {{n}}",
     "clear": "Limpiar filtros",
+    "reset": "Restablecer",
+    "deckCount_one": "{{count}} mazo",
+    "deckCount_other": "{{count}} mazos",
     "noResults": "Ningún mazo coincide con estos filtros."
   },
   "windows": {

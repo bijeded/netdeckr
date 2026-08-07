@@ -21,7 +21,10 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import { Analytics } from '@vercel/analytics/react'
 import { GRID_DISPLAY_CAP } from './lib/metagame'
 import { TierSelector } from './components/TierSelector'
-import type { Tier } from './lib/tiers'
+import { FilterModal, type FilterModalRow } from './components/FilterModal'
+import { ManaPips } from './components/ManaPips'
+import { TierBadge } from './components/TierBadge'
+import { TIER_ORDER, type Tier } from './lib/tiers'
 import type { DeckRow } from './lib/deckSelection'
 import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
@@ -100,8 +103,24 @@ function App() {
     }
   }, [breakdown, archetypeName])
 
-  // Archetype filter wins over the Tier filter: isolating an archetype outside the
-  // selected tier would be contradictory, so silently drop the tier in that case.
+  // The archetype and tier filters cannot disagree: isolating an archetype outside
+  // the selected tier would be contradictory. Resolution favors the choice the user
+  // just made, so neither entry point ever silently discards a selection — picking
+  // an archetype drops a contradictory tier, and picking a tier drops a
+  // contradictory archetype. Only a handler knows which filter was just chosen, so
+  // the resolution lives there rather than in an effect.
+  const tierOf = (name: string) => breakdown.find((a) => a.name === name)?.tier ?? null
+  const selectArchetype = (name: string | null) => {
+    setArchetypeName(name)
+    if (name !== null && tier !== null && tierOf(name) !== null && tierOf(name) !== tier) setTier(null)
+  }
+  const selectTier = (next: Tier | null) => {
+    setTier(next)
+    if (next !== null && archetypeName !== null && tierOf(archetypeName) !== next) setArchetypeName(null)
+  }
+  // The one case no handler can catch: a breakdown reload reassigning tiers so that
+  // two selections that were consistent when made now disagree. Drops the tier, as
+  // it always has.
   useEffect(() => {
     if (archetypeName !== null && tier !== null) {
       const selected = breakdown.find((a) => a.name === archetypeName)
@@ -195,6 +214,12 @@ function App() {
   const emptyMessage =
     noArchetypeResults || noTierResults ? t('filters.noResults') : t('dashboard.empty')
   const filtersActive = eventId !== null || archetypeName !== null || tier !== null
+  // One handler behind both clear controls — the sidebar's and the main window's.
+  const clearFilters = () => {
+    setEventId(null)
+    setArchetypeName(null)
+    setTier(null)
+  }
 
   // Header StatCard strip: the hook's totals reflect the format/window/event
   // corpus but not the client-side archetype/tier display filters, so override the
@@ -215,6 +240,67 @@ function App() {
       ? totalsFromDecks(tierDecks, visibleBreakdown.length)
       : totals
   const stat = (n: number) => n.toLocaleString(i18n.language)
+
+  // Which StatCard's filter modal is open, if any.
+  const [openFilter, setOpenFilter] = useState<'event' | 'archetype' | 'tier' | null>(null)
+  const closeFilter = () => setOpenFilter(null)
+  const decks = (n: number) => t('filters.deckCount', { count: n })
+
+  // A modal lists its own dimension in full — narrowed by the *other* active
+  // filters, never by its own — so the current selection can always be changed or
+  // cleared. That is why a modal's row figures need not sum to the number on its
+  // card while its own filter is active. `events` is collected before the event
+  // filter, and `breakdown`/`fullDecksByArchetype` are event-narrowed but carry
+  // every archetype and tier, so each list is already the right corpus.
+  // `totals` is narrowed by the event filter, so the Events modal's "All" row takes
+  // the window total from the (unfiltered) event options instead.
+  const windowDecks = events.reduce((n, event) => n + event.deckCount, 0)
+  const eventRows: FilterModalRow<number>[] = [
+    { key: 'all', value: null, content: t('filters.allEvents'), meta: decks(windowDecks) },
+    ...events.map((event) => ({
+      key: String(event.id),
+      value: event.id,
+      content: buildEventLabel(event, i18n.language, t),
+      meta: decks(event.deckCount),
+    })),
+  ]
+  const archetypeRows: FilterModalRow<string>[] = [
+    // No figure on the "All" row: the rows below carry metagame share, and the
+    // share of every archetype together is not a number worth printing.
+    { key: 'all', value: null, content: t('filters.allArchetypes') },
+    ...breakdown.map((archetype) => ({
+      key: archetype.name,
+      value: archetype.name,
+      content: (
+        <>
+          <ManaPips colors={archetype.colorIdentity} size={11} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {archetype.name}
+          </span>
+          <TierBadge tier={archetype.tier} />
+        </>
+      ),
+      meta: `${archetype.sharePct.toFixed(1)}%`,
+    })),
+  ]
+  const tierRows: FilterModalRow<Tier>[] = [
+    { key: 'all', value: null, content: t('filters.allTiers'), meta: decks(totals.decks) },
+    ...TIER_ORDER.map((each) => ({
+      key: each,
+      value: each,
+      content: (
+        <>
+          <TierBadge tier={each} />
+          {/* The fringe tier's badge already reads "Rogue"/"Otros", so naming it
+              again would only repeat the word. */}
+          {each !== 'Otros' && <span>{t('filters.tierLabel', { n: Number(each.slice(1)) })}</span>}
+        </>
+      ),
+      meta: decks(
+        breakdown.filter((a) => a.tier === each).reduce((n, a) => n + (fullDecksByArchetype[a.name]?.length ?? 0), 0),
+      ),
+    })),
+  ]
 
   return (
     <div className="app-shell">
@@ -304,17 +390,10 @@ function App() {
               <ArchetypeSelector
                 value={archetypeName}
                 archetypes={breakdown.map((a) => a.name)}
-                onChange={setArchetypeName}
+                onChange={selectArchetype}
               />
-              <TierSelector value={tier} onChange={setTier} />
-              <ClearFiltersButton
-                disabled={!filtersActive}
-                onClear={() => {
-                  setEventId(null)
-                  setArchetypeName(null)
-                  setTier(null)
-                }}
-              />
+              <TierSelector value={tier} onChange={selectTier} />
+              <ClearFiltersButton disabled={!filtersActive} onClear={clearFilters} />
             </div>
           </aside>
         )}
@@ -358,41 +437,81 @@ function App() {
                 {windowLabel}
               </span>
               {/* StatCard strip: right-aligned on the title row (title stays left). */}
+              {/* Each card opens the filter that breaks its number down: Events →
+                  the event filter, Archetypes → the archetype filter, Decks →
+                  the tier filter (730 decks grouped, rather than listed). */}
               <div data-testid="stat-strip" className="stat-strip">
-                <StatCard value={stat(stripTotals.events)} label={t('stats.events')} />
-                <StatCard value={stat(stripTotals.archetypes)} label={t('stats.archetypes')} />
-                <StatCard value={stat(stripTotals.decks)} label={t('stats.decks')} />
+                <StatCard
+                  value={stat(stripTotals.events)}
+                  label={t('stats.events')}
+                  onOpen={() => setOpenFilter('event')}
+                  open={openFilter === 'event'}
+                  activeFilter={eventLabel}
+                />
+                <StatCard
+                  value={stat(stripTotals.archetypes)}
+                  label={t('stats.archetypes')}
+                  onOpen={() => setOpenFilter('archetype')}
+                  open={openFilter === 'archetype'}
+                  activeFilter={archetypeName}
+                />
+                <StatCard
+                  value={stat(stripTotals.decks)}
+                  label={t('stats.decks')}
+                  onOpen={() => setOpenFilter('tier')}
+                  open={openFilter === 'tier'}
+                  activeFilter={tier === null ? null : tierLabel}
+                />
               </div>
             </div>
-            {showGridCaption && (
-              <div
-                data-testid="grid-caption"
-                style={{
-                  marginTop: 'var(--sp-2)',
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--fs-xs)',
-                  fontWeight: 'var(--fw-bold)',
-                  letterSpacing: 'var(--track-wide)',
-                  textTransform: 'uppercase',
-                  color: 'var(--neon-text-soft)',
-                }}
-              >
-                {gridCaption}
+            {/* Caption row: caption + freshness on the left, Reset right-aligned
+                against the block on both layouts. The row renders even when the
+                caption is hidden (an isolated archetype) — that is precisely a
+                state the user needs Reset for. */}
+            <div className="caption-row">
+              <div>
+                {showGridCaption && (
+                  <div
+                    data-testid="grid-caption"
+                    style={{
+                      marginTop: 'var(--sp-2)',
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'var(--fs-xs)',
+                      fontWeight: 'var(--fw-bold)',
+                      letterSpacing: 'var(--track-wide)',
+                      textTransform: 'uppercase',
+                      color: 'var(--neon-text-soft)',
+                    }}
+                  >
+                    {gridCaption}
+                  </div>
+                )}
+                {freshness && (
+                  <div
+                    data-testid="freshness"
+                    style={{
+                      marginTop: 'var(--sp-2)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--fs-xs)',
+                      color: 'var(--text-faint)',
+                    }}
+                  >
+                    {t('dashboard.updated', { time: freshness })}
+                  </div>
+                )}
               </div>
-            )}
-            {freshness && (
-              <div
-                data-testid="freshness"
-                style={{
-                  marginTop: 'var(--sp-2)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--fs-xs)',
-                  color: 'var(--text-faint)',
-                }}
+              {/* Always rendered, disabled when idle: appearing and disappearing
+                  would resize this row and shove the grid on every filter change. */}
+              <button
+                type="button"
+                data-testid="reset-filters"
+                className="reset-filters"
+                disabled={!filtersActive}
+                onClick={clearFilters}
               >
-                {t('dashboard.updated', { time: freshness })}
-              </div>
-            )}
+                {t('filters.reset')}
+              </button>
+            </div>
 
             {/* Main */}
             <div style={{ marginTop: 'var(--sp-6)' }}>
@@ -404,6 +523,7 @@ function App() {
                 <EmptyState message={emptyMessage} />
               ) : (
                 <div
+                  data-testid="archetype-grid"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))',
@@ -536,6 +656,42 @@ function App() {
       </div>
 
       {selectedDeck && <DecklistModal deck={selectedDeck} format={format} onClose={() => setSelectedDeck(null)} />}
+      {openFilter === 'event' && (
+        <FilterModal
+          title={t('filters.event')}
+          rows={eventRows}
+          value={eventId}
+          onSelect={(next) => {
+            setEventId(next)
+            closeFilter()
+          }}
+          onClose={closeFilter}
+        />
+      )}
+      {openFilter === 'archetype' && (
+        <FilterModal
+          title={t('filters.archetype')}
+          rows={archetypeRows}
+          value={archetypeName}
+          onSelect={(next) => {
+            selectArchetype(next)
+            closeFilter()
+          }}
+          onClose={closeFilter}
+        />
+      )}
+      {openFilter === 'tier' && (
+        <FilterModal
+          title={t('filters.tiers')}
+          rows={tierRows}
+          value={tier}
+          onSelect={(next) => {
+            selectTier(next)
+            closeFilter()
+          }}
+          onClose={closeFilter}
+        />
+      )}
       <SpeedInsights />
       <Analytics />
     </div>
