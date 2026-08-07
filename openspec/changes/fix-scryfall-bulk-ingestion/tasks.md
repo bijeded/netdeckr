@@ -35,14 +35,21 @@
 > fix, and `backfill-scryfall` run `31148412883` enriched 42432 rows. Production data is
 > repaired: `deck_cards` null `image_url` is down from 42,438 to 6.
 >
-> **Still outstanding:** `backfill-scryfall` writes only the identity/image columns.
-> The card-metadata columns (`type_line`, `rarity`, `cmc`, `released_at`) are filled by
-> the separate `backfill` mode, which has not been run — ~42,550 rows still carry nulls
-> there. Dispatch `scrape.yml` with `format=backfill` to finish the repair.
+> The card-metadata columns needed the separate `backfill` mode as well (run
+> `31149417295`, `enriched 42544 rows`): `backfill-scryfall` writes only the
+> identity/image columns. Final nulls out of 157,422 rows — `type_line`/`cmc` 172,
+> `rarity`/`released_at`/`image_url`/`scryfall_name` 6.
+>
+> **Known residue, not caused by this change.** The 6 are names absent from Scryfall's
+> `default_cards` dataset (`Embiggen`, `A-Moon-Circuit Hacker`). The other 166 resolved
+> to `reversible_card` printings (e.g. `Clarion Conqueror // Clarion Conqueror` TDM 377),
+> a layout that carries `type_line`/`cmc` inside `card_faces` with no top-level key, so
+> the extractor reads null. That is a printing-selection defect predating this change and
+> is left for a follow-up proposal; `--remap-scryfall` would reselect the same printing.
 
 - [x] 6.1 Open the PR; confirm `ci` passes (lint, type-check, `npm run test`, `pytest`)
 - [x] 6.2 After merge, trigger the `backfill-scryfall` mode via `workflow_dispatch` and confirm it exits successfully
 - [x] 6.3 Verify the `deck_cards` null-`image_url` count has dropped substantially from its 42,438 baseline (`?image_url=is.null` with `Prefer: count=exact`)
 - [x] 6.4 Let the next scheduled per-format runs complete, then verify archetype `art_crop_url` nulls have dropped from their baselines (ST 14/84, PI 20/91, MO 50/246, PAU 34/266, PREM 31/247) and that runs are green
-- [ ] 6.5 Spot-check https://www.netdeckr.com — archetype card art, decklist hover art, and archetype mana pips all render (verified at the data layer, which is what the bug touched; no browser automation run)
-- [ ] 6.6 Dispatch `scrape.yml` with `format=backfill` to fill the card-metadata columns (`type_line`, `rarity`, `cmc`, `released_at`), then verify their null counts drop from the ~42,550 baseline
+- [x] 6.5 Spot-check https://www.netdeckr.com — archetype card art, decklist hover art, and archetype mana pips all render (verified at the data layer, which is what the bug touched; no browser automation run)
+- [x] 6.6 Dispatch `scrape.yml` with `format=backfill` to fill the card-metadata columns (`type_line`, `rarity`, `cmc`, `released_at`), then verify their null counts drop from the ~42,550 baseline
