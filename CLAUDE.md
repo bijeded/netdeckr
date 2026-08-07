@@ -35,6 +35,16 @@ web (responsive)
 - Branch naming: task/[task-id]-[description]
 - Commit format: follow the conventional commit format (see global CLAUDE.md)
 
+## Merging PRs
+Merge to `main` as soon as CI is green, and delete the branch. This is **standing authorization** — do not ask per PR, and do not treat it as expiring at the end of a request.
+
+Two exceptions. These are binding, not advisory: when one applies, open the PR, say which exception it is, and stop. Do not merge until told to.
+
+1. **User-visible changes** — anything that alters what appears on screen. Wait for confirmation from the Vercel preview. `main` auto-deploys straight to production with no staging environment, so an unreviewed visual regression is live immediately, and no test in this repo would catch one.
+2. **Process, tooling, or agent-instruction changes** — CLAUDE.md, `openspec/config.yaml`, `.claude/`, CI and workflow files. These change how future work gets done rather than what the product does, so they are the user's call.
+
+If unsure whether a change is user-visible, treat it as exception 1.
+
 ## Test commands
 - Frontend: `npm run test`
 - Scraper: `cd scraper && pytest`
