@@ -18,16 +18,24 @@ rules:
   proposal:
     - Note which Supabase tables/RLS policies or scraper behavior are affected, if any
     - Call out any change to the 7days/2weeks time-window model or the 30-day retention window
+    - Impact names affected areas and blast radius, not the approach — how it gets built belongs in design.md
   specs:
     - Reference existing specs in openspec/specs/ before inventing new patterns
+  design:
+    - Mark every visual or UX claim as either calculated or pending visual confirmation, and never assert an aesthetic outcome ("reads as ordered at a glance") in the same confident voice as a measured one ("clears 4.5:1")
+    - Defer exact visual values that only an eye can settle to a preview; record them in the design once confirmed rather than guessing them up front
+    - Record superseded decisions in place, with what overturned them, instead of silently rewriting the original rationale
   tasks:
     - Keep scraper (Python) and frontend (TypeScript) work as separate tasks when both are touched
+    - A task boundary marks where work blocks, changes hands, or needs verifying — do not decompose one coherent edit into per-file tasks
 
 operations:
   apply:
     guidance:
       - Run the relevant test command from CLAUDE.md (frontend, scraper, or both) before marking a task done
       - Follow CLAUDE.md's framework-specific review rules (RLS read-only, i18n, Scryfall/fixtures, etc.)
+      - For user-visible changes, ship to a Vercel preview and have the visual decisions confirmed there before treating them as settled
+      - Prefer tests that assert the behavior a spec states over ones pinning exact style values, so tuning does not re-break them
   archive:
     guidance:
       - Keep the completion summary concise
