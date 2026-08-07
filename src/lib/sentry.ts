@@ -25,6 +25,9 @@ export function initSentry() {
           release: import.meta.env.VITE_SENTRY_RELEASE,
           // Errors only — no tracing/replay for v1.
           tracesSampleRate: 0,
+          // Safari rejects the Speed Insights beacon's CustomEvent on unload with
+          // no serializable info (no stack, no message) — noise, not an app bug.
+          ignoreErrors: ['Object captured as promise rejection with keys: [object has no keys]'],
         })
       })
       .catch(() => {

@@ -1,20 +1,33 @@
+# openspec/config.yaml
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  See CLAUDE.md for stack, conventions, commands, CI, deploy, and design tokens — don't
+  restate those here.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Architecture invariants for proposals: the metagame breakdown is derived at read time
+  from decks, never stored; 7days/2weeks are format-independent logical time-window keys;
+  the browser is strictly read-only, all writes happen in CI via the service-role key.
+
+  Out of scope (do not propose): user accounts/login/personalization, deck building/editing
+  beyond export, formats beyond Standard/Pioneer/Modern/Pauper/Pre-Modern, a native mobile
+  app, monetization, redistribution of raw MTGTop8 data, a staging environment, retention
+  beyond 30 days.
+
+rules:
+  proposal:
+    - Note which Supabase tables/RLS policies or scraper behavior are affected, if any
+    - Call out any change to the 7days/2weeks time-window model or the 30-day retention window
+  specs:
+    - Reference existing specs in openspec/specs/ before inventing new patterns
+  tasks:
+    - Keep scraper (Python) and frontend (TypeScript) work as separate tasks when both are touched
+
+operations:
+  apply:
+    guidance:
+      - Run the relevant test command from CLAUDE.md (frontend, scraper, or both) before marking a task done
+      - Follow CLAUDE.md's framework-specific review rules (RLS read-only, i18n, Scryfall/fixtures, etc.)
+  archive:
+    guidance:
+      - Keep the completion summary concise
