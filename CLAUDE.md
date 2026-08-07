@@ -1,16 +1,14 @@
 # Netdeckr
 
 ## Project overview
-Netdeckr is a responsive web dashboard for tracking Magic: The Gathering metagames across Standard, Pioneer, Modern, Pauper, and Pre-Modern, using real tournament data from MTGTop8. Users pick a format and a time frame (Last 5 Days / 2 Weeks) to explore the metagame; planned filters (event, archetype) and features (archetype decklists, trending/top cards, MTG Arena export) extend from there. Built for professional and casual players (Spanish and English), playing on MTG Arena or in paper events.
-
-Shipped so far: format switcher, the metagame archetype breakdown, the time-frame + event/archetype/tier filters (in a filter sidebar), a header StatCard strip, performance-based tier badges with trend/share-delta indicators, archetype decklists with card art and MTG Arena export, and the trending-cards surface — Trending Creatures, Trending Spells, and Top Sideboard Cards tables (ranked by total copies, with an average-copies-per-deck column on the mainboard tables). See `openspec/specs/` for living specs and `openspec/changes/archive/` for completed changes.
+Responsive web dashboard for MTG metagames (Standard, Pioneer, Modern, Pauper, Pre-Modern) from real MTGTop8 tournament data — format + time-frame breakdown, archetype decklists with Arena export, trending cards. For pro and casual players (ES/EN), MTG Arena or paper. See `openspec/specs/` for living specs and `openspec/changes/archive/` for shipped changes.
 
 ## Platform
 web (responsive)
 
 ## Stack
 - Frontend: React 19 + Vite 8 + TypeScript 5.8
-- Testing: Vitest + React Testing Library (config in `vitest.config.ts`, separate from `vite.config.ts`)
+- Testing: Vitest + React Testing Library (`vitest.config.ts`, separate from `vite.config.ts`)
 - Lint: oxlint
 - Charts: Recharts
 - i18n: react-i18next (ES/EN)
@@ -18,7 +16,7 @@ web (responsive)
 - Database: Supabase (PostgreSQL)
 - Scraper: Python 3.12 + requests + BeautifulSoup4
 - Card data: Scryfall bulk data (daily)
-- Pipeline: GitHub Actions (daily cron)
+- Pipeline: GitHub Actions (twice-daily cron, see Data pipeline)
 - Hosting: Vercel
 
 ## Project structure
@@ -28,7 +26,7 @@ web (responsive)
 - `/scraper` — Python scraper + Scryfall sync (own venv, requirements.txt)
 - `/scraper/tests` — pytest tests with saved HTML fixtures
 - `/supabase` — schema.sql and seed scripts
-- `/.github/workflows` — CI + daily data pipeline
+- `/.github/workflows` — CI + data pipeline
 - `/public` — static assets
 
 ## Conventions
@@ -38,7 +36,7 @@ web (responsive)
 - Commit format: [task-id]: [imperative description]
 
 ## Test commands
-- Unit/integration (frontend): `npm run test`
+- Frontend: `npm run test`
 - Scraper: `cd scraper && pytest`
 - Full suite: `npm run test && cd scraper && pytest`
 
@@ -58,50 +56,46 @@ web (responsive)
 ### Production (Vercel + GitHub Actions secrets)
 - VITE_SUPABASE_URL=            # Vercel
 - VITE_SUPABASE_ANON_KEY=       # Vercel
+- VITE_SENTRY_DSN=              # Vercel (optional — Sentry no-ops if unset)
 - SUPABASE_SERVICE_ROLE_KEY=    # GitHub Actions (scraper writes)
 - SUPABASE_URL=                 # GitHub Actions
 
 ## Deploy
 - Platform: Vercel
-- Production deploy: triggered automatically on merge to main
-- Staging deploy: none — no staging environment
-- Preview environments: YES — auto-generated per PR
+- Production: auto-deploy on merge to main
+- Staging: none
+- Previews: auto per PR
 
 ## CI
 - Runs on: every PR targeting main
 - Runtime: Node 22, Python 3.12
 - Commands: `npm run lint` | `npm run type-check` | `npm run test` | `cd scraper && pytest`
-- Check name (branch protection context): `ci`
-- Merge blocked if CI fails: YES
+- Check name: `ci` — merge blocked if it fails
 
 ## Database
 - Platform: Supabase (PostgreSQL)
-- Migration command: none — manual schema via `/supabase/schema.sql` for now
-- Seed command: `python scraper/run.py` (populates from MTGTop8 + Scryfall)
+- Migration: none — manual schema via `/supabase/schema.sql`
+- Seed: `python scraper/run.py` (MTGTop8 + Scryfall)
 
 ## Data pipeline
-- Schedule: GitHub Actions twice daily (~12 h apart), one job per format on staggered crons — a morning band (10:00–11:00 UTC) and an evening band (22:00–23:00 UTC), 15 min apart. The bands target ~6:00 AM / 6:00 PM UTC-6 but are scheduled ~2 h early to compensate for GitHub's variable cron delay (scheduled runs fire ~2–4 h late), so actual times drift within roughly that window. `workflow_dispatch` can run a single format or `all`. Decklist scraping is incremental (events already stored are skipped) and follows **every page** of a window's events list (`&cp=2`, `&cp=3`, … until a page yields no new events, capped at ~20), so only the first backfill is slow.
-- Source: MTGTop8 (requests + BeautifulSoup4), base `http://mtgtop8.com`
-- Time windows: format-independent logical keys `5days`, `2weeks` (the two windows the dashboard offers, with the same meaning for every format). The frontend applies them as pure client-side **date filters** over the decks and **derives the metagame breakdown from those decks** (there is no stored breakdown). The scraper uses the logical keys only to resolve MTGTop8's per-format numeric `meta` param — **the same window has a different ID per format** — via `WINDOW_META`/`meta_id_for` in `scraper/mtgtop8.py`, and gathers only the `2weeks` window (which contains `5days` by date). Wider MTGTop8 windows ("2 Months", "Large Events", "MTGO/Live") are not tracked (2 months is too large to fully paginate; the others aren't uniform across formats).
-- Fair use: respectful rate limiting, cache aggressively, no redistribution beyond derived metagame stats
-- Card data: Scryfall bulk download once/day; hotlink `image_uris`; Arena export uses current/latest non-foil set printing, no special art
-- Retention: data older than 30 days is not kept — the scrape job prunes events (and their decks/cards) older than 30 days from Supabase after each run
+- Schedule: GitHub Actions, per-format staggered crons, twice daily (~6 AM / 6 PM UTC-6, actual runs drift a few hours due to GitHub's cron delay). `workflow_dispatch` runs one format or `all`.
+- Source: MTGTop8 (requests + BeautifulSoup4), base `http://mtgtop8.com`. Decklist scraping is incremental and paginates a window's full events list.
+- Time windows: format-independent logical keys `7days`/`2weeks`. Frontend applies them as client-side date filters over decks and **derives the metagame breakdown from those decks** (no stored breakdown). Scraper resolves the logical keys to each format's own numeric MTGTop8 `meta` ID (`WINDOW_META`/`meta_id_for` in `scraper/mtgtop8.py`) and only fetches `2weeks` (superset of `7days`).
+- Fair use: rate-limited, cached, no redistribution beyond derived stats
+- Card data: Scryfall bulk sync once/day; hotlinked `image_uris`; Arena export uses latest non-foil printing
+- Retention: data older than 30 days is pruned after each run
 
 ## Error tracking
-- Platform: none (v1) — Sentry candidate later
+- Platform: Sentry (`@sentry/react`), errors-only (no tracing/replay), loaded as a deferred async chunk (`src/lib/sentry.ts`); no-ops when `VITE_SENTRY_DSN` is unset (local dev, CI)
 
 ## Design
 - Claude Design project: https://claude.ai/design/p/ada1f717-bbb1-4011-8f5a-e5b010ca9f60?file=Netdeckr.dc.html
-- Reference in repo: `design/` — exported design system (tokens, components, guidelines, dashboard UI kit). Source of truth is `design/Netdeckr.dc.html` (interactive prototype, all states). Read `design/readme.md` first.
-- **Vibe:** dark-mode competitive-gaming telemetry. Near-black canvas, a single electric violet accent glowing against it. Restrained, dense, data-first. No emoji — **except the 🏆 trophy, used solely to mark event wins on archetype cards** (see the `WinTrophy` component); iconography is otherwise a few unicode glyphs (`≡ ✕ ⬇ ▲ ▼ – ✓ → ←`).
-- **Copy:** UI copy is fully localized in **both Spanish and English** via react-i18next (no hardcoded strings). MTG proper nouns (card names, archetype names like "Izzet Cauldron") stay in English in *both* locales — that's how the community reads them. Terse noun labels, no marketing voice. The design mockup shows the Spanish locale; the English locale mirrors it (e.g. Fecha→Date, Arquetipo→Archetype, En Tendencia→Trending).
-- **Design tokens** (see `design/tokens/`):
-  - Color: canvas `--bg-app #0a0b10`, cards `--surface-card #11121b`, modal `#101119`. Primary accent violet neon `--neon-500 #b14bff → --neon-600 #7a2bff` (active state, primary CTA, focus rings). Mana WUBRG (`--mana-w/u/b/r/g`) are secondary accents, only for color-identity pips. Semantic: up `#2fe6a0`, down `#ff5470`, flat `#ffcb45`. Tiers: T1 violet, T2 cyan, T3 neutral.
-  - Type: `--font-display` Sora (titles/labels, hero 46px/800/-.03em), `--font-body` IBM Plex Sans (body/filters), `--font-mono` JetBrains Mono (ALL data — %, deltas, dates, ranks). Fonts via Google Fonts CDN import.
-  - Spacing: 8/11/14/18/22px rhythm. Radii 6 chips · 9 buttons · 11 deck cards · 15 archetype cards · 16 panels · 18 modal · 999 pills. Sidebar 280px, topbar 62px, content max 1240px.
-  - Numbers: mono, one decimal for % (`14.2%`), signed deltas (`+2.1`/`-1.7`), zero-padded ranks (`01`), abbreviated dates (`24 — 28 Jun 2026`).
-- **Components** (in `design/components/` as `.jsx` + `.d.ts` + `.prompt.md`): `core/` Button, IconButton, Pill · `mana/` ManaPip, ManaPips · `data/` TierBadge (+`tierFor`), ChangeIndicator, StatCard · `archetype/` ArchetypeCard (signature card). Reference implementations mount from `window.Netdeckr`; port them into `src/components/` as real React+TS when building.
-- **Key screens** (`design/ui_kits/dashboard/` + prototype): dashboard = topbar (diamond logo + format Pills) + 280px filter sidebar (Fecha, Tamaño de eventos, Arquetipo) + header (format title + neon date pill + StatCard strip) + archetype grid `repeat(auto-fill,minmax(248px,1fr))` + "En Tendencia" trending table. Plus expanded-archetype deck-card state and the deck modal (main/sideboard + "Exportar a MTG Arena").
+- Reference in repo: `design/` (tokens, components, UI kit). Source of truth: `design/Netdeckr.dc.html` prototype — read `design/readme.md` first.
+- **Vibe:** dark-mode competitive-gaming telemetry — near-black canvas, electric violet accent, dense and data-first. No emoji except 🏆 (event wins, `WinTrophy`); iconography otherwise `≡ ✕ ⬇ ▲ ▼ – ✓ → ←`.
+- **Copy:** fully localized ES/EN via react-i18next, no hardcoded strings. MTG proper nouns (card/archetype names) stay in English in both locales.
+- **Tokens** (`design/tokens/`): canvas `--bg-app #0a0b10`, cards `--surface-card #11121b`; accent `--neon-500 #b14bff → --neon-600 #7a2bff`; mana WUBRG pips as secondary accents; semantic up `#2fe6a0` / down `#ff5470` / flat `#ffcb45`; tiers T1 violet, T2 cyan, T3 neutral. Type: Sora (display), IBM Plex Sans (body), JetBrains Mono (all data — %, deltas, dates, ranks). Spacing 8/11/14/18/22px; sidebar 280px, topbar 62px, content max 1240px.
+- **Components** (`design/components/`, `.jsx`+`.d.ts`+`.prompt.md`): `core/` Button, IconButton, Pill · `mana/` ManaPip(s) · `data/` TierBadge, ChangeIndicator, StatCard · `archetype/` ArchetypeCard. Port into `src/components/` as real React+TS.
+- **Key screens** (`design/ui_kits/dashboard/`): topbar + 280px filter sidebar + header (StatCard strip) + archetype grid + trending table; plus expanded-archetype state and deck modal (main/sideboard + Arena export).
 
 ## Framework-specific review rules
 - No secrets in the client bundle; only VITE_ anon key is exposed client-side
@@ -112,13 +106,5 @@ web (responsive)
 - Respect Scryfall guidelines: hotlink images, no bulk re-hosting, cache bulk data
 - Responsive: filter panel collapses on mobile; charts remain legible at small widths
 
-## Implementation mode
-- Mode: disciplined
-  - **disciplined** — task-execution per task: TDD + subagent code-review + PR + post-merge. Default for production.
-  - **fast** — /opsx:apply: all tasks at once on one branch + a single PR for the change.
-- Overridable per change when implementation starts.
-
-## Skills
-- task-execution, tdd, code-review, github-pr (dev loop)
-- security-review (conditional subagent, security-sensitive tasks)
-- bug-fix (reproduce-first defect workflow, with hotfix variant)
+## Workflow
+- OpenSpec only: `/opsx:explore` → `/opsx:propose` → `/opsx:apply` → `/opsx:sync` → `/opsx:archive`.
