@@ -29,6 +29,6 @@
 
 ## 6. Visual verification
 
-- [ ] 6.1 Run the dev server and review the archetype grid against real card art across all four tiers, confirming legibility over the brightest art in the grid
-- [ ] 6.2 Check the grid at a mobile breakpoint, where cards are narrower and the two chips compete for the same corner
-- [ ] 6.3 Settle the vignette falloff open question (design.md) from what the real grid looks like, and record the final values
+- [x] 6.1 Review the archetype grid against real card art across all four tiers, confirming legibility over the brightest art in the grid (reviewed on the Vercel preview for PR #167)
+- [x] 6.2 Check the grid at a mobile breakpoint, where cards are narrower and the two chips compete for the same corner
+- [x] 6.3 Settle the vignette falloff open question (design.md) from what the real grid looks like, and record the final values — kept at `40%` / `.58`; badge size ramp flattened to a constant 12px in the same pass

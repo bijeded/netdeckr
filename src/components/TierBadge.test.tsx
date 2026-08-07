@@ -60,25 +60,30 @@ describe('TierBadge', () => {
     expect(new Set(colors).size).toBe(TIERS.length)
   })
 
-  it('ramps size and weight monotonically down from T1 to the fringe tier', () => {
-    const steps = TIERS.map((tier) => {
+  it('ramps weight monotonically down from T1 to the fringe tier', () => {
+    const weights = TIERS.map((tier) => {
       const { unmount } = render(<TierBadge tier={tier} />)
-      const el = screen.getByText(labelFor(tier))
-      const step = {
-        size: parseFloat(el.style.fontSize),
-        weight: parseInt(el.style.fontWeight, 10),
-      }
+      const weight = parseInt(screen.getByText(labelFor(tier)).style.fontWeight, 10)
       unmount()
-      return step
+      return weight
     })
     // Tier order has to be readable without hue — in greyscale, or to a viewer
     // who cannot separate violet from cyan.
-    for (let i = 1; i < steps.length; i++) {
-      expect(steps[i].size).toBeLessThanOrEqual(steps[i - 1].size)
-      expect(steps[i].weight).toBeLessThanOrEqual(steps[i - 1].weight)
+    for (let i = 1; i < weights.length; i++) {
+      expect(weights[i]).toBeLessThanOrEqual(weights[i - 1])
     }
-    expect(steps[steps.length - 1].size).toBeLessThan(steps[0].size)
-    expect(steps[steps.length - 1].weight).toBeLessThan(steps[0].weight)
+    expect(weights[weights.length - 1]).toBeLessThan(weights[0])
+  })
+
+  it('keeps every tier the same size, so the ramp never bloats the card corner', () => {
+    const sizes = TIERS.map((tier) => {
+      const { unmount } = render(<TierBadge tier={tier} />)
+      const el = screen.getByText(labelFor(tier))
+      const size = `${el.style.fontSize}/${el.style.padding}`
+      unmount()
+      return size
+    })
+    expect(new Set(sizes).size).toBe(1)
   })
 
   it('renders the fringe tier at the same legibility treatment as T1', () => {

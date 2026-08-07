@@ -32,8 +32,9 @@ describe('TrendIndicator', () => {
     const el = screen.getByRole('img', { name: 'Performance trending up' })
     expect(el.style.background).toMatch(/rgba\(9, ?10, ?16/)
     expect(el.style.backdropFilter).toContain('blur')
-    // Matches the badge's T3 ramp step — a trend has no rank to encode.
-    expect(parseFloat(el.style.fontSize)).toBe(12.5)
+    // Matches the badge exactly — a trend has no rank to encode, and the badge's
+    // size no longer varies by tier.
+    expect(parseFloat(el.style.fontSize)).toBe(12)
   })
 
   it('localizes the accessible label in Spanish', async () => {

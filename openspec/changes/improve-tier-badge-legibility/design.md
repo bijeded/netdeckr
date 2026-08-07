@@ -78,19 +78,25 @@ so the second-place pill in `DeckCard`/`DecklistModal` is untouched.
 ### D3 — Multi-attribute ramp (chosen: B2 over the bar-glyph B1)
 
 A pure font-size ramp across four tiers is too subtle to scan (about 1.5px of spread before the
-badge starts distorting the card's header). So the ramp compounds five attributes that all move in
-the same direction:
+badge starts distorting the card's header). So the ramp compounds several attributes that all move
+in the same direction:
 
-| Tier   | size   | weight | padding  | border α | glow                    |
-|--------|--------|--------|----------|----------|-------------------------|
-| T1     | 13.5px | 800    | 4px 11px | .70      | `0 0 16px` hue @ .50    |
-| T2     | 13px   | 700    | 4px 10px | .55      | `0 0 12px` hue @ .38    |
-| T3     | 12.5px | 700    | 3px 9px  | .30      | `0 0 8px` white @ .12   |
-| Fringe | 12px   | 600    | 3px 9px  | .18      | none                    |
+| Tier   | size | weight | padding | border α | glow                    |
+|--------|------|--------|---------|----------|-------------------------|
+| T1     | 12px | 800    | 3px 9px | .70      | `0 0 16px` hue @ .50    |
+| T2     | 12px | 700    | 3px 9px | .55      | `0 0 12px` hue @ .38    |
+| T3     | 12px | 700    | 3px 9px | .30      | `0 0 8px` white @ .12   |
+| Fringe | 12px | 600    | 3px 9px | .18      | none                    |
 
-Minimum size rises 11px → 12px, so even the quietest badge is larger than today's loudest. The
-compounded delta between adjacent tiers (size + weight + chip footprint + rim brightness + glow
-presence) is what makes the order readable at grid distance and in greyscale.
+**Revised after preview review:** size and padding are constant at 12px / `3px 9px`. The first cut
+scaled them 13.5px → 12px across the tiers, but on the real grid the scrim and shadow already
+carried legibility on their own, and the larger badges only made the card's top-right corner heavy
+without buying readability. Weight, rim brightness, and glow still descend monotonically, which is
+enough to keep the order readable in greyscale.
+
+Size still rises 11px → 12px against the old badge — a uniform bump, not a ramp. A pleasant
+side-effect: with the badge no longer varying by tier, the trend chip matches it exactly rather than
+sitting a step apart, which strengthens the "equal weight" scenario.
 
 *Alternative considered:* B1, a `▮▮▮ / ▮▮ / ▮ / ―` rank glyph prefix. Rejected by the user. It is the
 stronger greyscale signal, but it widens every chip and the ES "Otros" label makes the fringe chip
@@ -98,8 +104,9 @@ disproportionately large.
 
 ### D4 — Trend indicator matched, not quieted
 
-`TrendIndicator` adopts the same scrim, blur, radius, and border treatment, sized to the T3 row of
-the ramp (12.5px) — constant, since a trend has no rank to encode. It keeps its own semantic hue
+`TrendIndicator` adopts the same scrim, blur, radius, and border treatment at the badge's constant
+12px — a trend has no rank to encode, and after D3's revision the badge does not vary by tier
+either, so the two chips match exactly. It keeps its own semantic hue
 (`up #2fe6a0` / `down #ff5470` / `flat #ffcb45`), lifted for dark backgrounds on the same basis as
 D2. Per the user's direction, the two chips stay equally loud; tier wins attention through the ramp,
 not by suppressing the trend.
@@ -153,6 +160,8 @@ persists and no state depends on it.
 
 ## Open Questions
 
-- Exact vignette falloff (the `40%` stop and `.58` alpha in D5) is a judgement call best settled by
-  looking at the real grid. Tuning it later changes neither the specs, the approach, nor the task
-  breakdown.
+Resolved during preview review — none outstanding.
+
+- ~~Exact vignette falloff (the `40%` stop and `.58` alpha in D5).~~ Settled on the Vercel preview:
+  the values as designed read correctly against real art and ship unchanged.
+- The badge size ramp was also settled there, against the design: see D3's revision note.

@@ -10,7 +10,8 @@ import { CHIP_BASE, CHIP_INSET_HIGHLIGHT } from './chipBase'
 // It shares the tier badge's chip treatment (CHIP_BASE) so the two overlaid chips
 // read as equally prominent — the tier badge earns attention through its own ramp,
 // not by the trend arrow being quieted. There is no ramp here: a trend has no rank
-// to encode, so it sits at a constant size matching the badge's T3 step.
+// to encode, and the badge's size is constant across tiers, so the two chips match
+// exactly in size and footprint.
 const TRENDS: Record<Trend, { color: string; hue: string; glyph: string; key: string; glow: string }> = {
   up: { color: 'var(--up-on-dark)', hue: '47,230,160', glyph: '▲', key: 'trend.up', glow: '0 0 12px rgba(47,230,160,.38)' },
   down: { color: 'var(--down-on-dark)', hue: '255,84,112', glyph: '▼', key: 'trend.down', glow: '0 0 12px rgba(255,84,112,.38)' },
@@ -33,7 +34,7 @@ export function TrendIndicator({ trend, style }: TrendIndicatorProps) {
       aria-label={t(c.key)}
       style={{
         ...CHIP_BASE,
-        fontSize: '12.5px',
+        fontSize: '12px',
         fontWeight: 700,
         padding: '3px 9px',
         color: c.color,
