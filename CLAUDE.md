@@ -105,6 +105,16 @@ web (responsive)
 - Scraper tests must use saved fixtures, never hit live MTGTop8 in CI
 - Respect Scryfall guidelines: hotlink images, no bulk re-hosting, cache bulk data
 - Responsive: filter panel collapses on mobile; charts remain legible at small widths
+- Any text or glyph rendered over card art sits on its own dark backdrop and clears 4.5:1 against it — the art is never the background a label is read against. Applies to every state, including the lowest tier.
 
 ## Workflow
-- OpenSpec only: `/opsx:explore` → `/opsx:propose` → `/opsx:apply` → `/opsx:sync` → `/opsx:archive`.
+OpenSpec only. Two flows are installed; default to the core one.
+
+- **Core** — `/opsx:explore` → `/opsx:propose` → `/opsx:apply` → `/opsx:sync` → `/opsx:archive`. Use it whenever the problem is known but the plan isn't; exploration is part of the default flow, not an advanced add-on.
+- **Expanded** — adds `/opsx:new`, `/opsx:continue`, `/opsx:ff`, `/opsx:verify`, `/opsx:bulk-archive` for explicit scaffold-and-build control.
+
+Two worth reaching for by name:
+- `/opsx:ff` instead of `propose` when requirements are already clear — it creates the change and every artifact in one step.
+- `/opsx:verify` before `/opsx:archive` on spec-heavy changes, to confirm the implementation matches the artifacts.
+
+Skip `/opsx:explore` only when you already know exactly what you're building.
