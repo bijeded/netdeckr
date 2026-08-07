@@ -89,13 +89,14 @@ web (responsive)
 - Platform: Sentry (`@sentry/react`), errors-only (no tracing/replay), loaded as a deferred async chunk (`src/lib/sentry.ts`); no-ops when `VITE_SENTRY_DSN` is unset (local dev, CI)
 
 ## Design
-- Claude Design project: https://claude.ai/design/p/ada1f717-bbb1-4011-8f5a-e5b010ca9f60?file=Netdeckr.dc.html
-- Reference in repo: `design/` (tokens, components, UI kit). Source of truth: `design/Netdeckr.dc.html` prototype — read `design/readme.md` first.
+**The code is the source of truth.** There is no separate design folder — the prototype it held had drifted (stale branding, and a `tierFor()` that classified by metagame share, the opposite of the specified Power Score behavior), so it was removed rather than maintained alongside the app.
+
+- **Tokens** (`src/styles/tokens/` — `colors.css`, `typography.css`, `spacing.css`, imported by `src/styles/tokens.css`): canvas `--bg-app #0a0b10`, cards `--surface-card #11121b`; accent `--neon-500 #b14bff → --neon-600 #7a2bff`; mana WUBRG pips as secondary accents; semantic up `#2fe6a0` / down `#ff5470` / flat `#ffcb45`; tiers T1 violet, T2 cyan, T3 neutral, plus `--tier-*-on-dark` text variants for labels over card art. Type: Sora (display), IBM Plex Sans (body), JetBrains Mono (all data — %, deltas, dates, ranks); fonts load via `<link>` in `index.html`, deliberately not `@import`. Spacing 8/11/14/18/22px; sidebar 280px, topbar 62px, content max 1240px.
+- **Components:** `src/components/`, real React+TS, one component per file. Shared visual treatments go in a small colocated module (e.g. `chipBase.ts`) rather than being duplicated across components.
 - **Vibe:** dark-mode competitive-gaming telemetry — near-black canvas, electric violet accent, dense and data-first. No emoji except 🏆 (event wins, `WinTrophy`); iconography otherwise `≡ ✕ ⬇ ▲ ▼ – ✓ → ←`.
 - **Copy:** fully localized ES/EN via react-i18next, no hardcoded strings. MTG proper nouns (card/archetype names) stay in English in both locales.
-- **Tokens** (`design/tokens/`): canvas `--bg-app #0a0b10`, cards `--surface-card #11121b`; accent `--neon-500 #b14bff → --neon-600 #7a2bff`; mana WUBRG pips as secondary accents; semantic up `#2fe6a0` / down `#ff5470` / flat `#ffcb45`; tiers T1 violet, T2 cyan, T3 neutral. Type: Sora (display), IBM Plex Sans (body), JetBrains Mono (all data — %, deltas, dates, ranks). Spacing 8/11/14/18/22px; sidebar 280px, topbar 62px, content max 1240px.
-- **Components** (`design/components/`, `.jsx`+`.d.ts`+`.prompt.md`): `core/` Button, IconButton, Pill · `mana/` ManaPip(s) · `data/` TierBadge, ChangeIndicator, StatCard · `archetype/` ArchetypeCard. Port into `src/components/` as real React+TS.
-- **Key screens** (`design/ui_kits/dashboard/`): topbar + 280px filter sidebar + header (StatCard strip) + archetype grid + trending table; plus expanded-archetype state and deck modal (main/sideboard + Arena export).
+- **Key screens:** topbar + 280px filter sidebar + header (StatCard strip) + archetype grid + trending table; plus expanded-archetype state and deck modal (main/sideboard + Arena export).
+- Visual changes are confirmed on the Vercel preview, not from local reasoning alone.
 
 ## Framework-specific review rules
 - No secrets in the client bundle; only VITE_ anon key is exposed client-side
