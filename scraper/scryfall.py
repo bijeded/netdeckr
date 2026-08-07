@@ -8,11 +8,14 @@ an index straight from a saved bulk fixture and never hit live Scryfall.
 Scryfall's `default_cards` bulk export holds one row per printing (multiple per
 card). We keep, per canonical card name, the best non-foil *paper* printing —
 ranking by plain treatment first (a plain printing beats any special-treatment
-one: promo, crossover, full-art, textless, borderless, or showcase/extended/
-inverted frame — even in a newer set), then a preferred set type (expansion/
-core/masters over commander/draft-innovation), then the most recent — and index
-it under the full name plus each face name so split/DFC front-face names (what
-MTGTop8 emits) still resolve.
+one: promo, booster-fun variant, full-art, textless, borderless, or showcase/
+extended/inverted frame — even in a newer set), then a preferred set type
+(expansion/core over commander/draft-innovation/box, with masters and everything
+else neutral), then the most recent — and index it under the full name plus each
+face name so split/DFC front-face names (what MTGTop8 emits) still resolve.
+
+`reversible_card` printings are excluded from candidacy entirely; see
+`_is_paper_nonfoil`.
 """
 from __future__ import annotations
 
@@ -57,7 +60,16 @@ def _normalize(name: str) -> str:
 
 
 def _is_paper_nonfoil(row: dict) -> bool:
-    """True if the row is a real, non-digital, non-foil paper printing."""
+    """True if the row is a real, non-digital, non-foil paper printing.
+
+    ``reversible_card`` printings (Secret Lair double-sided reprints) are rejected
+    outright rather than merely demoted: they carry no top-level ``type_line`` or
+    ``cmc``, and Scryfall names them ``"<name> // <name>"`` — a different index
+    bucket from the plain card, so they would never be ranked against it and would
+    win or lose purely on bulk-file order. Rejecting them here also keeps a card
+    whose only paper printing is reversible from resolving with null metadata."""
+    if row.get("layout") == "reversible_card":
+        return False
     if row.get("digital"):
         return False
     if "paper" not in (row.get("games") or []):
@@ -74,22 +86,31 @@ def _is_paper_nonfoil(row: dict) -> bool:
 # exists (Scryfall vocabulary). Borderless is handled via `border_color`.
 _SPECIAL_FRAME_EFFECTS = frozenset({"showcase", "extendedart", "inverted"})
 
-# Set types whose printings we prefer (a clean expansion/core/masters printing)
-# and demote (bonus reprints in Commander / draft-innovation products). Anything
-# else is neutral.
-_PREFERRED_SET_TYPES = frozenset({"expansion", "core", "masters"})
-_DEMOTED_SET_TYPES = frozenset({"commander", "draft_innovation"})
+# Set types whose printings we prefer (a clean expansion/core printing) and demote
+# (bonus reprints in Commander / draft-innovation products, and box products like
+# Secret Lair). Anything else — including `masters` reprint/draft sets such as
+# Mystery Booster 2 — is neutral: those are real printings, but they should not
+# outrank an expansion or core printing on recency alone.
+_PREFERRED_SET_TYPES = frozenset({"expansion", "core"})
+_DEMOTED_SET_TYPES = frozenset({"commander", "draft_innovation", "box"})
 
 
 def _is_special_printing(row: dict) -> bool:
-    """True for a special-treatment printing — promo, Universes Beyond crossover,
+    """True for a special-treatment printing — promo, booster-fun variant,
     full-art, textless, borderless, or a showcase/extended/inverted frame — the
     alternate treatments (odd collector numbers, different art) we avoid when a
     plain printing of the same card exists. Border colors other than
-    ``borderless`` (black, white, silver, gold) are NOT special by themselves."""
+    ``borderless`` (black, white, silver, gold) are NOT special by themselves.
+
+    A Universes Beyond marker is deliberately not consulted: on a wholly-UB set
+    every printing carries it, so it cannot separate the plain printing from its
+    variants and only flattens the ranking into a tie broken by file order. The
+    variants it was meant to catch carry ``boosterfun`` or one of the treatment
+    markers below."""
+    promo_types = row.get("promo_types") or []
     if row.get("promo"):
         return True
-    if "universesbeyond" in (row.get("promo_types") or []):
+    if "boosterfun" in promo_types:
         return True
     if row.get("full_art") or row.get("textless"):
         return True
@@ -99,9 +120,10 @@ def _is_special_printing(row: dict) -> bool:
 
 
 def _set_type_tier(row: dict) -> int:
-    """Preference tier for a printing's set type: 2 for expansion/core/masters,
-    0 for commander/draft-innovation reprints, 1 for anything else. Greater is
-    better."""
+    """Preference tier for a printing's set type: 2 for expansion/core, 0 for
+    commander/draft-innovation/box reprints, 1 for anything else (including
+    `masters`). Greater is better. Demoted, not rejected — a card whose only
+    printing is a Secret Lair drop should still resolve."""
     set_type = row.get("set_type")
     if set_type in _PREFERRED_SET_TYPES:
         return 2

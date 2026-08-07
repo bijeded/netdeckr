@@ -38,18 +38,18 @@ def test_resolves_known_card_to_a_printing():
     printing = _index().resolve("Lightning Bolt")
     assert printing is not None
     assert printing.name == "Lightning Bolt"
-    assert printing.set_code == "CLU"
-    assert printing.collector_number == "141"
-    assert printing.image_url == "https://cards.scryfall.io/normal/bolt-clu.jpg"
+    assert printing.set_code == "M11"
+    assert printing.collector_number == "149"
+    assert printing.image_url == "https://cards.scryfall.io/normal/bolt-m11.jpg"
 
 
 def test_resolved_printing_carries_card_metadata():
     printing = _index().resolve("Lightning Bolt")
     assert printing.type_line == "Instant"
-    assert printing.rarity == "uncommon"
+    assert printing.rarity == "common"
     assert printing.cmc == 1
-    assert printing.released_at == "2024-02-23"
-    assert printing.art_crop_url == "https://cards.scryfall.io/art_crop/bolt-clu.jpg"
+    assert printing.released_at == "2010-07-16"
+    assert printing.art_crop_url == "https://cards.scryfall.io/art_crop/bolt-m11.jpg"
 
 
 def test_split_card_printing_uses_front_face_image():
@@ -66,16 +66,20 @@ def test_split_card_art_crop_uses_front_face():
 
 
 def test_prefers_most_recent_nonfoil_paper_printing_and_skips_digital():
-    # lea (1993) and clu (2024) are paper; pmtg1 (2030) is digital and must be
-    # ignored even though it is the newest.
+    # lea (1993), m11 (2010) and clu (2024) are paper; pmtg1 (2030) is digital and
+    # must be ignored even though it is the newest. Among the paper printings, clu
+    # is the most recent but is a `masters` reprint (Ravnica: Clue Edition) and so
+    # sits in the neutral tier; m11 wins on set-type tier despite being older, and
+    # beats lea on recency within that tier.
     printing = _index().resolve("Lightning Bolt")
-    assert printing.set_code == "CLU"  # not LEA (older) and not PMTG1 (digital)
+    assert printing.set_code == "M11"  # not CLU (masters), LEA (older), PMTG1 (digital)
 
 
 def test_prefers_standard_printing_over_newer_promo_and_crossover():
     # "Prefer Standard" has a clean expansion printing (2023) plus a newer promo
-    # (2026) and a newer Universes Beyond crossover (2025). Recency alone would
-    # pick the promo; we prefer the standard, non-promo, non-crossover printing.
+    # (2026) and a newer Universes Beyond crossover in a Secret Lair box (2025).
+    # Recency alone would pick the promo; the promo loses on treatment and the
+    # crossover loses on set type (`box` is demoted), so the expansion wins.
     printing = _index().resolve("Prefer Standard")
     assert printing is not None
     assert printing.set_code == "STD"
@@ -120,7 +124,7 @@ def test_single_slash_split_name_resolves():
 def test_resolution_is_case_and_whitespace_insensitive():
     printing = _index().resolve("  lightning   BOLT ")
     assert printing is not None
-    assert printing.set_code == "CLU"
+    assert printing.set_code == "M11"
 
 
 def test_unknown_card_is_a_miss():
@@ -231,12 +235,121 @@ def test_preferred_set_type_beats_commander_reprint():
 
 
 def test_masters_preferred_over_draft_innovation():
+    # `masters` is neutral, `draft_innovation` is demoted — neutral still wins.
     masters = _printing_row("Force", "mas", "40", released_at="2023-01-01", set_type="masters")
     draft = _printing_row(
         "Force", "drf", "20", released_at="2025-01-01", set_type="draft_innovation"
     )
     index = CardIndex.from_bulk_rows([draft, masters])
     assert index.resolve("Force").set_code == "MAS"
+
+
+def test_expansion_preferred_over_newer_masters_reprint():
+    # The Torpor Orb shape: a plain expansion printing and a newer plain reprint
+    # in a `masters` product (Mystery Booster 2). Recency alone would pick the
+    # reprint; `masters` is neutral, so the expansion's preferred tier wins.
+    expansion = _printing_row("Torpor Orb", "exp", "27", released_at="2024-04-19")
+    reprint = _printing_row(
+        "Torpor Orb", "mb2", "236", released_at="2024-08-02", set_type="masters"
+    )
+    index = CardIndex.from_bulk_rows([reprint, expansion])
+    assert index.resolve("Torpor Orb").set_code == "EXP"
+
+
+def test_preferred_set_type_beats_box_product():
+    # Secret Lair and other `box` products are demoted below neutral.
+    expansion = _printing_row("Ajani", "exp", "3", released_at="2023-01-01")
+    secret_lair = _printing_row("Ajani", "sld", "900", released_at="2025-01-01", set_type="box")
+    index = CardIndex.from_bulk_rows([secret_lair, expansion])
+    assert index.resolve("Ajani").set_code == "EXP"
+
+
+def test_box_product_still_selected_when_it_is_the_only_printing():
+    # Demoted, not rejected: a card whose only printing is a Secret Lair drop
+    # must still resolve rather than becoming a miss.
+    secret_lair = _printing_row("Lair Only", "sld", "900", released_at="2025-01-01", set_type="box")
+    index = CardIndex.from_bulk_rows([secret_lair])
+    printing = index.resolve("Lair Only")
+    assert printing is not None
+    assert printing.set_code == "SLD"
+
+
+def test_plain_printing_preferred_over_boosterfun_variant_same_set():
+    # The Aang's Iceberg shape: both printings are from the same wholly-Universes
+    # Beyond set with the same release date, so treatment is the only thing that
+    # can separate them. `boosterfun` marks the alternate-treatment variant.
+    plain = _printing_row(
+        "Aang's Iceberg", "tla", "5", released_at="2025-11-21",
+        promo_types=["universesbeyond"], frame_effects=["enchantment"],
+    )
+    showcase = _printing_row(
+        "Aang's Iceberg", "tla", "336", released_at="2025-11-21",
+        promo_types=["universesbeyond", "boosterfun"],
+        frame_effects=["showcase", "enchantment"], border_color="borderless",
+    )
+    index = CardIndex.from_bulk_rows([showcase, plain])
+    assert index.resolve("Aang's Iceberg").collector_number == "5"
+
+
+def test_universes_beyond_marker_alone_does_not_demote_a_printing():
+    # On a wholly-UB set every printing carries `universesbeyond`, so it must not
+    # by itself mark a printing special — otherwise the plain printing ties with
+    # its variants and file order decides. Here the only distinguishing signal is
+    # `boosterfun`, and the plain printing must win from either row order.
+    plain = _printing_row(
+        "Sokka's Plan", "tla", "60", released_at="2025-11-21",
+        promo_types=["universesbeyond"],
+    )
+    variant = _printing_row(
+        "Sokka's Plan", "tla", "412", released_at="2025-11-21",
+        promo_types=["universesbeyond", "boosterfun"],
+    )
+    for rows in ([plain, variant], [variant, plain]):
+        assert CardIndex.from_bulk_rows(rows).resolve("Sokka's Plan").collector_number == "60"
+
+
+# -- reversible printings --------------------------------------------------
+
+def _reversible_row(name, set_code, num, *, released_at, set_type="box"):
+    """A Secret Lair reversible printing: doubled name, no top-level type_line/cmc."""
+    return {
+        "name": f"{name} // {name}",
+        "layout": "reversible_card",
+        "set": set_code,
+        "set_type": set_type,
+        "collector_number": num,
+        "released_at": released_at,
+        "games": ["paper"],
+        "finishes": ["nonfoil"],
+        "border_color": "black",
+        "card_faces": [
+            {"name": name, "image_uris": {"normal": f"https://cards.scryfall.io/normal/{num}a.jpg"}},
+            {"name": name, "image_uris": {"normal": f"https://cards.scryfall.io/normal/{num}b.jpg"}},
+        ],
+    }
+
+
+def test_reversible_printing_never_wins_over_a_plain_printing():
+    # A reversible printing is indexed under "X // X" — a different bucket from
+    # the plain card — so it never competes on the ranking and would otherwise
+    # win or lose on bulk-file order. Assert from both orderings.
+    plain = _printing_row(
+        "Ajani Goldmane", "exp", "12", released_at="2009-07-17",
+        type_line="Legendary Planeswalker — Ajani", cmc=4.0,
+    )
+    reversible = _reversible_row("Ajani Goldmane", "sld", "1512", released_at="2024-01-01")
+    for rows in ([reversible, plain], [plain, reversible]):
+        printing = CardIndex.from_bulk_rows(rows).resolve("Ajani Goldmane")
+        assert printing.set_code == "EXP"
+        assert printing.type_line == "Legendary Planeswalker — Ajani"
+        assert printing.cmc == 4.0
+
+
+def test_card_with_only_a_reversible_printing_is_a_miss():
+    # Rejected outright, not demoted: resolving would yield null type_line/cmc,
+    # which mis-sorts the card downstream. A miss leaves the columns null instead.
+    reversible = _reversible_row("Lair Exclusive", "sld", "1600", released_at="2024-01-01")
+    assert CardIndex.from_bulk_rows([reversible]).resolve("Lair Exclusive") is None
 
 
 def test_selection_is_deterministic_regardless_of_row_order():
@@ -287,7 +400,7 @@ def test_printing_color_identity_defaults_empty_when_absent():
 
 def test_load_bulk_index_reads_a_file_into_an_index():
     index = load_bulk_index(FIXTURE)
-    assert index.resolve("Lightning Bolt").set_code == "CLU"
+    assert index.resolve("Lightning Bolt").set_code == "M11"
 
 
 def test_sync_reuses_cached_file_when_fresh(tmp_path):
@@ -299,7 +412,7 @@ def test_sync_reuses_cached_file_when_fresh(tmp_path):
 
     index = sync_bulk(cache_dir, today="2026-07-02", fetch_meta=fetch_meta, download=download)
 
-    assert index.resolve("Lightning Bolt").set_code == "CLU"
+    assert index.resolve("Lightning Bolt").set_code == "M11"
     fetch_meta.assert_not_called()
     download.assert_not_called()
 
