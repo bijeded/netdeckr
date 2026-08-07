@@ -224,7 +224,7 @@ describe('App dashboard', () => {
     expect(screen.getByTestId('grid-caption').textContent).toBe('Top 3 most popular archetypes')
   })
 
-  it('hides the popularity caption while an archetype is isolated', () => {
+  it('names the isolated archetype in the caption', () => {
     const decks = [
       {
         id: 1,
@@ -247,13 +247,14 @@ describe('App dashboard', () => {
       error: null,
     })
     render(<App />)
-    expect(screen.getByTestId('grid-caption')).toBeInTheDocument()
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Top 1 most popular archetype')
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), {
         target: { value: 'Izzet Control' },
       })
     })
-    expect(screen.queryByTestId('grid-caption')).toBeNull()
+    // The isolated view names itself rather than going untitled.
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Izzet Control')
   })
 
   it('localizes the popularity caption in Spanish', () => {
@@ -612,11 +613,11 @@ describe('App dashboard', () => {
         target: { value: 'Izzet Control' },
       })
     })
-    // Only the selected archetype's card remains in the grid (names also appear
-    // as filter <option>s, so scope to main).
-    const main = screen.getByRole('main')
-    expect(within(main).getByText('Izzet Control')).toBeInTheDocument()
-    expect(within(main).queryByText('Mono Red')).toBeNull()
+    // Only the selected archetype's card remains in the grid. Names also appear as
+    // filter <option>s and on the StatCard's active-filter line, so scope to the grid.
+    const grid = screen.getByTestId('archetype-grid')
+    expect(within(grid).getByText('Izzet Control')).toBeInTheDocument()
+    expect(within(grid).queryByText('Mono Red')).toBeNull()
     // Auto-expanded, listing all 8 decks (cap lifted).
     expect(screen.getByTestId('deck-list')).toBeInTheDocument()
     expect(screen.getByText('Player 7')).toBeInTheDocument()
@@ -883,9 +884,9 @@ describe('App dashboard', () => {
     })
     // The tier filter silently resets, and Mono Red is isolated + auto-expanded.
     expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('')
-    const main = screen.getByRole('main')
-    expect(within(main).getByText('Mono Red')).toBeInTheDocument()
-    expect(within(main).queryByText('Izzet Control')).toBeNull()
+    const grid = screen.getByTestId('archetype-grid')
+    expect(within(grid).getByText('Mono Red')).toBeInTheDocument()
+    expect(within(grid).queryByText('Izzet Control')).toBeNull()
   })
 
   it('resets the tier filter via Clear filters', () => {
@@ -1007,5 +1008,246 @@ describe('Footer & legal pages', () => {
     expect(screen.getByRole('heading', { name: 'How it works' })).toBeInTheDocument()
     act(() => fireEvent.click(screen.getByRole('button', { name: 'ES' })))
     expect(screen.getByRole('heading', { name: 'Cómo funciona' })).toBeInTheDocument()
+  })
+})
+
+describe('StatCard filter modals', () => {
+  const DECKS = [
+    {
+      id: 1,
+      sourceDeckId: 'd1',
+      player: 'P1',
+      placement: '1',
+      eventName: 'RCQ',
+      eventDate: '2026-07-05',
+      archetypeName: 'Izzet Control',
+      colorIdentity: 'UR',
+    },
+    {
+      id: 2,
+      sourceDeckId: 'd2',
+      player: 'P2',
+      placement: '3-4',
+      eventName: 'PTQ',
+      eventDate: '2026-07-01',
+      archetypeName: 'Mono Red',
+      colorIdentity: 'R',
+    },
+  ]
+
+  beforeEach(() => {
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 },
+        { rank: 2, name: 'Mono Red', colorIdentity: 'R', sharePct: 20, tier: 'T3', trend: null, wins: 0 },
+      ],
+      decksByArchetype: { 'Izzet Control': [DECKS[0]], 'Mono Red': [DECKS[1]] },
+      fullDecksByArchetype: { 'Izzet Control': [DECKS[0]], 'Mono Red': [DECKS[1]] },
+      events: [
+        { id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128, deckCount: 1 },
+        { id: 20, name: 'PTQ', eventDate: '2026-07-01', playerCount: null, deckCount: 1 },
+      ],
+      totals: { events: 2, archetypes: 2, decks: 2 },
+      loading: false,
+      error: null,
+    })
+  })
+
+  const openCard = (name: RegExp) => {
+    const card = screen.getByRole('button', { name })
+    act(() => fireEvent.click(card))
+    return screen.getByRole('dialog')
+  }
+
+  it('opens the event filter from the Events card, listing every event with its deck count', () => {
+    render(<App />)
+    const dialog = openCard(/Events/)
+    expect(dialog).toHaveAccessibleName('Event')
+    expect(within(dialog).getByRole('button', { name: /All events/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /RCQ.*1 deck/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /PTQ.*1 deck/ })).toBeInTheDocument()
+  })
+
+  it('opens the archetype filter from the Archetypes card, share-descending with tier', () => {
+    render(<App />)
+    const dialog = openCard(/Archetypes/)
+    expect(dialog).toHaveAccessibleName('Archetype')
+    const rows = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+      .map((b) => b.textContent)
+    expect(rows).toEqual(['All archetypes', 'Izzet ControlT124.0%', 'Mono RedT320.0%'])
+  })
+
+  it('puts the tier badge in its own column so the rows line up', () => {
+    render(<App />)
+    const dialog = openCard(/Archetypes/)
+    const rows = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+    // Every row reserves the middle column, including the "All" row that leaves
+    // it empty — that is what keeps the badges aligned down the list.
+    for (const row of rows) {
+      expect(row.querySelector('.filter-modal-row-aside')).not.toBeNull()
+    }
+    expect(rows[1].querySelector('.filter-modal-row-aside')).toHaveTextContent('T1')
+    expect(rows[1].querySelector('.filter-modal-row-content')).toHaveTextContent('Izzet Control')
+  })
+
+  it('opens the tier filter from the Decks card, with each tier’s deck count', () => {
+    render(<App />)
+    const dialog = openCard(/Decks/)
+    expect(dialog).toHaveAccessibleName('Tiers')
+    expect(within(dialog).getByRole('button', { name: /Tier 1.*1 deck/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /Tier 3.*1 deck/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /Tier 2.*0 decks/ })).toBeInTheDocument()
+  })
+
+  it('applies the picked filter, closes the modal, and captions the view', () => {
+    render(<App />)
+    const dialog = openCard(/Decks/)
+    act(() => fireEvent.click(within(dialog).getByRole('button', { name: /Tier 1/ })))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('T1')
+    // The caption names the active tier; the card stays a value and a label.
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Tier 1')
+    expect(screen.getByRole('button', { name: /Decks/ })).not.toHaveTextContent('Tier 1')
+    // …and the grid is narrowed to that tier.
+    const grid = screen.getByTestId('archetype-grid')
+    expect(within(grid).getByText('Izzet Control')).toBeInTheDocument()
+    expect(within(grid).queryByText('Mono Red')).toBeNull()
+  })
+
+  it('clears just that filter from the All row', () => {
+    render(<App />)
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } }))
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } }))
+
+    const dialog = openCard(/Decks/)
+    act(() => fireEvent.click(within(dialog).getByRole('button', { name: /All tiers/ })))
+
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('')
+    // The other filter is untouched.
+    expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('10')
+  })
+
+  it('marks the active row when the filter was set from the sidebar', () => {
+    render(<App />)
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T3' } }))
+
+    const dialog = openCard(/Decks/)
+    expect(within(dialog).getByRole('button', { name: /Tier 3/ })).toHaveAttribute('aria-current', 'true')
+    expect(within(dialog).getByRole('button', { name: /Tier 1/ })).not.toHaveAttribute('aria-current')
+  })
+
+  it('still lists every event while one is selected, so the choice can be changed', () => {
+    render(<App />)
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } }))
+
+    const dialog = openCard(/Events/)
+    expect(within(dialog).getByRole('button', { name: /RCQ/ })).toHaveAttribute('aria-current', 'true')
+    // The unselected event is still offered, with its own weight intact.
+    expect(within(dialog).getByRole('button', { name: /PTQ.*1 deck/ })).toBeInTheDocument()
+  })
+
+  it('closes without changing the filters when dismissed', () => {
+    render(<App />)
+    openCard(/Decks/)
+    act(() => fireEvent.keyDown(document, { key: 'Escape' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('')
+  })
+
+  it('resolves archetype/tier conflicts in favor of the most recent choice', () => {
+    render(<App />)
+    // Isolate a T3 archetype, then pick Tier 1 from the modal: the tier wins.
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), { target: { value: 'Mono Red' } })
+    })
+    const dialog = openCard(/Decks/)
+    act(() => fireEvent.click(within(dialog).getByRole('button', { name: /Tier 1/ })))
+
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('T1')
+    expect(screen.getByRole('combobox', { name: 'Archetype' })).toHaveValue('')
+
+    // The other direction still holds: picking an archetype outside the tier
+    // clears the tier.
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), { target: { value: 'Mono Red' } })
+    })
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: 'Archetype' })).toHaveValue('Mono Red')
+  })
+
+  it('keeps an archetype isolated when its own tier is picked', () => {
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), { target: { value: 'Mono Red' } })
+    })
+    const dialog = openCard(/Decks/)
+    act(() => fireEvent.click(within(dialog).getByRole('button', { name: /Tier 3/ })))
+
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('T3')
+    expect(screen.getByRole('combobox', { name: 'Archetype' })).toHaveValue('Mono Red')
+  })
+
+})
+
+describe('Main-window Reset', () => {
+  beforeEach(() => {
+    useMetagame.mockReturnValue({
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 },
+      ],
+      decksByArchetype: {},
+      fullDecksByArchetype: {},
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128, deckCount: 1 }],
+      totals: { events: 1, archetypes: 1, decks: 1 },
+      loading: false,
+      error: null,
+    })
+  })
+
+  it('is rendered but disabled when nothing is filtered', () => {
+    render(<App />)
+    expect(screen.getByTestId('reset-filters')).toBeDisabled()
+  })
+
+  it('clears every filter, matching the sidebar control', () => {
+    render(<App />)
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } }))
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } }))
+
+    const reset = screen.getByTestId('reset-filters')
+    expect(reset).toBeEnabled()
+    act(() => fireEvent.click(reset))
+
+    expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: 'Archetype' })).toHaveValue('')
+    expect(reset).toBeDisabled()
+  })
+
+  it('stays in place when the filter state changes, so the grid does not jump', () => {
+    render(<App />)
+    expect(screen.getByTestId('reset-filters')).toBeInTheDocument()
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } }))
+    expect(screen.getByTestId('reset-filters')).toBeInTheDocument()
+  })
+
+  it('is reachable while an archetype is isolated', () => {
+    render(<App />)
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), { target: { value: 'Izzet Control' } })
+    })
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Izzet Control')
+    expect(screen.getByTestId('reset-filters')).toBeEnabled()
+  })
+
+  it('is localized', () => {
+    i18n.changeLanguage('es')
+    render(<App />)
+    expect(screen.getByTestId('reset-filters')).toHaveTextContent('Restablecer')
   })
 })

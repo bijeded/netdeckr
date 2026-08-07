@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { StatCard } from './StatCard'
 
 describe('StatCard', () => {
@@ -20,5 +20,24 @@ describe('StatCard', () => {
     const figure = screen.getByText('12')
     expect(figure).toBeInTheDocument()
     expect(screen.getByText('Archetypes')).toBeInTheDocument()
+  })
+
+  it('is not interactive without an open handler', () => {
+    render(<StatCard value="34" label="Events" />)
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('opens its modal when activated, and reports the modal state', () => {
+    const onOpen = vi.fn()
+    const { rerender } = render(<StatCard value="34" label="Events" onOpen={onOpen} />)
+    const card = screen.getByRole('button', { name: /Events/ })
+    expect(card).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(card).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(card)
+    expect(onOpen).toHaveBeenCalled()
+
+    rerender(<StatCard value="34" label="Events" onOpen={onOpen} open />)
+    expect(screen.getByRole('button', { name: /Events/ })).toHaveAttribute('aria-expanded', 'true')
   })
 })

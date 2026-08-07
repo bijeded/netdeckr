@@ -23,6 +23,9 @@
     "allTiers": "Todos los tiers",
     "tierLabel": "Tier {{n}}",
     "clear": "Limpiar filtros",
+    "reset": "Restablecer",
+    "deckCount_one": "{{count}} mazo",
+    "deckCount_other": "{{count}} mazos",
     "noResults": "Ningún mazo coincide con estos filtros."
   },
   "windows": {
@@ -37,6 +40,7 @@
     "topCaption_other": "Top {{count}} arquetipos más populares",
     "tierCaption_one": "{{tier}} — {{count}} arquetipo",
     "tierCaption_other": "{{tier}} — {{count}} arquetipos",
+    "archetypeEventCaption": "{{archetype}} — {{event}}",
     "tierEventCaption": "{{tier}} — {{event}}",
     "eventSize_one": "{{count}} jugador",
     "eventSize_other": "{{count}} jugadores"

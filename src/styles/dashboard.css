@@ -69,6 +69,16 @@
   text-transform: uppercase;
   margin-top: 5px;
 }
+/* Interactive variant: the same box, now the trigger for its filter modal. */
+.stat-card--button {
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.stat-card--button:hover {
+  border-color: var(--neon-border);
+  background: var(--neon-tint-16);
+}
 
 /* Language selector pinned to the bottom of the filter sidebar, detached from
    the filter groups by a hairline separator. */
@@ -378,4 +388,107 @@
   font-size: var(--fs-2xs);
   color: var(--text-faint);
   margin: var(--sp-7) 0 0;
+}
+
+/* Caption row: the grid caption and freshness line on the left, the Reset control
+   right-aligned and centred against that block. Same arrangement at every width —
+   giving Reset its own row on mobile would cost a row of height where there is
+   least of it and pull the control away from the caption it belongs to. */
+.caption-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+/* Enabled, it is the way out of a filtered view and has to read as an action, so
+   it takes the accent treatment (tint, accent rim, accent text) rather than the
+   quiet outline of the sidebar's Clear filters. */
+.reset-filters {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--neon-border);
+  background: var(--neon-tint-16);
+  color: var(--neon-text);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+}
+.reset-filters:hover:not(:disabled) {
+  background: var(--neon-tint-22);
+  color: var(--neon-text-soft);
+  box-shadow: var(--neon-glow);
+}
+/* Disabled rather than hidden, so the row keeps its height and the grid below it
+   never jumps when a filter is applied or cleared. It drops the accent entirely
+   — an idle control should not compete with the caption beside it. */
+.reset-filters:disabled {
+  cursor: default;
+  border-color: var(--border-line);
+  background: transparent;
+  color: var(--text-faint);
+  font-weight: var(--fw-regular);
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+/* Filter modal (opened from a header StatCard): a scrolling list of rows, one
+   per option. The list — not the page — is what scrolls when the options run
+   long, so the modal is capped against the viewport minus the backdrop padding. */
+.filter-modal-list {
+  max-height: calc(100vh - 80px - 67px);
+  overflow-y: auto;
+  padding: var(--sp-2) 0;
+}
+.filter-modal-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 10px 22px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.filter-modal-row:hover {
+  background: var(--surface-faint);
+}
+/* The active option is marked by an accent rail plus accent text, so the
+   selection survives without relying on color alone. */
+.filter-modal-row[data-selected] {
+  border-left-color: var(--neon-500);
+  background: var(--neon-tint-16);
+  color: var(--text-primary);
+}
+.filter-modal-row-content {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+/* Middle column: a fixed width so its contents form a clean vertical band down
+   the list instead of trailing each row's own content at a ragged edge. */
+.filter-modal-row-aside {
+  flex: 0 0 auto;
+  width: 62px;
+  display: flex;
+  justify-content: flex-start;
+}
+/* Row figures are data, so they take the mono font like every other figure. */
+.filter-modal-row-meta {
+  flex: 0 0 auto;
+  min-width: 58px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
 }
