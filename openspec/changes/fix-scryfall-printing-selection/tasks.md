@@ -41,7 +41,16 @@ Measured against the cached `default_cards-2026-08-06` bulk file (116,687 rows) 
 
 ## 4. Ship and re-resolve
 
-- [ ] 4.1 Open the PR on a `task/`-prefixed branch and confirm CI (`lint`, `type-check`, `test`, `pytest`) is green
-- [ ] 4.2 After merge, run `python scraper/run.py --remap-scryfall` with service-role credentials; it re-resolves `deck_cards` and refreshes archetype signature cards and art per format
-- [ ] 4.3 Verify no `deck_cards` rows remain with a null `type_line` for a name that resolves, and that the previously-affected cards no longer appear in Trending Spells
-- [ ] 4.4 Spot-check `Torpor Orb` and `Aang's Iceberg` art in the decklist modal on production, and confirm archetype art still renders
+- [x] 4.1 Open the PR on a `task/`-prefixed branch and confirm CI (`lint`, `type-check`, `test`, `pytest`) is green
+- [x] 4.2 After merge, run `python scraper/run.py --remap-scryfall` with service-role credentials; it re-resolves `deck_cards` and refreshes archetype signature cards and art per format
+- [x] 4.3 Verify no `deck_cards` rows remain with a null `type_line` for a name that resolves, and that the previously-affected cards no longer appear in Trending Spells
+- [x] 4.4 Spot-check `Torpor Orb` and `Aang's Iceberg` art in the decklist modal on production, and confirm archetype art still renders
+
+Verified after the remap (Actions run 31204318010, `--remap-scryfall`, 159,478 rows
+re-resolved in ~9.5 min):
+
+- 0 `deck_cards` rows with a null `type_line` or `cmc` on an enriched row (was 168).
+- `Torpor Orb` -> `BIG 27` (Artifact, cmc 2), `Aang's Iceberg` -> `TLA 5` (Enchantment, cmc 3).
+- The 5 previously-broken names all carry real type lines and cmc; four are creatures
+  and no longer classify as spells.
+- 936 archetypes, 66 without art (lands-only archetypes, unchanged behavior).
