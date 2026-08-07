@@ -110,21 +110,25 @@ export function ArchetypeCard({
           />
         )}
         {/* Elliptical vignette: near-transparent through the center so the art stays
-            vivid, darkening toward the corners where the pips/badges sit so they stay
-            legible over bright art. Non-interactive, above the art, below the badges. */}
+            vivid, darkening toward the corners so the overlays stay legible over bright
+            art. The badge and trend chip now carry their own scrim, so this exists
+            mainly for the mana pips — hence the earlier, deeper falloff.
+            Non-interactive, above the art, below the badges. */}
         <div
           data-testid="art-vignette"
           style={{
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: 'radial-gradient(ellipse at center, transparent 0 45%, rgba(0,0,0,.5) 100%)',
+            background: 'radial-gradient(ellipse at center, transparent 0 40%, rgba(0,0,0,.58) 100%)',
           }}
         />
         <div style={{ position: 'absolute', left: 11, top: 10 }}>
           <ManaPips colors={colors} size={16} />
         </div>
-        <div style={{ position: 'absolute', right: 10, top: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+        {/* Both chips grew, so the cluster is nudged tighter into the corner and the
+            gap opened slightly to keep the two rims from reading as one wide block. */}
+        <div style={{ position: 'absolute', right: 9, top: 9, display: 'flex', gap: 7, alignItems: 'center' }}>
           {trend && <TrendIndicator trend={trend} />}
           <TierBadge tier={tier} />
         </div>

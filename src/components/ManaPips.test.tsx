@@ -25,4 +25,18 @@ describe('ManaPips', () => {
     expect(pips).toHaveLength(1)
     expect(pips[0].dataset.color).toBe('C')
   })
+
+  it('gives each pip a dark ring so it separates from the art behind it', () => {
+    render(<ManaPips colors="W" />)
+    // The pale W pip is the worst case over bright art.
+    const shadow = screen.getAllByTestId('mana-pip')[0].style.boxShadow
+    expect(shadow).toMatch(/rgba\(6, ?7, ?12/)
+  })
+
+  it('keeps the ring out of layout so pip size and spacing are unchanged', () => {
+    render(<ManaPips colors="U" size={16} />)
+    const pip = screen.getAllByTestId('mana-pip')[0]
+    expect(pip.style.width).toBe('16px')
+    expect(pip.style.height).toBe('16px')
+  })
 })

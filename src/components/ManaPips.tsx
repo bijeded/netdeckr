@@ -23,7 +23,11 @@ function ManaPip({ color, size }: { color: string; size: number }) {
         borderRadius: '50%',
         background: fill,
         border: `1px solid ${ring}`,
-        boxShadow: `0 0 6px ${fill}55`,
+        // The pips sit on the card art with no chip behind them, so each carries
+        // its own minimal dark backdrop: a tight ring that separates it from the
+        // art and from its neighbours (the pale W pip on bright art needs this),
+        // plus a drop shadow for lift. The hue glow stays outermost.
+        boxShadow: `0 0 0 1.5px rgba(6,7,12,.65), 0 1px 3px rgba(0,0,0,.5), 0 0 6px ${fill}55`,
         flex: '0 0 auto',
       }}
     />
