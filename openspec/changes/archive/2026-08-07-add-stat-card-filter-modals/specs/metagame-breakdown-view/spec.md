@@ -162,7 +162,7 @@ The dashboard SHALL let the user clear filters both per-group and globally. Each
 
 #### Scenario: Main-window reset resets all groups
 - **WHEN** the user activates the main-window "Reset" control with an event, archetype, and/or tier filter active
-- **THEN** the filters reset exactly as the sidebar's "Clear filters" control does, including the StatCards dropping their active-filter lines
+- **THEN** the filters reset exactly as the sidebar's "Clear filters" control does, and the caption returns to the default popularity view
 
 #### Scenario: Reset is disabled when nothing is filtered
 - **WHEN** no event, archetype, or tier filter is active
