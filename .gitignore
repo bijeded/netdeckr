@@ -17,3 +17,4 @@ coverage/
 netdeckr-backup-*.sql
 *.dump
 pgdump-error.txt
+.env*
