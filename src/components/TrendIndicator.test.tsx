@@ -27,6 +27,16 @@ describe('TrendIndicator', () => {
     expect(screen.getByRole('img', { name: 'Performance trending up' }).style.boxShadow).not.toBe('')
   })
 
+  it('shares the tier badge\'s chip treatment so the two read as equally prominent', () => {
+    render(<TrendIndicator trend="up" />)
+    const el = screen.getByRole('img', { name: 'Performance trending up' })
+    expect(el.style.background).toMatch(/rgba\(9, ?10, ?16/)
+    expect(el.style.backdropFilter).toContain('blur')
+    // Matches the badge exactly — a trend has no rank to encode, and the badge's
+    // size no longer varies by tier.
+    expect(parseFloat(el.style.fontSize)).toBe(12)
+  })
+
   it('localizes the accessible label in Spanish', async () => {
     await i18n.changeLanguage('es')
     try {

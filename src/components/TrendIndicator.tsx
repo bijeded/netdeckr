@@ -1,17 +1,22 @@
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Trend } from '../lib/powerScore'
+import { CHIP_BASE, CHIP_INSET_HIGHLIGHT } from './chipBase'
 
 // Arrow-only variant of the design system's ChangeIndicator: it conveys the
 // direction of an archetype's window-over-window performance change with a glyph
 // and semantic color only — never the raw Power Score or a numeric delta.
-// `glow` is a hue-matched box-shadow so the arrow reads as self-lit against any art,
-// matching the tier badge's treatment (up green / down red / flat amber).
-const TRENDS: Record<Trend, { color: string; bg: string; border: string; glyph: string; key: string; glow: string }> = {
-  up: { color: 'var(--up)', bg: 'var(--up-tint)', border: 'var(--up-border)', glyph: '▲', key: 'trend.up', glow: '0 0 10px rgba(47,230,160,.4)' },
-  down: { color: 'var(--down)', bg: 'var(--down-tint)', border: 'var(--down-border)', glyph: '▼', key: 'trend.down', glow: '0 0 10px rgba(255,84,112,.4)' },
+//
+// It shares the tier badge's chip treatment (CHIP_BASE) so the two overlaid chips
+// read as equally prominent — the tier badge earns attention through its own ramp,
+// not by the trend arrow being quieted. There is no ramp here: a trend has no rank
+// to encode, and the badge's size is constant across tiers, so the two chips match
+// exactly in size and footprint.
+const TRENDS: Record<Trend, { color: string; hue: string; glyph: string; key: string; glow: string }> = {
+  up: { color: 'var(--up-on-dark)', hue: '47,230,160', glyph: '▲', key: 'trend.up', glow: '0 0 12px rgba(47,230,160,.38)' },
+  down: { color: 'var(--down-on-dark)', hue: '255,84,112', glyph: '▼', key: 'trend.down', glow: '0 0 12px rgba(255,84,112,.38)' },
   // '–' is an en-dash (U+2013), matching the design glyph set — not a hyphen.
-  flat: { color: 'var(--flat)', bg: 'var(--flat-tint)', border: 'var(--flat-border)', glyph: '–', key: 'trend.flat', glow: '0 0 8px rgba(255,203,69,.35)' },
+  flat: { color: 'var(--flat-on-dark)', hue: '255,203,69', glyph: '–', key: 'trend.flat', glow: '0 0 12px rgba(255,203,69,.38)' },
 }
 
 interface TrendIndicatorProps {
@@ -28,20 +33,13 @@ export function TrendIndicator({ trend, style }: TrendIndicatorProps) {
       role="img"
       aria-label={t(c.key)}
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--fs-2xs)',
-        fontWeight: 'var(--fw-bold)',
-        lineHeight: 1,
-        padding: '3px 7px',
-        borderRadius: 'var(--r-sm)',
+        ...CHIP_BASE,
+        fontSize: '12px',
+        fontWeight: 700,
+        padding: '3px 9px',
         color: c.color,
-        background: c.bg,
-        border: `1px solid ${c.border}`,
-        boxShadow: c.glow,
-        backdropFilter: 'blur(4px)',
+        border: `1px solid rgba(${c.hue},.45)`,
+        boxShadow: `${c.glow}, ${CHIP_INSET_HIGHLIGHT}`,
         ...style,
       }}
     >

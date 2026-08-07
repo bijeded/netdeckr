@@ -1,14 +1,28 @@
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tier } from '../lib/tiers'
+import { CHIP_BASE, CHIP_INSET_HIGHLIGHT } from './chipBase'
 
-// `glow` is a hue-matched box-shadow so the badge reads as self-lit against any art
-// (violet T1, cyan T2, a faint neutral halo on the fringe tiers to keep them a family).
-const TIERS: Record<Tier, { color: string; bg: string; border: string; glow: string }> = {
-  T1: { color: 'var(--tier-1)', bg: 'var(--neon-tint-16)', border: 'rgba(177,75,255,.55)', glow: '0 0 10px rgba(177,75,255,.45)' },
-  T2: { color: 'var(--tier-2)', bg: 'rgba(127,216,255,.12)', border: 'rgba(127,216,255,.4)', glow: '0 0 10px rgba(127,216,255,.35)' },
-  T3: { color: 'var(--tier-3)', bg: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.18)', glow: '0 0 8px rgba(255,255,255,.15)' },
-  Otros: { color: 'var(--tier-rogue)', bg: 'rgba(255,255,255,.04)', border: 'rgba(255,255,255,.12)', glow: '0 0 8px rgba(255,255,255,.12)' },
+/**
+ * Per-tier ramp. Size and footprint are deliberately constant across tiers —
+ * the scrim and shadow carry legibility on their own, so scaling the badge up
+ * only made the card's corner heavy without buying readability. What still
+ * descends monotonically from T1 to the fringe tier is weight, rim brightness,
+ * and glow, which is enough to keep the tier *order* readable without hue: in
+ * greyscale, or to a viewer who cannot separate violet from cyan.
+ *
+ * Legibility is not part of that ramp: `color` clears 4.5:1 against the chip
+ * scrim for every tier, the fringe tier included. It reads as last because it
+ * sits last on the ramp, never because it is faint.
+ */
+const FONT_SIZE = '12px'
+const PADDING = '3px 9px'
+
+const TIERS: Record<Tier, { color: string; hue: string; borderAlpha: number; fontWeight: number; glow: string | null }> = {
+  T1: { color: 'var(--tier-1-on-dark)', hue: '177,75,255', borderAlpha: 0.7, fontWeight: 800, glow: '0 0 16px rgba(177,75,255,.5)' },
+  T2: { color: 'var(--tier-2-on-dark)', hue: '127,216,255', borderAlpha: 0.55, fontWeight: 700, glow: '0 0 12px rgba(127,216,255,.38)' },
+  T3: { color: 'var(--tier-3-on-dark)', hue: '255,255,255', borderAlpha: 0.3, fontWeight: 700, glow: '0 0 8px rgba(255,255,255,.12)' },
+  Otros: { color: 'var(--tier-rogue-on-dark)', hue: '255,255,255', borderAlpha: 0.18, fontWeight: 600, glow: null },
 }
 
 interface TierBadgeProps {
@@ -25,17 +39,15 @@ export function TierBadge({ tier, style }: TierBadgeProps) {
   const label = tier === 'Otros' ? t('tiers.rogue') : tier
   return (
     <span
+      data-testid={`tier-badge-${tier}`}
       style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--fs-2xs)',
-        fontWeight: 'var(--fw-bold)',
-        padding: '3px 9px',
-        borderRadius: 'var(--r-sm)',
+        ...CHIP_BASE,
+        fontSize: FONT_SIZE,
+        fontWeight: c.fontWeight,
+        padding: PADDING,
         color: c.color,
-        background: c.bg,
-        border: `1px solid ${c.border}`,
-        boxShadow: c.glow,
-        backdropFilter: 'blur(4px)',
+        border: `1px solid rgba(${c.hue},${c.borderAlpha})`,
+        boxShadow: c.glow ? `${c.glow}, ${CHIP_INSET_HIGHLIGHT}` : CHIP_INSET_HIGHLIGHT,
         ...style,
       }}
     >
