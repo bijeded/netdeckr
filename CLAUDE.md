@@ -33,7 +33,7 @@ web (responsive)
 - File naming: React components PascalCase (`MetaChart.tsx`); hooks camelCase (`useMeta.ts`); Python snake_case (`scrape_event.py`)
 - Component naming: PascalCase, one component per file
 - Branch naming: task/[task-id]-[description]
-- Commit format: [task-id]: [imperative description]
+- Commit format: follow the conventional commit format (see global CLAUDE.md)
 
 ## Test commands
 - Frontend: `npm run test`
