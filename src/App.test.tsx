@@ -224,7 +224,7 @@ describe('App dashboard', () => {
     expect(screen.getByTestId('grid-caption').textContent).toBe('Top 3 most popular archetypes')
   })
 
-  it('hides the popularity caption while an archetype is isolated', () => {
+  it('names the isolated archetype in the caption', () => {
     const decks = [
       {
         id: 1,
@@ -247,13 +247,14 @@ describe('App dashboard', () => {
       error: null,
     })
     render(<App />)
-    expect(screen.getByTestId('grid-caption')).toBeInTheDocument()
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Top 1 most popular archetype')
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), {
         target: { value: 'Izzet Control' },
       })
     })
-    expect(screen.queryByTestId('grid-caption')).toBeNull()
+    // The isolated view names itself rather than going untitled.
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Izzet Control')
   })
 
   it('localizes the popularity caption in Spanish', () => {
@@ -1078,6 +1079,21 @@ describe('StatCard filter modals', () => {
     expect(rows).toEqual(['All archetypes', 'Izzet ControlT124.0%', 'Mono RedT320.0%'])
   })
 
+  it('puts the tier badge in its own column so the rows line up', () => {
+    render(<App />)
+    const dialog = openCard(/Archetypes/)
+    const rows = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+    // Every row reserves the middle column, including the "All" row that leaves
+    // it empty — that is what keeps the badges aligned down the list.
+    for (const row of rows) {
+      expect(row.querySelector('.filter-modal-row-aside')).not.toBeNull()
+    }
+    expect(rows[1].querySelector('.filter-modal-row-aside')).toHaveTextContent('T1')
+    expect(rows[1].querySelector('.filter-modal-row-content')).toHaveTextContent('Izzet Control')
+  })
+
   it('opens the tier filter from the Decks card, with each tier’s deck count', () => {
     render(<App />)
     const dialog = openCard(/Decks/)
@@ -1087,15 +1103,16 @@ describe('StatCard filter modals', () => {
     expect(within(dialog).getByRole('button', { name: /Tier 2.*0 decks/ })).toBeInTheDocument()
   })
 
-  it('applies the picked filter, closes the modal, and names it on the card', () => {
+  it('applies the picked filter, closes the modal, and captions the view', () => {
     render(<App />)
     const dialog = openCard(/Decks/)
     act(() => fireEvent.click(within(dialog).getByRole('button', { name: /Tier 1/ })))
 
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByRole('combobox', { name: 'Tiers' })).toHaveValue('T1')
-    // The Decks card now names the active tier.
-    expect(screen.getByRole('button', { name: /Decks/ })).toHaveTextContent('Tier 1')
+    // The caption names the active tier; the card stays a value and a label.
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Tier 1')
+    expect(screen.getByRole('button', { name: /Decks/ })).not.toHaveTextContent('Tier 1')
     // …and the grid is narrowed to that tier.
     const grid = screen.getByTestId('archetype-grid')
     expect(within(grid).getByText('Izzet Control')).toBeInTheDocument()
@@ -1175,10 +1192,6 @@ describe('StatCard filter modals', () => {
     expect(screen.getByRole('combobox', { name: 'Archetype' })).toHaveValue('Mono Red')
   })
 
-  it('shows no active-filter line on an unfiltered card', () => {
-    const { container } = render(<App />)
-    expect(container.querySelectorAll('.stat-card-active')).toHaveLength(0)
-  })
 })
 
 describe('Main-window Reset', () => {
@@ -1223,12 +1236,12 @@ describe('Main-window Reset', () => {
     expect(screen.getByTestId('reset-filters')).toBeInTheDocument()
   })
 
-  it('is reachable while an archetype is isolated and the caption is hidden', () => {
+  it('is reachable while an archetype is isolated', () => {
     render(<App />)
     act(() => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), { target: { value: 'Izzet Control' } })
     })
-    expect(screen.queryByTestId('grid-caption')).toBeNull()
+    expect(screen.getByTestId('grid-caption')).toHaveTextContent('Izzet Control')
     expect(screen.getByTestId('reset-filters')).toBeEnabled()
   })
 

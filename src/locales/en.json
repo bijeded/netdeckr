@@ -40,6 +40,7 @@
     "topCaption_other": "Top {{count}} most popular archetypes",
     "tierCaption_one": "{{tier}} — {{count}} archetype",
     "tierCaption_other": "{{tier}} — {{count}} archetypes",
+    "archetypeEventCaption": "{{archetype}} — {{event}}",
     "tierEventCaption": "{{tier}} — {{event}}",
     "eventSize_one": "{{count}} player",
     "eventSize_other": "{{count}} players"

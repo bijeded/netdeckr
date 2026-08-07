@@ -56,11 +56,17 @@ Mechanically this moves the *resolution* out of the effect and into the two sele
 
 Rather than adding a separate clear affordance inside each modal, the first row is the existing "All events / All archetypes / All tiers" default that the specs already require every filter group to expose. One row shape, one mechanism, and it keeps the modal's job to "pick one of these".
 
+### The card stays a value and a label; the caption names the filter
+
+**Superseded after the first preview.** The original design had each StatCard name its active filter on a third line, on the reasoning that the filtered state must be visible where the sidebar is a collapsed drawer. Rejected on review: it made the cards busy and repeated information the caption row is already responsible for.
+
+The requirement it was serving still holds — the filtered state must be visible without opening the sidebar — but the grid caption now carries it for every filter, including the isolated-archetype view, which previously went untitled. One place names the active view instead of two.
+
 ### Reset placement and disabled-vs-hidden
 
 The main-window control sits right-aligned on the grid caption row, opposite the caption and freshness lines, on both desktop and mobile — one position in both layouts. The alternative of giving it its own left-aligned row below the freshness line on mobile was considered and rejected: it costs a full row of vertical space where space is tightest and separates the control from the caption block it belongs to. **Pending preview** — whether it reads as balanced against a two-line caption block at narrow widths, and whether it crowds the freshness text, can only be settled on the preview.
 
-It is always rendered and disabled when no filter is active, matching the existing `ClearFiltersButton`. **Calculated:** a control that appears and disappears would change the caption row's height and push the entire grid down on every filter toggle. The cost is a permanently visible disabled control in the default view; the stability was judged worth it. Its visual weight is **pending preview** — a disabled control in a mostly-empty caption row should recede, and the exact treatment is left to the preview rather than guessed here.
+It is always rendered and disabled when no filter is active, matching the existing `ClearFiltersButton`. **Calculated:** a control that appears and disappears would change the caption row's height and push the entire grid down on every filter toggle. The cost is a permanently visible disabled control in the default view; the stability was judged worth it. Settled on the preview: the enabled control takes the accent treatment (neon tint, accent rim, accent text) so the way out of a filtered view reads as an action, and the disabled state drops the accent entirely to a muted outline so it recedes beside the caption.
 
 ### Sidebar `Clear filters` stays
 
@@ -80,7 +86,6 @@ Modal titles, "All …" rows, tier labels, and the Reset control get new i18n ke
 - **A modal selection can clear another filter** (archetype/tier precedence) → Now symmetric, so the filter the user just chose always sticks and only the *other* one clears. Still becomes visible for the first time — the user watches the other card's active-filter line disappear — so it is worth a look on the preview to judge whether it reads as a glitch.
 - **Interactive StatCards change the header's tab order** → Three new tab stops before the sidebar. Each needs a visible focus indicator; **pending preview** whether the focus ring is legible against the card's `--surface-faint` background.
 - **A ~117-row modal is a long scroll on mobile** → Accepted (see No search); mitigated by ordering.
-- **Card active-filter line could overflow** — long event names in a narrow mobile card → the line must truncate rather than wrap the card taller and break the "three cards in one row on mobile" requirement. **Pending preview** for how much is legible before truncation.
 - **`App.tsx` is already 545 lines and gains modal open/close state** → The modal component owns its own chrome; `App.tsx` gains only which-modal-is-open state and the row data it already computes.
 
 ## Migration Plan

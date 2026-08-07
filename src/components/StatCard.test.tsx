@@ -27,11 +27,6 @@ describe('StatCard', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
-  it('renders no extra line when its filter is at the All default', () => {
-    const { container } = render(<StatCard value="34" label="Events" onOpen={() => {}} />)
-    expect(container.querySelector('.stat-card-active')).toBeNull()
-  })
-
   it('opens its modal when activated, and reports the modal state', () => {
     const onOpen = vi.fn()
     const { rerender } = render(<StatCard value="34" label="Events" onOpen={onOpen} />)
@@ -44,19 +39,5 @@ describe('StatCard', () => {
 
     rerender(<StatCard value="34" label="Events" onOpen={onOpen} open />)
     expect(screen.getByRole('button', { name: /Events/ })).toHaveAttribute('aria-expanded', 'true')
-  })
-
-  it('names its active filter under the label', () => {
-    render(<StatCard value="12" label="Decks" onOpen={() => {}} activeFilter="Tier 2" />)
-    expect(screen.getByText('Tier 2')).toBeInTheDocument()
-  })
-
-  it('truncates a long active filter instead of growing the card', () => {
-    const long = 'Regional Championship Milan — 12 Oct 2025 (642 players)'
-    const { container } = render(<StatCard value="12" label="Events" onOpen={() => {}} activeFilter={long} />)
-    const line = container.querySelector('.stat-card-active')
-    // The class carries the ellipsis rule; the full value stays in the title.
-    expect(line).toHaveAttribute('title', long)
-    expect(line).toHaveTextContent(long)
   })
 })

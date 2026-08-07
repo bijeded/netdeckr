@@ -9,7 +9,11 @@ Each of the three header StatCards SHALL act as a control that opens a modal lis
 
 #### Scenario: Archetypes card opens the archetype filter
 - **WHEN** the user activates the Archetypes StatCard
-- **THEN** a modal opens listing every archetype in the current corpus in share-descending order, each row showing its color-identity pips, name, metagame share, and tier
+- **THEN** a modal opens listing every archetype in the current corpus in share-descending order, each row showing its color-identity pips, name, tier badge, and metagame share
+
+#### Scenario: Tier badges form their own column
+- **WHEN** the archetype modal lists rows whose names are of differing lengths
+- **THEN** the tier badges are aligned in a column of their own between the names and the share figures, rather than each trailing the end of its own row's name
 
 #### Scenario: Decks card opens the tier filter
 - **WHEN** the user activates the Decks StatCard
@@ -47,21 +51,6 @@ Each of the three header StatCards SHALL act as a control that opens a modal lis
 - **WHEN** the dashboard renders on a narrow or a wide viewport
 - **THEN** all three StatCards are interactive and their modals behave identically
 
-### Requirement: StatCard shows its active filter
-A StatCard whose filter is active SHALL display the selected value beneath its metric label, so the filtered state is visible without opening the sidebar. A StatCard whose filter is at its "All" default SHALL render exactly as before, with no extra line.
-
-#### Scenario: Active filter is named on the card
-- **WHEN** an event, archetype, or tier filter is active
-- **THEN** the corresponding StatCard shows the selected event, archetype, or tier beneath its label
-
-#### Scenario: Unfiltered cards are unchanged
-- **WHEN** no filter is active
-- **THEN** the three StatCards render their value and label only, with no additional line
-
-#### Scenario: The card reflects filters set from the sidebar
-- **WHEN** the user sets a filter from the sidebar rather than from a modal
-- **THEN** the corresponding StatCard shows that value just the same
-
 ### Requirement: Filter controls share one state
 The sidebar filter selects and the StatCard filter modals SHALL be two entry points to the same event, archetype, and tier selections, never independent copies. A selection made through either entry point SHALL be immediately reflected in the other, and existing filter interactions — the archetype filter taking precedence over the tier filter, and auto-reset of selections that become invalid — SHALL apply identically no matter which entry point made the selection.
 
@@ -78,6 +67,37 @@ The sidebar filter selects and the StatCard filter modals SHALL be two entry poi
 - **THEN** the tier filter resets to its default exactly as it does for a sidebar selection
 
 ## MODIFIED Requirements
+
+### Requirement: Archetype filter
+The dashboard SHALL provide a sidebar filter group, headed "Archetype" (localized), that lets the user collapse the grid to a single archetype. The group SHALL offer an "All archetypes" default entry plus one entry per archetype present in the current filtered view — **uncapped**, so every archetype in the corpus (or every archetype within the selected event) is selectable, not only those shown in the top-12 grid. Selecting an archetype SHALL collapse the grid to show only that archetype's card, and SHALL auto-expand that card to list **all** of the archetype's decks under the combined active filters — not just the limited display set — each shown by event and date, in descending date order. The isolated view SHALL be captioned like every other view: in the same position above the freshness line, the caption SHALL name the isolated archetype, folding in the selected event's label when an event filter is also active. The default state SHALL be "All archetypes". Archetype proper nouns SHALL stay in English in both locales; the heading and default entry SHALL be localized.
+
+#### Scenario: Selecting an archetype isolates and auto-expands it
+- **WHEN** the user selects a single archetype from the Archetype filter
+- **THEN** the grid collapses to only that archetype's card, and that card is auto-expanded showing every deck of that archetype under the active format, time-frame, and event filter
+
+#### Scenario: The isolated view is captioned with the archetype name
+- **WHEN** a single archetype is isolated
+- **THEN** the caption above the freshness line names that archetype, in the same position the popularity, event, and tier captions occupy
+
+#### Scenario: Archetype caption folds in an active event filter
+- **WHEN** an archetype is isolated and an event filter is also active
+- **THEN** the caption combines the archetype name with the event's name and abbreviated date
+
+#### Scenario: Dropdown lists every archetype, not only the top 12
+- **WHEN** a format + window has more than 12 archetypes and no event filter is active
+- **THEN** the Archetype dropdown offers every archetype in the corpus, including those below the top-12 grid cap
+
+#### Scenario: All matching decks are shown in descending date order
+- **WHEN** a single archetype is selected and its card is auto-expanded
+- **THEN** all of the archetype's decks under the combined filters are listed by event and date, ordered most-recent first, without the display-count cap applied to the unfiltered grid
+
+#### Scenario: All archetypes default shows the full grid
+- **WHEN** the Archetype filter is set to "All archetypes"
+- **THEN** the grid shows the default top-12 view (or the tier-filtered view when a tier is selected)
+
+#### Scenario: Archetype filter with no matching decks shows an empty state
+- **WHEN** the selected archetype has no decks under the combined active filters
+- **THEN** a localized empty state is shown in place of the grid
 
 ### Requirement: Archetype filter takes precedence over the tier filter
 When both an archetype and a tier are selected, the single-archetype isolation SHALL win: the grid SHALL isolate and auto-expand the chosen archetype's card. If the chosen archetype falls outside the selected tier, the Tier filter SHALL silently reset to "All tiers" (mirroring the invalid-selection auto-reset), so the view is never internally contradictory. The resolution SHALL favor the most recent choice: selecting a tier while a contradictory archetype is isolated SHALL clear the archetype filter and apply the tier, just as selecting an archetype clears a contradictory tier. Neither filter SHALL silently discard the selection the user just made.
@@ -130,7 +150,7 @@ The dashboard SHALL display a StatCard strip in the header, right-aligned on the
 - **THEN** each of the three StatCards receives focus with a visible indicator and can be activated to open its filter modal
 
 ### Requirement: Clearing filters
-The dashboard SHALL let the user clear filters both per-group and globally. Each filter group SHALL expose its "All" default entry that unfilters that group alone. The dashboard SHALL provide a "Clear filters" control (localized) in the sidebar that resets the event, archetype, and tier filters to their "All" defaults at once, and SHALL additionally provide an equivalent localized "Reset" control in the main window, right-aligned on the grid caption row, so that clearing is reachable without opening the sidebar. The main-window control SHALL always be present and SHALL be disabled — not hidden — when no filter is active, so that toggling a filter does not shift the layout of the grid below it. Both controls SHALL have identical effect. Filter selections SHALL be in-memory only and reset to their defaults on reload; they SHALL NOT be persisted in the URL.
+The dashboard SHALL let the user clear filters both per-group and globally. Each filter group SHALL expose its "All" default entry that unfilters that group alone. The dashboard SHALL provide a "Clear filters" control (localized) in the sidebar that resets the event, archetype, and tier filters to their "All" defaults at once, and SHALL additionally provide an equivalent localized "Reset" control in the main window, right-aligned on the grid caption row, so that clearing is reachable without opening the sidebar. The main-window control SHALL always be present and SHALL be disabled — not hidden — when no filter is active, so that toggling a filter does not shift the layout of the grid below it. Enabled, it SHALL read as an available action and SHALL be clearly distinguishable from its disabled state, which SHALL recede rather than compete with the caption beside it. Both controls SHALL have identical effect. Filter selections SHALL be in-memory only and reset to their defaults on reload; they SHALL NOT be persisted in the URL.
 
 #### Scenario: Per-group default unfilters one group
 - **WHEN** the user selects a group's "All" default entry while another filter is active
@@ -147,6 +167,10 @@ The dashboard SHALL let the user clear filters both per-group and globally. Each
 #### Scenario: Reset is disabled when nothing is filtered
 - **WHEN** no event, archetype, or tier filter is active
 - **THEN** the main-window "Reset" control is still rendered in place but is disabled and cannot be activated
+
+#### Scenario: The enabled Reset stands out from the disabled one
+- **WHEN** a filter is applied and the "Reset" control becomes enabled
+- **THEN** it is visibly emphasized as an available action, distinct from the muted treatment it carries while disabled
 
 #### Scenario: Reset is reachable on mobile
 - **WHEN** the viewport is narrow and the sidebar is collapsed

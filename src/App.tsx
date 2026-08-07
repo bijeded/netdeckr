@@ -186,23 +186,25 @@ function App() {
         eventLabel !== null
         ? breakdown
         : breakdown.slice(0, GRID_DISPLAY_CAP)
-  // The grid caption sits above the freshness line. In the popularity view it
-  // reads "Top N most popular archetypes"; under a tier filter it names the tier
-  // instead. It is hidden only while a single archetype is isolated (one card is
-  // not a listing). The fringe tier reuses the shared "Rogue"/"Otros" label.
+  // The grid caption sits above the freshness line and always names the view the
+  // user is looking at. The fringe tier reuses the shared "Rogue"/"Otros" label.
   const tierLabel =
     tier === null ? '' : tier === 'Otros' ? t('tiers.rogue') : t('filters.tierLabel', { n: Number(tier.slice(1)) })
-  // Caption resolution: under a tier filter it names the tier (folding in the
-  // event name when an event is also selected); otherwise a selected event names
-  // itself, falling back to the "Top N most popular archetypes" popularity caption.
-  const showGridCaption = !archetypeFiltered
-  const gridCaption = tierFiltered
+  // Caption resolution, in the same precedence as the grid itself: an isolated
+  // archetype names itself, then a tier names the tier, then a selected event
+  // names itself, falling back to the "Top N most popular archetypes" popularity
+  // caption. The first two fold in the event name when one is also selected.
+  const gridCaption = archetypeFiltered
     ? eventLabel !== null
-      ? t('dashboard.tierEventCaption', { tier: tierLabel, event: eventLabel })
-      : t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
-    : eventLabel !== null
-      ? eventLabel
-      : t('dashboard.topCaption', { count: visibleBreakdown.length })
+      ? t('dashboard.archetypeEventCaption', { archetype: archetypeName, event: eventLabel })
+      : archetypeName!
+    : tierFiltered
+      ? eventLabel !== null
+        ? t('dashboard.tierEventCaption', { tier: tierLabel, event: eventLabel })
+        : t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
+      : eventLabel !== null
+        ? eventLabel
+        : t('dashboard.topCaption', { count: visibleBreakdown.length })
   // The isolated archetype auto-expands its full (uncapped) deck list; with no
   // matching decks under the combined filters, fall through to the empty state.
   const isolatedDecks = archetypeFiltered ? (fullDecksByArchetype[archetypeName] ?? []) : []
@@ -277,9 +279,11 @@ function App() {
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {archetype.name}
           </span>
-          <TierBadge tier={archetype.tier} />
         </>
       ),
+      // Its own column, so the badges line up down the list rather than sitting
+      // wherever each archetype's name happens to end.
+      aside: <TierBadge tier={archetype.tier} />,
       meta: `${archetype.sharePct.toFixed(1)}%`,
     })),
   ]
@@ -446,46 +450,39 @@ function App() {
                   label={t('stats.events')}
                   onOpen={() => setOpenFilter('event')}
                   open={openFilter === 'event'}
-                  activeFilter={eventLabel}
                 />
                 <StatCard
                   value={stat(stripTotals.archetypes)}
                   label={t('stats.archetypes')}
                   onOpen={() => setOpenFilter('archetype')}
                   open={openFilter === 'archetype'}
-                  activeFilter={archetypeName}
                 />
                 <StatCard
                   value={stat(stripTotals.decks)}
                   label={t('stats.decks')}
                   onOpen={() => setOpenFilter('tier')}
                   open={openFilter === 'tier'}
-                  activeFilter={tier === null ? null : tierLabel}
                 />
               </div>
             </div>
             {/* Caption row: caption + freshness on the left, Reset right-aligned
-                against the block on both layouts. The row renders even when the
-                caption is hidden (an isolated archetype) — that is precisely a
-                state the user needs Reset for. */}
+                against the block on both layouts. */}
             <div className="caption-row">
               <div>
-                {showGridCaption && (
-                  <div
-                    data-testid="grid-caption"
-                    style={{
-                      marginTop: 'var(--sp-2)',
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 'var(--fs-xs)',
-                      fontWeight: 'var(--fw-bold)',
-                      letterSpacing: 'var(--track-wide)',
-                      textTransform: 'uppercase',
-                      color: 'var(--neon-text-soft)',
-                    }}
-                  >
-                    {gridCaption}
-                  </div>
-                )}
+                <div
+                  data-testid="grid-caption"
+                  style={{
+                    marginTop: 'var(--sp-2)',
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 'var(--fs-xs)',
+                    fontWeight: 'var(--fw-bold)',
+                    letterSpacing: 'var(--track-wide)',
+                    textTransform: 'uppercase',
+                    color: 'var(--neon-text-soft)',
+                  }}
+                >
+                  {gridCaption}
+                </div>
                 {freshness && (
                   <div
                     data-testid="freshness"

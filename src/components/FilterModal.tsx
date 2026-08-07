@@ -7,8 +7,13 @@ export interface FilterModalRow<T> {
   key: string
   /** The filter value this row applies; null for the leading "All …" row. */
   value: T | null
-  /** Row content (name, pips, badge…) rendered on the left. */
+  /** Row content (name, pips…) rendered on the left. */
   content: ReactNode
+  /**
+   * Optional middle column, sized the same on every row so its contents line up
+   * down the list rather than trailing each row's own content.
+   */
+  aside?: ReactNode
   /** Right-aligned mono figure that accounts for this row's share of the total. */
   meta?: string
 }
@@ -42,6 +47,7 @@ export function FilterModal<T extends string | number>({
   const { t } = useTranslation()
   const closeRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
+  const hasAside = rows.some((row) => row.aside != null)
 
   // Escape to close.
   useEffect(() => {
@@ -144,6 +150,8 @@ export function FilterModal<T extends string | number>({
           </button>
         </div>
 
+        {/* The middle column is reserved for the whole list as soon as any row
+            uses it, so rows that leave it empty (the "All …" row) still align. */}
         <div className="filter-modal-list">
           {rows.map((row) => {
             const selected = row.value === value
@@ -157,6 +165,7 @@ export function FilterModal<T extends string | number>({
                 data-selected={selected || undefined}
               >
                 <span className="filter-modal-row-content">{row.content}</span>
+                {hasAside && <span className="filter-modal-row-aside">{row.aside}</span>}
                 {row.meta && <span className="filter-modal-row-meta">{row.meta}</span>}
               </button>
             )

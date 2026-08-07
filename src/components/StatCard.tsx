@@ -14,12 +14,6 @@ interface StatCardProps {
   onOpen?: () => void
   /** True while this card's modal is open (drives aria-expanded). */
   open?: boolean
-  /**
-   * The active filter's value, shown under the label so the filtered state is
-   * visible without opening the sidebar. Null when the filter is at its
-   * "All" default, in which case no extra line renders.
-   */
-  activeFilter?: string | null
   style?: CSSProperties
 }
 
@@ -28,28 +22,16 @@ interface StatCardProps {
  * The value uses the mono font per Netdeckr's "all data is mono" convention.
  *
  * Given `onOpen` the card becomes the trigger for its filter modal — the same
- * box, now a button — and names its active filter beneath the label.
+ * box, now a button. The card stays a value and a label either way: the active
+ * filter is named by the grid caption, not repeated here.
  */
-export function StatCard({
-  value,
-  label,
-  color = 'var(--text-primary)',
-  onOpen,
-  open,
-  activeFilter,
-  style,
-}: StatCardProps) {
+export function StatCard({ value, label, color = 'var(--text-primary)', onOpen, open, style }: StatCardProps) {
   const body = (
     <>
       <div className="stat-card-value" style={{ color }}>
         {value}
       </div>
       <div className="stat-card-label">{label}</div>
-      {activeFilter != null && (
-        <div className="stat-card-active" title={activeFilter}>
-          {activeFilter}
-        </div>
-      )}
     </>
   )
 

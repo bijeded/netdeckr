@@ -24,4 +24,11 @@
 ## 5. Verify
 
 - [x] 5.1 Run `npm run lint`, `npm run type-check`, and `npm run test`. The scraper is untouched, so `pytest` is unaffected.
-- [ ] 5.2 Open the PR and confirm on the Vercel preview, at both desktop and phone widths: Reset placement and its disabled weight on the caption row, the focus ring on the StatCards, the active-filter line's truncation with a long event name, the tier modal alongside the tier badges in the grid, and that the archetype-resets-tier behavior does not read as a glitch. Record the settled values back into design.md. Do not merge before this confirmation — this is a user-visible change.
+- [x] 5.2 Open the PR and confirm on the Vercel preview, at both desktop and phone widths: Reset placement and its disabled weight on the caption row, the focus ring on the StatCards, the active-filter line's truncation with a long event name, the tier modal alongside the tier badges in the grid, and that the archetype-resets-tier behavior does not read as a glitch. Record the settled values back into design.md. Do not merge before this confirmation — this is a user-visible change.
+
+## 6. Preview follow-ups
+
+- [x] 6.1 Drop the StatCard's active-filter line — the cards go back to a value and a label, and the caption row carries the active view instead.
+- [x] 6.2 Give the archetype modal's tier badge its own aligned column between the name and the share figure, via an optional middle slot on the modal row.
+- [x] 6.3 Caption the isolated-archetype view with the archetype name (folding in the event when one is selected), so it is titled like every other view.
+- [x] 6.4 Make the enabled Reset read as an action (accent treatment), with the disabled state receding.
