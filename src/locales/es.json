@@ -54,8 +54,8 @@
     "topCaption_other": "Top {{count}} arquetipos más populares",
     "tierCaption_one": "{{tier}} — {{count}} arquetipo",
     "tierCaption_other": "{{tier}} — {{count}} arquetipos",
-    "archetypeEventCaption": "{{archetype}} — {{event}}",
-    "tierEventCaption": "{{tier}} — {{event}}",
+    "archetypeContextCaption": "{{archetype}} — {{context}}",
+    "tierContextCaption": "{{tier}} — {{context}}",
     "eventSize_one": "{{count}} jugador",
     "eventSize_other": "{{count}} jugadores"
   },
