@@ -188,8 +188,9 @@ function App() {
   }
   const sizeLabel = sizeClass === null ? null : t(SIZE_CAPTION_KEY[sizeClass])
   // Size and event both describe *which events* are in view, so they form one
-  // context string that the archetype and tier captions fold in as a unit —
-  // otherwise each new filter would need its own combination key.
+  // context string that the archetype and tier captions fold in as a unit via
+  // `{{context}}` — otherwise each new filter of this kind would need its own
+  // pairwise combination key, and the key count would grow with every filter.
   const contextLabel = [sizeLabel, eventLabel].filter(Boolean).join(' — ') || null
 
   // Trending tables mirror the active slice: an isolated archetype narrows to that
@@ -234,11 +235,11 @@ function App() {
   // popularity caption. The first two fold in that context when it is present.
   const gridCaption = archetypeFiltered
     ? contextLabel !== null
-      ? t('dashboard.archetypeEventCaption', { archetype: archetypeName, event: contextLabel })
+      ? t('dashboard.archetypeContextCaption', { archetype: archetypeName, context: contextLabel })
       : archetypeName!
     : tierFiltered
       ? contextLabel !== null
-        ? t('dashboard.tierEventCaption', { tier: tierLabel, event: contextLabel })
+        ? t('dashboard.tierContextCaption', { tier: tierLabel, context: contextLabel })
         : t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
       : contextLabel !== null
         ? contextLabel
