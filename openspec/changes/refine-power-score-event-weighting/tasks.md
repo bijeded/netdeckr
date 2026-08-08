@@ -19,4 +19,4 @@
 ## 4. Ship
 
 - [x] 4.1 Run the full gate: `npm run lint`, `npm run type-check`, `npm run test`, and `cd scraper && pytest` (the scraper is untouched, so it must be unchanged — a failure there is unrelated and worth flagging).
-- [ ] 4.2 Open the PR on a `task/` branch with the tier diff from 3.2 in the description. **Do not merge**: tier badges are user-visible, so merge exception 1 applies — wait for Vercel-preview confirmation from the user.
+- [x] 4.2 Open the PR on a `task/` branch with the tier diff from 3.2 in the description. **Do not merge**: tier badges are user-visible, so merge exception 1 applies — wait for Vercel-preview confirmation from the user.
