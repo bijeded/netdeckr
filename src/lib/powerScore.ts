@@ -16,9 +16,20 @@ const MIN_TREND_DECKS = 3 // Min usable recent placements before showing ▲/▼
 // Tournament-size weighting: a finish contributes more effective Wilson
 // observations when it was earned at a larger event. `sizeWeight` maps a player
 // count to a weight; the score uses Σ weights as the effective sample size.
+//
+// The curve is linear up to the reference field and logarithmic above it, so
+// each *doubling* of the field adds a fixed +1. That keeps very large events
+// distinguishable from one another: under the previous linear-and-capped curve
+// the cap bound at 160 players, so every event from 256 to 1086 players
+// collapsed onto one identical weight.
+//
+// Because log growth is self-limiting, the bound is no longer what stops a
+// single huge event from dominating the field — the curve shape is. It survives
+// only as a guard against an implausible scraped player count, and so sits far
+// above any real field (4096 players ≈ 4× the largest event on record here).
 const SIZE_REF = 64 // A ~reference-size event maps to weight ≈ 1.
 const SIZE_WEIGHT_MIN = 0.35 // Floor: tiny events AND unsized events (small default).
-const SIZE_WEIGHT_MAX = 2.5 // Cap: one huge event can't dominate the field.
+const SIZE_WEIGHT_GUARD = 6.0 // Sanity bound on absurd sizes, not a calibration cap.
 
 // A deck must be supported by at least this many placements to be eligible for
 // Tier 1, so a single-tiny-event winner cannot flood the top tier.
@@ -26,12 +37,15 @@ export const T1_MIN_DECKS = 3
 
 /**
  * Weight of one finish by its tournament's player count. A larger tournament
- * yields more effective observations (up to a cap); a missing size (`null`) is
- * treated as a **small event** (the floor), never dropped.
+ * yields more effective observations — linearly up to `SIZE_REF`, then +1 per
+ * doubling above it. The two branches meet at exactly 1.0, so the curve is
+ * continuous at the reference. A missing size (`null`) is treated as a **small
+ * event** (the floor), never dropped.
  */
 export function sizeWeight(size: number | null): number {
   if (size === null || size <= 0) return SIZE_WEIGHT_MIN
-  return Math.max(SIZE_WEIGHT_MIN, Math.min(SIZE_WEIGHT_MAX, size / SIZE_REF))
+  const w = size <= SIZE_REF ? size / SIZE_REF : 1 + Math.log2(size / SIZE_REF)
+  return Math.max(SIZE_WEIGHT_MIN, Math.min(SIZE_WEIGHT_GUARD, w))
 }
 
 // Strongest → weakest; a class index counted from the top maps into this.
@@ -55,6 +69,32 @@ export function finishQuality(placement: string): number | null {
   if (n <= 16) return 0.3 // top 16
   if (n <= 32) return 0.18 // top 32
   return 0.1 // beyond
+}
+
+/**
+ * Finish quality credited to every deck of an **unranked** event. A published
+ * ladder run is a real result — roughly top-8 grade, earned against a
+ * self-selected field with no elimination bracket — so it reuses the existing
+ * top-8 value rather than introducing another tuned constant. It must stay
+ * below `finishQuality('1')` so no unranked event can mint a champion.
+ */
+const UNRANKED_QUALITY = 0.45
+
+/**
+ * Whether an event's recorded standings are presentation order rather than a
+ * competitive result. MTGO Leagues publish every 5-0 decklist and store them as
+ * a flat `1 · 2 · 3 …`, which `finishQuality` would otherwise read positionally
+ * and credit with a champion and a finalist per event.
+ *
+ * Detection is structural — never by event name, which would be brittle against
+ * an upstream relabel and would miss equivalent ladders. Both signals are
+ * required: a bracket range proves a real bracket, and a recorded player count
+ * proves a real field. Genuine tournaments that simply lack a headcount (local
+ * RCQs and stages) all carry ranges, so the conjunction leaves them ranked.
+ */
+export function isUnrankedEvent(placements: string[], playerCount: number | null): boolean {
+  if (playerCount !== null && playerCount > 0) return false
+  return !placements.some((p) => p.includes('-'))
 }
 
 /** The usable finish qualities of a set of placements (unparseable ones dropped). */
@@ -103,19 +143,27 @@ export function wilsonLowerBound(pHat: number, n: number, z: number = Z_DEFAULT)
  * `sizes` aligns with `placements` (index i is finish i's player count, or null
  * when unknown → small-event weight). When `sizes` is omitted every finish gets a
  * neutral weight of 1 (used by pure unit tests; production always passes sizes).
+ *
+ * `unranked` aligns the same way: a set flag means finish i came from an event
+ * whose standings are not a ranking (see `isUnrankedEvent`), so it contributes
+ * the flat `UNRANKED_QUALITY` instead of a position-derived quality. The deck is
+ * still counted — only its invented ordering is discarded.
+ *
  * Returns 0 when the archetype has no usable placement.
  */
 export function archetypePowerScore(
   placements: string[],
   sizes?: (number | null)[],
+  unranked?: boolean[],
   z: number = Z_DEFAULT,
 ): number {
   let weightedQ = 0
   let effectiveN = 0
   // Iterate placements directly (not via usableQualities) to keep each finish
-  // index-aligned with its size in `sizes` — do not refactor to the shared helper.
+  // index-aligned with its size in `sizes` and its flag in `unranked` — do not
+  // refactor to the shared helper.
   for (let i = 0; i < placements.length; i++) {
-    const q = finishQuality(placements[i])
+    const q = unranked?.[i] ? UNRANKED_QUALITY : finishQuality(placements[i])
     if (q === null) continue
     const w = sizes === undefined ? 1 : sizeWeight(sizes[i] ?? null)
     weightedQ += q * w
