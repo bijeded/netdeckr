@@ -75,6 +75,59 @@ describe('useTrendingCards', () => {
     expect(rpc.mock.calls.every((c) => c[1].p_event_id === 42)).toBe(true)
   })
 
+  it('sends no event-id restriction when no size class is selected', async () => {
+    routeRpc({ main: [r('A', 10, 9)], side: [] })
+    renderHook(() => useTrendingCards('ST', '7days'))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
+    expect(rpc.mock.calls.every((c) => c[1].p_event_ids == null)).toBe(true)
+  })
+
+  it('passes the size class’s event ids to both calls', async () => {
+    routeRpc({ main: [r('A', 10, 9)], side: [r('S1', 3)] })
+    const { result } = renderHook(() =>
+      useTrendingCards('ST', '7days', { eventIds: [1, 2, 3] }),
+    )
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(rpc.mock.calls.every((c) => {
+      const ids = c[1].p_event_ids
+      return Array.isArray(ids) && ids.join() === '1,2,3'
+    })).toBe(true)
+  })
+
+  it('sends an empty id set rather than dropping the filter when a size class matches nothing', async () => {
+    routeRpc({ main: [], side: [] })
+    const { result } = renderHook(() => useTrendingCards('ST', '7days', { eventIds: [] }))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // The distinction that matters: [] restricts to nothing, null restricts to
+    // nothing *at all*. Collapsing [] to null would show every event's cards
+    // under a size class that matched no event.
+    expect(rpc.mock.calls.every((c) => Array.isArray(c[1].p_event_ids) && c[1].p_event_ids.length === 0)).toBe(true)
+    expect(result.current.creatures).toEqual([])
+    expect(result.current.spells).toEqual([])
+  })
+
+  it('combines the size id set with a single-event filter', async () => {
+    routeRpc({ main: [r('A', 10, 9)], side: [] })
+    renderHook(() => useTrendingCards('ST', '7days', { eventId: 2, eventIds: [1, 2, 3] }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
+    expect(rpc.mock.calls.every((c) => c[1].p_event_id === 2 && c[1].p_event_ids.length === 3)).toBe(true)
+  })
+
+  it('does not refetch when the event id array keeps the same contents', async () => {
+    routeRpc({ main: [r('A', 1)], side: [] })
+    const { rerender } = renderHook(({ ids }: { ids: number[] }) =>
+      useTrendingCards('ST', '7days', { eventIds: ids }),
+      { initialProps: { ids: [1, 2] } },
+    )
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
+
+    // A fresh array with identical contents must not re-run the effect — App
+    // rebuilds this list from `events` on every render.
+    rerender({ ids: [1, 2] })
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
+  })
+
   it('resolves selected archetype names to ids and passes them to the RPC', async () => {
     archResult.data = [{ id: 7, name: 'Izzet Prowess' }, { id: 9, name: 'Mono Red' }]
     routeRpc({ main: [r('A', 5, 4)], side: [] })

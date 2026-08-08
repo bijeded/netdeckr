@@ -11,6 +11,7 @@ import {
   type DeckForBreakdown,
 } from '../lib/metagame'
 import { shareDeltas, type DeckForShareDelta } from '../lib/shareDelta'
+import { sizeClassOf, type EventSizeClass } from '../lib/eventSize'
 
 /** The 2-week window anchors the stable tier baseline; the selected window is a date subset of it. */
 const BASELINE_WINDOW: WindowCode = '2weeks'
@@ -62,6 +63,8 @@ export interface EventOption {
 export interface MetagameFilters {
   /** Restrict the breakdown/decks to a single event; null = all events. */
   eventId?: number | null
+  /** Restrict to events of one size class; null = all sizes. */
+  sizeClass?: EventSizeClass | null
 }
 
 /** Aggregate counts over the displayed corpus, for the header StatCard strip. */
@@ -124,8 +127,12 @@ async function fetchCorpusDecks(
  *
  * An optional `eventId` filter narrows the breakdown/decks to a single event, so
  * each archetype's share is recomputed **within that event**; tiers/trends stay
- * anchored to the full 2-week corpus. `events` lists the window corpus's distinct
- * events (Event filter options, unaffected by the filter). `fullDecksByArchetype`
+ * anchored to the full 2-week corpus. An optional `sizeClass` filter narrows them
+ * to events of one size band the same way — also anchoring nothing, since the
+ * Power Score already weights each finish by its event's size. `events` lists the
+ * window corpus's distinct events (Event filter options, unaffected by the event
+ * filter but narrowed by `sizeClass`, so an unreachable event is never offered).
+ * `fullDecksByArchetype`
  * is the uncapped, date-desc deck list used by an isolated, auto-expanded card.
  */
 export function useMetagame(
@@ -134,6 +141,7 @@ export function useMetagame(
   filters: MetagameFilters = {},
 ) {
   const eventId = filters.eventId ?? null
+  const sizeClass = filters.sizeClass ?? null
   const [breakdown, setBreakdown] = useState<ArchetypeCardData[]>([])
   const [decksByArchetype, setDecksByArchetype] = useState<DecksByArchetype>({})
   const [fullDecksByArchetype, setFullDecksByArchetype] = useState<DecksByArchetype>({})
@@ -213,8 +221,12 @@ export function useMetagame(
           }
 
           const inWindow = eventDate >= selectedStart
-          // Event options come from the window corpus, independent of the event filter.
-          if (inWindow) {
+          // The size filter narrows both the corpus and the Event options, so an
+          // event outside the selected size class can never be offered or counted.
+          const passesSize = sizeClass === null || sizeClassOf(playerCount) === sizeClass
+          // Event options come from the window corpus, independent of the event
+          // filter but narrowed by the size filter.
+          if (inWindow && passesSize) {
             const evtId = row.events?.id
             if (evtId != null) {
               const seen = seenEventIds.get(evtId)
@@ -236,7 +248,7 @@ export function useMetagame(
           // The breakdown/decks derive from the window corpus narrowed by the event
           // filter (so shares are recomputed within the selected event).
           const passesEvent = eventId === null || row.events?.id === eventId
-          if (inWindow && passesEvent) {
+          if (inWindow && passesEvent && passesSize) {
             const deck: DeckRow = {
               id: row.id,
               sourceDeckId: row.source_deck_id,
@@ -310,7 +322,7 @@ export function useMetagame(
     return () => {
       active = false
     }
-  }, [formatCode, metaWindow, eventId])
+  }, [formatCode, metaWindow, eventId, sizeClass])
 
   return { breakdown, decksByArchetype, fullDecksByArchetype, events, totals, loading, error }
 }

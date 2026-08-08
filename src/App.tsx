@@ -8,6 +8,7 @@ import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
 import { eventLabel as buildEventLabel } from './lib/eventLabel'
+import { sizeClassOf, type EventSizeClass } from './lib/eventSize'
 import { FormatSwitcher } from './components/FormatSwitcher'
 import { WindowSelector } from './components/WindowSelector'
 import { EventSelector } from './components/EventSelector'
@@ -59,6 +60,7 @@ function App() {
 
   // Filters (in-memory only — not persisted in the URL). null = "All".
   const [eventId, setEventId] = useState<number | null>(null)
+  const [sizeClass, setSizeClass] = useState<EventSizeClass | null>(null)
   const [archetypeName, setArchetypeName] = useState<string | null>(null)
   const [tier, setTier] = useState<Tier | null>(null)
 
@@ -70,7 +72,7 @@ function App() {
     totals = { events: 0, archetypes: 0, decks: 0 },
     loading,
     error,
-  } = useMetagame(format, metaWindow, { eventId })
+  } = useMetagame(format, metaWindow, { eventId, sizeClass })
   const lastUpdated = useLastUpdated(format)
 
   // Which archetype card is expanded to show its decklists. Collapses whenever the
@@ -109,6 +111,22 @@ function App() {
   // an archetype drops a contradictory tier, and picking a tier drops a
   // contradictory archetype. Only a handler knows which filter was just chosen, so
   // the resolution lives there rather than in an effect.
+  // Size and event narrow the same axis, so they can disagree the same way. The
+  // event options are already narrowed by the active size class, which makes an
+  // out-of-class event unpickable — the one case left is picking a size class
+  // that excludes the event already selected. Resolve it here, favoring the
+  // choice just made, exactly as archetype/tier do. The auto-reset effect above
+  // would eventually reach the same result once the narrowed options arrive, but
+  // it cannot tell "the user changed size" from "the format changed"; doing it
+  // here clears the event in the same render, so no pass ever sees an event
+  // selected outside the active size class.
+  const selectSizeClass = (next: EventSizeClass | null) => {
+    setSizeClass(next)
+    if (next === null || eventId === null) return
+    const selected = events.find((e) => e.id === eventId)
+    if (selected && sizeClassOf(selected.playerCount) !== next) setEventId(null)
+  }
+
   const tierOf = (name: string) => breakdown.find((a) => a.name === name)?.tier ?? null
   const selectArchetype = (name: string | null) => {
     setArchetypeName(name)
@@ -175,6 +193,11 @@ function App() {
   } = useTrendingCards(format, metaWindow, {
     archetypeNames: trendingArchetypeNames,
     eventId,
+    // Trending aggregates server-side, so it cannot classify sizes itself: send
+    // the ids of the events in the selected class. `events` is already narrowed
+    // by the size filter, so this is exactly that set — and an empty array (a
+    // class with no events) correctly yields empty tables rather than all of them.
+    eventIds: sizeClass === null ? null : events.map((e) => e.id),
   })
 
   const visibleBreakdown = archetypeFiltered
@@ -215,10 +238,12 @@ function App() {
   const gridIsEmpty = visibleBreakdown.length === 0 || noArchetypeResults
   const emptyMessage =
     noArchetypeResults || noTierResults ? t('filters.noResults') : t('dashboard.empty')
-  const filtersActive = eventId !== null || archetypeName !== null || tier !== null
+  const filtersActive =
+    eventId !== null || sizeClass !== null || archetypeName !== null || tier !== null
   // One handler behind both clear controls — the sidebar's and the main window's.
   const clearFilters = () => {
     setEventId(null)
+    setSizeClass(null)
     setArchetypeName(null)
     setTier(null)
   }
@@ -403,7 +428,13 @@ function App() {
           >
             <div className="sidebar-inner">
               <WindowSelector value={metaWindow} onChange={setWindow} />
-              <EventSelector value={eventId} events={events} onChange={setEventId} />
+              <EventSelector
+                value={eventId}
+                events={events}
+                onChange={setEventId}
+                sizeClass={sizeClass}
+                onSizeClassChange={selectSizeClass}
+              />
               <ArchetypeSelector
                 value={archetypeName}
                 archetypes={breakdown.map((a) => a.name)}
