@@ -12,6 +12,7 @@ import {
 } from '../lib/metagame'
 import { shareDeltas, type DeckForShareDelta } from '../lib/shareDelta'
 import { sizeClassOf, type EventSizeClass } from '../lib/eventSize'
+import { isUnrankedEvent } from '../lib/powerScore'
 
 /** The 2-week window anchors the stable tier baseline; the selected window is a date subset of it. */
 const BASELINE_WINDOW: WindowCode = '2weeks'
@@ -187,6 +188,14 @@ export function useMetagame(
         // Per-finish tournament sizes aligned with twoWeekPlacements (parallel push),
         // so the Power Score can weight each finish by its event's player count.
         const twoWeekSizes = new Map<string, (number | null)[]>()
+        // Event id per finish, aligned with twoWeekPlacements the same way. The
+        // unranked test is a property of the *event* (do any of its decks carry a
+        // bracket range?), so it can only be resolved once the whole corpus has
+        // been walked — these ids are what map it back onto each finish below.
+        const twoWeekEventIds = new Map<string, (number | null)[]>()
+        // Per-event facts feeding that test, accumulated over every fetched row
+        // (not just the 2-week subset) so an event is judged on all its decks.
+        const eventFacts = new Map<number, { placements: string[]; playerCount: number | null }>()
         const twoWeekForBreakdown: DeckForBreakdown[] = []
         const selectedGrouped: Record<string, DeckRow[]> = {}
         const selectedForBreakdown: DeckForBreakdown[] = []
@@ -213,10 +222,18 @@ export function useMetagame(
           // `shareDeltas` can drop truly date-less rows rather than misplace them.
           deltaCorpus.push({ archetypeName, eventDate: row.events?.event_date ?? null })
 
+          const rowEventId = row.events?.id ?? null
+          if (rowEventId !== null) {
+            const facts = eventFacts.get(rowEventId)
+            if (facts) facts.placements.push(placement)
+            else eventFacts.set(rowEventId, { placements: [placement], playerCount })
+          }
+
           // The tier baseline is the last 2 weeks only (a subset of the 28-day fetch).
           if (eventDate >= twoWeekStart) {
             pushToMap(twoWeekPlacements, archetypeName, placement)
             pushToMap(twoWeekSizes, archetypeName, playerCount)
+            pushToMap(twoWeekEventIds, archetypeName, rowEventId)
             twoWeekForBreakdown.push({ archetypeName, colorIdentity, placement, artImageUrl, artCropUrl })
           }
 
@@ -276,9 +293,26 @@ export function useMetagame(
         // slice; the breakdown is likewise uncapped, so every archetype (including
         // those past the grid's display cap) is tiered and selectable in filters.
         const twoWeekFieldNames = deriveBreakdown(twoWeekForBreakdown).map((a) => a.name)
+
+        // Resolve the unranked test once per event, then project it back onto
+        // each finish. A finish with no event id stays ranked — absent evidence
+        // of a published ladder, the recorded standing is taken at face value.
+        const unrankedEventIds = new Set<number>()
+        for (const [id, facts] of eventFacts) {
+          if (isUnrankedEvent(facts.placements, facts.playerCount)) unrankedEventIds.add(id)
+        }
+        const twoWeekUnranked = new Map<string, boolean[]>()
+        for (const [name, ids] of twoWeekEventIds) {
+          twoWeekUnranked.set(
+            name,
+            ids.map((id) => id !== null && unrankedEventIds.has(id)),
+          )
+        }
+
         const tiered = attachPowerTiers(deriveBreakdown(selectedForBreakdown), {
           twoWeekPlacements,
           twoWeekSizes,
+          twoWeekUnranked,
           twoWeekFieldNames,
           selectedPlacements,
           isBaseline: metaWindow === BASELINE_WINDOW,

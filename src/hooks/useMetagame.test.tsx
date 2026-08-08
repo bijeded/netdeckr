@@ -519,4 +519,69 @@ describe('useMetagame', () => {
       expect(contradictory.current.breakdown).toEqual([])
     })
   })
+  describe('unranked (published-ladder) events', () => {
+    /**
+     * Two archetypes with an identical record of eight 1st-place finishes. One
+     * earned them at a real tournament (bracket ranges, recorded field); the
+     * other at a published ladder, which records a position for every deck it
+     * publishes without those positions meaning anything.
+     */
+    function ladderVsBracket() {
+      const rows = []
+      for (let i = 0; i < 8; i++) {
+        rows.push(
+          deckRow({
+            id: 100 + i,
+            source_deck_id: `ladder-${i}`,
+            // All 1st: scored positionally this ties the bracket record exactly,
+            // so the assertion below can only pass if the flattening is applied.
+            placement: '1',
+            archetypes: { name: 'Ladder Deck', color_identity: 'U', art_image_url: null, art_crop_url: null },
+            // No player_count and a flat run of positions: the unranked shape.
+            events: { id: 1, name: 'MTGO League', event_date: daysAgo(1), player_count: null },
+          }),
+        )
+        rows.push(
+          deckRow({
+            id: 200 + i,
+            source_deck_id: `bracket-${i}`,
+            placement: '1',
+            archetypes: { name: 'Bracket Deck', color_identity: 'R', art_image_url: null, art_crop_url: null },
+            // A bracket range somewhere in the event proves a real ranking.
+            events: { id: 2, name: 'RCQ', event_date: daysAgo(1), player_count: 64 },
+          }),
+        )
+      }
+      // One deck carrying the range, so event 2 is unambiguously ranked.
+      rows.push(
+        deckRow({
+          id: 299,
+          source_deck_id: 'bracket-range',
+          placement: '3-4',
+          archetypes: { name: 'Bracket Deck', color_identity: 'R', art_image_url: null, art_crop_url: null },
+          events: { id: 2, name: 'RCQ', event_date: daysAgo(1), player_count: 64 },
+        }),
+      )
+      return rows
+    }
+
+    // NOTE: the flattening itself cannot be isolated here. An unranked event is
+    // by definition unsized, so it also takes the size-weight floor, and that
+    // alone separates the two archetypes' tiers whether or not the flag applies.
+    // The flattening is covered where sizes can be held constant: see
+    // `attachPowerTiers — unranked finishes` in ../lib/metagame.test.ts.
+
+    it('keeps ladder decks in the corpus, counted for share and totals', async () => {
+      queryResult.data = ladderVsBracket()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      // Flattening the ordering must not drop the decks: they still appear, still
+      // count toward the deck total, and still hold metagame share.
+      const ladder = result.current.breakdown.find((a) => a.name === 'Ladder Deck')!
+      expect(ladder.sharePct).toBeGreaterThan(0)
+      expect(result.current.totals.decks).toBe(17)
+      expect(result.current.totals.events).toBe(2)
+    })
+  })
 })

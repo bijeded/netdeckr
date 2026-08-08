@@ -8,6 +8,7 @@ import {
   jenksBreaks,
   assignTiers,
   windowTrend,
+  isUnrankedEvent,
   T1_MIN_DECKS,
 } from './powerScore'
 
@@ -129,9 +130,43 @@ describe('sizeWeight', () => {
     expect(sizeWeight(null)).toBeLessThan(sizeWeight(128))
   })
 
-  it('is bounded so one huge event cannot dominate', () => {
+  it('is bounded against an implausible recorded size', () => {
+    // The bound is a data-sanity guard, not a calibration cap: it sits far above
+    // any real field, so only an absurd player count ever reaches it.
     expect(sizeWeight(100000)).toBeLessThanOrEqual(sizeWeight(100001))
-    expect(sizeWeight(100000)).toBeLessThan(5)
+    expect(sizeWeight(100000)).toBe(sizeWeight(1e9))
+    expect(sizeWeight(1086)).toBeLessThan(sizeWeight(100000))
+  })
+
+  it('is continuous at the reference size', () => {
+    // Both branches evaluate to exactly 1.0 at SIZE_REF, so there is no seam.
+    expect(sizeWeight(64)).toBe(1)
+    expect(sizeWeight(63.9)).toBeLessThan(1)
+    expect(sizeWeight(64.1)).toBeGreaterThan(1)
+  })
+
+  it('adds a fixed increment per doubling above the reference', () => {
+    const a = sizeWeight(128)
+    const b = sizeWeight(256)
+    const c = sizeWeight(512)
+    expect(b - a).toBeCloseTo(c - b, 10)
+    expect(b - a).toBeCloseTo(1, 10)
+  })
+
+  it('keeps very large events distinguishable from one another', () => {
+    // The defect this replaced: a linear curve capped at 2.5 bound at 160
+    // players, collapsing every event from 256 to 1086 onto one weight.
+    expect(sizeWeight(256)).toBeLessThan(sizeWeight(512))
+    expect(sizeWeight(512)).toBeLessThan(sizeWeight(1086))
+  })
+
+  it('weights events at or below the reference size exactly as before', () => {
+    // The sub-reference curve is unchanged, which is what keeps this change's
+    // blast radius confined to the events above the reference.
+    expect(sizeWeight(64)).toBe(1)
+    expect(sizeWeight(32)).toBe(0.5)
+    expect(sizeWeight(48)).toBe(0.75)
+    expect(sizeWeight(8)).toBe(0.35) // floored, as before
   })
 })
 
@@ -289,5 +324,83 @@ describe('windowTrend', () => {
 
   it('returns flat when there is no usable recent data', () => {
     expect(windowTrend(['', 'x'], ['1', '1', '1'])).toBe('flat')
+  })
+})
+
+describe('isUnrankedEvent', () => {
+  it('flags an unsized event whose standings are a flat run', () => {
+    // The MTGO League shape: every 5-0 deck published, numbered by row.
+    expect(isUnrankedEvent(['1', '2', '3', '4', '5', '6', '7', '8'], null)).toBe(true)
+  })
+
+  it('treats a bracket range as proof of a real bracket', () => {
+    // Genuine tournaments that simply lack a headcount — local RCQs and stages.
+    expect(isUnrankedEvent(['1', '2', '3-4', '5-8'], null)).toBe(false)
+    expect(isUnrankedEvent(['1', '2', '3-4'], null)).toBe(false)
+  })
+
+  it('treats a recorded player count as proof of a real field', () => {
+    expect(isUnrankedEvent(['1', '2', '3', '4'], 40)).toBe(false)
+  })
+
+  it('is ranked when both signals are present', () => {
+    expect(isUnrankedEvent(['1', '2', '3-4', '5-8', '9-16'], 448)).toBe(false)
+  })
+
+  it('does not treat a zero or negative player count as a real field', () => {
+    // Matches how sizeClassOf and sizeWeight read a non-positive count: absent.
+    expect(isUnrankedEvent(['1', '2', '3'], 0)).toBe(true)
+  })
+})
+
+describe('archetypePowerScore — unranked events', () => {
+  const flat = ['1', '2', '3', '4', '5', '6', '7', '8']
+
+  it('credits no champion-grade finish to an unranked event', () => {
+    // A flat run read positionally mints a 1.0 champion and a 0.8 finalist; the
+    // same decks scored as unranked must land strictly below an actual champion.
+    const asRanked = archetypePowerScore(flat, Array(8).fill(64))
+    const asUnranked = archetypePowerScore(flat, Array(8).fill(64), Array(8).fill(true))
+    expect(asUnranked).toBeLessThan(asRanked)
+  })
+
+  it('keeps unranked decks in the sample rather than dropping them', () => {
+    // Same finishes, all unranked: dropping them would collapse the score to 0.
+    const scored = archetypePowerScore(flat, Array(8).fill(64), Array(8).fill(true))
+    expect(scored).toBeGreaterThan(0)
+    // And more of them is a larger sample, so the Wilson shrink loosens.
+    const more = archetypePowerScore(
+      Array(24).fill('1'),
+      Array(24).fill(64),
+      Array(24).fill(true),
+    )
+    expect(more).toBeGreaterThan(scored)
+  })
+
+  it('scores every deck of an unranked event identically', () => {
+    // Position must not matter once the event is flagged, so a run of 1s and a
+    // run of 8s score the same.
+    const firsts = archetypePowerScore(Array(8).fill('1'), Array(8).fill(64), Array(8).fill(true))
+    const eighths = archetypePowerScore(Array(8).fill('8'), Array(8).fill(64), Array(8).fill(true))
+    expect(firsts).toBe(eighths)
+  })
+
+  it('leaves ranked finishes untouched when the flag is absent or false', () => {
+    const sizes = Array(4).fill(64)
+    const placements = ['1', '2', '3-4', '5-8']
+    expect(archetypePowerScore(placements, sizes, [false, false, false, false])).toBe(
+      archetypePowerScore(placements, sizes),
+    )
+  })
+
+  it('applies the flag per finish, not per archetype', () => {
+    // An archetype with one real win and one ladder finish must sit between the
+    // two homogeneous cases.
+    const sizes = [64, 64]
+    const mixed = archetypePowerScore(['1', '1'], sizes, [false, true])
+    const bothReal = archetypePowerScore(['1', '1'], sizes, [false, false])
+    const bothLadder = archetypePowerScore(['1', '1'], sizes, [true, true])
+    expect(mixed).toBeLessThan(bothReal)
+    expect(mixed).toBeGreaterThan(bothLadder)
   })
 })

@@ -284,4 +284,38 @@ describe('attachPowerTiers', () => {
       order.indexOf(byName['SmallEvents'].tier),
     )
   })
+  it('flattens unranked finishes so a published ladder cannot mint a champion', () => {
+    // Identical records and identical event sizes — the ONLY difference is that
+    // Ladder's finishes are flagged unranked. Holding sizes constant is what
+    // makes this test discriminating: in production an unranked event is always
+    // also unsized, so its weight floor would otherwise do the separating.
+    const placements = Array(6).fill('1')
+    const twoWeekPlacements = new Map<string, string[]>([
+      ['Ladder', placements],
+      ['Bracket', placements],
+    ])
+    const twoWeekSizes = new Map<string, (number | null)[]>([
+      ['Ladder', Array(6).fill(64)],
+      ['Bracket', Array(6).fill(64)],
+    ])
+    const twoWeekUnranked = new Map<string, boolean[]>([
+      ['Ladder', Array(6).fill(true)],
+      ['Bracket', Array(6).fill(false)],
+    ])
+    const names = ['Ladder', 'Bracket']
+    const out = attachPowerTiers(names.map((n, i) => ranked(n, { rank: i + 1 })), {
+      twoWeekPlacements,
+      twoWeekFieldNames: names,
+      twoWeekSizes,
+      twoWeekUnranked,
+      selectedPlacements: twoWeekPlacements,
+      isBaseline: true,
+    })
+    const order = ['T1', 'T2', 'T3', 'Otros']
+    const byName = Object.fromEntries(out.map((a) => [a.name, a]))
+    // Six fabricated 1st places must land strictly below six real ones.
+    expect(order.indexOf(byName['Ladder'].tier)).toBeGreaterThan(
+      order.indexOf(byName['Bracket'].tier),
+    )
+  })
 })

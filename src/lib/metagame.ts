@@ -57,6 +57,13 @@ export interface PowerContext {
   twoWeekPlacements: Map<string, string[]>
   /** Per-finish tournament sizes aligned with `twoWeekPlacements` (null = unknown → small-event weight). */
   twoWeekSizes: Map<string, (number | null)[]>
+  /**
+   * Per-finish unranked flags aligned with `twoWeekPlacements`. A set flag means
+   * the finish came from a published-ladder event whose standings are ordering,
+   * not result, so it scores a flat quality instead of a positional one.
+   * Optional: callers that do not classify (unit tests) treat every finish as ranked.
+   */
+  twoWeekUnranked?: Map<string, boolean[]>
   /** The whole 2-week corpus of archetype names — the reference field whose natural breaks set the cutoffs. */
   twoWeekFieldNames: string[]
   /** The selected window's placements per archetype (drives the trend). */
@@ -137,6 +144,7 @@ export function attachPowerTiers(displayed: RankedArchetype[], ctx: PowerContext
       score = archetypePowerScore(
         ctx.twoWeekPlacements.get(name) ?? [],
         ctx.twoWeekSizes.get(name) ?? [],
+        ctx.twoWeekUnranked?.get(name) ?? [],
       )
       scoreCache.set(name, score)
     }
