@@ -93,4 +93,13 @@ None required. Client-side, additive, no schema or stored data. The filter defau
 
 ## Open Questions
 
-- The vertical spacing between the two selects inside the shared Event group — whether they need tighter spacing than the between-group gap to read as one unit. Deferred to the Vercel preview; does not change the specs, the approach, or the task breakdown.
+None outstanding.
+
+**Settled on the preview:** the gap between the two selects in the Event group is `--sp-3` (11px), against the ~22px between groups. The first attempt at `--sp-2` (8px) was confirmed too tight. The pair still reads as one unit because the within-group gap remains half the between-group gap.
+
+**Also settled on the preview**, as corrections rather than open questions:
+
+- A size class now **uncaps the grid**, matching the Event filter. The original build left the top-12 cap in place under a size filter, which contradicted the point of the filter: narrowing to a band and then hiding most of that band's archetypes. Spec updated (`Display the archetype breakdown` gains event-size to its list of cap exceptions).
+- The grid caption now **names the active size class**, which the original build omitted entirely — a size filter changed the grid while the caption still read "Top 12 most popular archetypes". The caption uses **short** labels (Small / Mid / Large / Massive / Unknown) rather than the sidebar control's self-describing entries, since the caption labels a view rather than explaining a band.
+- Size and event are composed into a single **context label** that the archetype and tier captions fold in as a unit. Without this, every added filter would need its own pairwise combination key (`archetypeEventCaption`, `archetypeSizeCaption`, `archetypeEventSizeCaption`, …); composing one context string keeps the existing two keys working unchanged.
+- The empty state for a band no format populates was confirmed acceptable in situ, as the thresholds decision anticipated.

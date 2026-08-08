@@ -15,6 +15,10 @@ Selecting a size class from this control SHALL restrict the derived breakdown an
 
 Size classification SHALL NOT alter tier assignment: each archetype's tier remains its Last-2-Weeks Power Score against the whole 2-week field, unaffected by the selected size class, exactly as under the Event filter.
 
+An active size class SHALL uncap the grid: every archetype of the retained decks SHALL be displayed, with the default view's top-12 cap not applied, exactly as under the Event filter.
+
+An active size class SHALL also be named in the grid caption above the freshness line, using a **short** label — "Small", "Mid", "Large", "Massive", "Unknown" (localized) — with no size range or count appended. The caption SHALL compose with the other filters the same way the event name does: when an archetype is isolated or a tier is selected, the size label SHALL be folded into that caption alongside the event name rather than replacing it, and when a size class is the only active filter the caption SHALL be the size label alone, replacing the "Top N most popular archetypes" popularity caption.
+
 Every entry SHALL be offered whether or not the current (format, window) contains any event of that class; an entry matching no events SHALL remain selectable and SHALL lead to the localized empty state rather than being hidden. All labels SHALL be localized in Spanish and English via react-i18next.
 
 #### Scenario: Selecting a size class narrows the breakdown
@@ -32,6 +36,26 @@ Every entry SHALL be offered whether or not the current (format, window) contain
 #### Scenario: Unsized events are their own class
 - **WHEN** an event has no reported tournament size and the user selects "Unsized"
 - **THEN** that event's decks are retained, and they are excluded from Small, Medium, Large, and Massive alike
+
+#### Scenario: A size class uncaps the grid
+- **WHEN** a size class is selected, more than 12 archetypes are present among the retained decks, and no archetype or tier filter is active
+- **THEN** every one of those archetypes is displayed, with the top-12 display cap not applied
+
+#### Scenario: The caption names the size class with a short label
+- **WHEN** a size class is the only active filter
+- **THEN** the caption above the freshness line reads that class's short label ("Small", "Mid", "Large", "Massive", or "Unknown"), with no size range, player count, or archetype count appended, replacing the "Top N most popular archetypes" caption
+
+#### Scenario: The size label folds into the archetype and tier captions
+- **WHEN** a size class is selected together with an isolated archetype, or with a tier
+- **THEN** the caption combines that archetype name or tier label with the size label, rather than either one replacing the other
+
+#### Scenario: The size and event labels appear together
+- **WHEN** a size class and a single event are both selected
+- **THEN** the caption carries both the size label and the event's name and abbreviated date
+
+#### Scenario: Caption size labels are shorter than the filter's own labels
+- **WHEN** the caption names the medium or unsized class
+- **THEN** it reads "Mid" and "Unknown" respectively — the short caption forms — while the sidebar control keeps its fuller, self-describing entries
 
 #### Scenario: The size control sits inside the Event group without its own heading
 - **WHEN** the sidebar renders
@@ -58,6 +82,25 @@ Every entry SHALL be offered whether or not the current (format, window) contain
 - **THEN** the "All event sizes" default, the Small/Medium/Large/Massive/Unsized labels, and the control's accessible name switch language
 
 ## MODIFIED Requirements
+
+### Requirement: Display the archetype breakdown
+The dashboard SHALL derive the metagame breakdown for the selected format and window from the decks stored in Supabase — grouping the window's decks by archetype and computing each archetype's share as its deck count divided by the total number of decks in that format+window — and, in the default (time-frame-only, unfiltered) view, display up to the top 12 archetypes, sorted by share (deck count) descending. Each archetype SHALL be shown as a card containing its rank (zero-padded, e.g. `01`), its archetype name in English, its color-identity mana pips, its signature-card art (a placeholder gradient when no art is available), and its share percentage rendered in a monospace font with exactly one decimal (e.g. `14.2%`). Above the freshness line, the dashboard SHALL show a localized caption naming how many archetypes are shown (e.g. "Top 12 most popular archetypes", or the actual count when fewer than 12 exist). Because the breakdown is derived from the same decks shown in the drill-down, every displayed archetype SHALL have at least one deck.
+
+#### Scenario: Breakdown renders for a format and window with decks
+- **WHEN** the dashboard loads a format + window that has decks within its date range
+- **THEN** its archetypes are shown as cards sorted by share (deck count) descending, each with rank, English name, mana pips, art, and its share percentage as one-decimal monospace text
+
+#### Scenario: More than 12 archetypes are hard-cut in the default view
+- **WHEN** a format + window's derived breakdown contains more than 12 archetypes and no event, event-size, archetype, or tier filter is active
+- **THEN** only the top 12 by share are displayed and the remainder are omitted, with no aggregated "Other" row, and the caption reads "Top 12 most popular archetypes"
+
+#### Scenario: Fewer archetypes than the cap
+- **WHEN** the default view contains 12 or fewer archetypes
+- **THEN** all of them are displayed and the caption reflects the actual count (e.g. "Top 8 most popular archetypes")
+
+#### Scenario: Every displayed archetype has decks
+- **WHEN** an archetype card is displayed
+- **THEN** it has at least one deck available in its drill-down — there are no cards with a share but no decks
 
 ### Requirement: Event filter
 The dashboard SHALL provide a sidebar filter group, headed "Event" (localized), that lets the user restrict the metagame to a single tournament event. The group SHALL contain the event-size control (see the Event size filter requirement) above its event select, under the single "Event" heading. The group SHALL offer an "All events" default entry plus one entry per event present in the current (format, window) **and in the active event-size class**, each labelled with the event name, its abbreviated date, and — when the event's tournament size (`player_count`) is known — that size appended after the date as a localized parenthetical (e.g. "Standard Challenge — 24 Jun 2026 (128 players)"). When the size is unknown, the entry SHALL show only the name and abbreviated date. Selecting an event SHALL restrict the derived breakdown and per-archetype decks to that event's decks only, combined (AND) with the active format, time-frame, event-size, and any archetype filter. Each archetype card's metagame percentage SHALL be recomputed as that archetype's share **within the selected event** (its deck count over the event's total decks), not its share of the whole window. In the default popularity view (no archetype isolated and no tier selected), selecting an event SHALL display **all** of that event's archetypes uncapped (the broad-view top-12 display cap is not applied), and SHALL replace the "Top N most popular archetypes" caption — in the same position, above the freshness line — with the selected event's name, abbreviated date, and known size (e.g. "Standard Challenge — 24 Jun 2026 (128 players)"). The tournament size SHALL be shown identically (same localized parenthetical, omitted when unknown) in both the dropdown entry and the caption. The default state SHALL be "All events" (no event restriction). All labels SHALL be localized in Spanish and English via react-i18next (including the count-aware "players"/"jugadores" size text), with MTG proper nouns (including the event name) kept in English in both locales.

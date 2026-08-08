@@ -176,6 +176,21 @@ function App() {
   // helper so the caption and the Event-filter dropdown never diverge.
   const selectedEvent = eventId !== null ? (events.find((e) => e.id === eventId) ?? null) : null
   const eventLabel = selectedEvent ? buildEventLabel(selectedEvent, i18n.language, t) : null
+  // Caption form of the size class — deliberately shorter than the sidebar
+  // control's self-describing entries ("Mid", not "Medium (32–95 players)"),
+  // because the caption is a label for the view, not an explanation of the band.
+  const SIZE_CAPTION_KEY: Record<EventSizeClass, string> = {
+    small: 'filters.sizeCaptionSmall',
+    medium: 'filters.sizeCaptionMedium',
+    large: 'filters.sizeCaptionLarge',
+    massive: 'filters.sizeCaptionMassive',
+    unsized: 'filters.sizeCaptionUnsized',
+  }
+  const sizeLabel = sizeClass === null ? null : t(SIZE_CAPTION_KEY[sizeClass])
+  // Size and event both describe *which events* are in view, so they form one
+  // context string that the archetype and tier captions fold in as a unit —
+  // otherwise each new filter would need its own combination key.
+  const contextLabel = [sizeLabel, eventLabel].filter(Boolean).join(' — ') || null
 
   // Trending tables mirror the active slice: an isolated archetype narrows to that
   // one, a tier to all of its (uncapped) archetypes, otherwise the whole field
@@ -204,9 +219,9 @@ function App() {
     ? breakdown.filter((a) => a.name === archetypeName)
     : tierFiltered
       ? breakdown.filter((a) => a.tier === tier)
-      : // A selected event's field is shown in full (uncapped); the default
-        // popularity view still caps at the top N by share.
-        eventLabel !== null
+      : // A narrowed field — a single event, or one size class — is shown in
+        // full (uncapped); only the default popularity view caps at the top N.
+        contextLabel !== null
         ? breakdown
         : breakdown.slice(0, GRID_DISPLAY_CAP)
   // The grid caption sits above the freshness line and always names the view the
@@ -214,19 +229,19 @@ function App() {
   const tierLabel =
     tier === null ? '' : tier === 'Otros' ? t('tiers.rogue') : t('filters.tierLabel', { n: Number(tier.slice(1)) })
   // Caption resolution, in the same precedence as the grid itself: an isolated
-  // archetype names itself, then a tier names the tier, then a selected event
-  // names itself, falling back to the "Top N most popular archetypes" popularity
-  // caption. The first two fold in the event name when one is also selected.
+  // archetype names itself, then a tier names the tier, then the event/size
+  // context names itself, falling back to the "Top N most popular archetypes"
+  // popularity caption. The first two fold in that context when it is present.
   const gridCaption = archetypeFiltered
-    ? eventLabel !== null
-      ? t('dashboard.archetypeEventCaption', { archetype: archetypeName, event: eventLabel })
+    ? contextLabel !== null
+      ? t('dashboard.archetypeEventCaption', { archetype: archetypeName, event: contextLabel })
       : archetypeName!
     : tierFiltered
-      ? eventLabel !== null
-        ? t('dashboard.tierEventCaption', { tier: tierLabel, event: eventLabel })
+      ? contextLabel !== null
+        ? t('dashboard.tierEventCaption', { tier: tierLabel, event: contextLabel })
         : t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
-      : eventLabel !== null
-        ? eventLabel
+      : contextLabel !== null
+        ? contextLabel
         : t('dashboard.topCaption', { count: visibleBreakdown.length })
   // The isolated archetype auto-expands its full (uncapped) deck list; with no
   // matching decks under the combined filters, fall through to the empty state.

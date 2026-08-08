@@ -28,5 +28,12 @@
 
 ## 6. Verification
 
-- [x] 6.1 Run `npm run lint`, `npm run type-check`, and `npm run test` green. (No scraper work in this change — `player_count` is already populated.)
-- [ ] 6.2 Ship to the Vercel preview and confirm the one deferred visual decision from design.md — the vertical spacing between the two selects inside the shared Event group — then record the outcome in design.md. This is a user-visible change: do not merge before this confirmation.
+- [x] 6.1 Run `npm run lint`, `npm run type-check`, and `npm run test` green. (No scraper work in this change — `player_count` is already populated, though the `top_cards` RPC change in 5.1 must be applied to the database before merge.)
+- [x] 6.2 Ship to the Vercel preview and confirm the deferred visual decisions from design.md, then record the outcomes there. This is a user-visible change: do not merge before this confirmation.
+
+## 7. Preview follow-ups
+
+- [x] 7.1 Widen the gap between the two selects in the Event group to `--sp-3` (confirmed on the preview).
+- [x] 7.2 Uncap the grid when a size class is active, matching the Event filter's uncapped behavior.
+- [x] 7.3 Name the active size class in the grid caption with the short labels (Small / Mid / Large / Massive / Unknown), composing with the archetype, tier, and event captions the way the event name already does. Add the ES/EN entries; these are shorter than the sidebar control's own labels.
+- [ ] 7.4 Confirm the three follow-ups on the refreshed preview.

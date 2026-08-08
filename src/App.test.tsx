@@ -739,6 +739,71 @@ describe('App dashboard', () => {
       expect(contradictory).toHaveLength(0)
     })
 
+    it('uncaps the grid when a size class is active', () => {
+      // 15 archetypes — more than the top-12 default cap.
+      const many = Array.from({ length: 15 }, (_, i) => ({
+        rank: i + 1,
+        name: `Archetype ${i + 1}`,
+        colorIdentity: 'R',
+        sharePct: 20 - i,
+        tier: 'T3',
+        trend: null,
+      }))
+      useMetagame.mockReturnValue({ ...SIZED, breakdown: many })
+      render(<App />)
+      const grid = () => within(screen.getByTestId('archetype-grid'))
+      expect(grid().queryByText('Archetype 15')).not.toBeInTheDocument()
+      expect(grid().getByText('Archetype 12')).toBeInTheDocument()
+
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
+      // A narrowed field is shown in full, as it already is for a single event.
+      expect(grid().getByText('Archetype 15')).toBeInTheDocument()
+    })
+
+    it('captions the view with the short size label', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'medium' } }))
+
+      // "Mid", not the control's "Medium (32–95 players)", and no count. Scoped
+      // to the caption — the select's own option legitimately carries the range.
+      const caption = screen.getByTestId('grid-caption')
+      expect(caption).toHaveTextContent('Mid')
+      expect(caption).not.toHaveTextContent(/most popular archetypes/)
+      expect(caption).not.toHaveTextContent(/32–95|players/)
+    })
+
+    it('uses "Unknown" for the unsized class in the caption', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'unsized' } }))
+      expect(screen.getByText('Unknown')).toBeInTheDocument()
+    })
+
+    it('folds the size label into the tier and event captions', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
+      act(() => fireEvent.change(eventSelect(), { target: { value: '10' } }))
+      // Size and event both describe which events are in view — both are named.
+      expect(screen.getByText(/Large — RCQ/)).toBeInTheDocument()
+
+      act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), {
+        target: { value: 'T1' },
+      }))
+      expect(screen.getByText(/Tier 1 — Large — RCQ/)).toBeInTheDocument()
+    })
+
+    it('localizes the caption size label', async () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'massive' } }))
+      expect(screen.getByText('Massive')).toBeInTheDocument()
+
+      await act(() => i18n.changeLanguage('es'))
+      expect(screen.getByText('Masivo')).toBeInTheDocument()
+    })
+
     it('sends the size class’s event ids to the trending tables', () => {
       useMetagame.mockReturnValue(SIZED)
       render(<App />)
