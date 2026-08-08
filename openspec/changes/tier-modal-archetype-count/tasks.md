@@ -13,5 +13,5 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Confirm on the Vercel preview that the two figure columns align down the list and that a tier row does not wrap at the narrowest supported width, in both locales; adjust the column minimum widths if needed and record the settled values in design.md
+- [x] 4.1 Confirm on the Vercel preview that the two figure columns align down the list and that a tier row does not wrap at the narrowest supported width, in both locales; adjust the column minimum widths if needed and record the settled values in design.md
 - [x] 4.2 Extend the modal tests to cover the tier rows carrying both figures and the Events/Archetypes modals rendering no extra empty cell, and run `npm run lint`, `npm run type-check`, and `npm run test`

@@ -497,4 +497,14 @@
    both locales ("archetypes" / "arquetipos" against "decks" / "mazos"). */
 .filter-modal-row-meta-secondary {
   min-width: 88px;
+  /* On top of the row gap: two figures in different units read as one run-on
+     number when they sit as close as a label sits to its own figure. */
+  margin-right: var(--sp-4);
+}
+/* The figure a second column sits beside reserves room for a four-digit count,
+   so a row that reaches the thousands does not widen its own cell and shove the
+   column to its left out of alignment. Scoped to that pairing: a modal with one
+   figure column has nothing to its left to knock out of line. */
+.filter-modal-row-meta-secondary + .filter-modal-row-meta {
+  min-width: 76px;
 }

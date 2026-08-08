@@ -35,7 +35,12 @@ The tier rows are built in `App.tsx` from two sources already in hand for the cu
 
 **Two count-aware i18n keys, no composed string.** The archetype figure gets its own `_one`/`_other` pair alongside the existing `deckCount`, in both locales. Because the figures are now separate cells, no separator or joining key is needed — which is also why the earlier idea of a composed `"{{archetypes}} · {{decks}}"` key is no longer required.
 
-**Column widths deferred to the preview.** The archetype cell holds strings like `31 archetypes` / `31 arquetipos` (~13 characters) against the deck cell's `131 decks` / `131 mazos` (~9). A minimum width per cell in the same monospace face at the same size is the mechanism; the exact values are a visual judgement and are recorded here only after the Vercel preview confirms them, rather than guessed now. Whether the tier label and two figure cells coexist without wrapping at the narrowest supported width is likewise pending visual confirmation — it is the single most likely thing to need adjustment.
+**Column widths settled on the preview.** The archetype cell holds strings like `31 archetypes` / `31 arquetipos` (~13 characters) against the deck cell's `131 decks` / `131 mazos` (~9). A minimum width per cell in the same monospace face at the same size is the mechanism. Confirmed on the Vercel preview at desktop and mobile widths: the archetype cell's 88px holds, the two figure cells and the tier label coexist on one line at mobile width, and no row wraps. Two adjustments came out of that review:
+
+- **Separation.** The row's own 11px gap read as too tight for two figures in *different* units — they ran together as one number. A further 14px on the archetype cell separates them without loosening the label-to-figure spacing everywhere else.
+- **Headroom for four digits.** The deck cell's 58px fits `131 decks` but not a four-digit count. A row reaching the thousands would widen its own cell and push the archetype column left on that row alone, breaking exactly the alignment this change is for. The deck cell reserves 76px — but only when a second column sits beside it (`.filter-modal-row-meta-secondary + .filter-modal-row-meta`), since a single-figure modal has nothing to its left to knock out of line. That scoping is what keeps the Events and Archetypes modals unchanged.
+
+Four digits is the ceiling worth reserving: the 30-day retention window bounds a format's deck count well below five.
 
 ## Risks / Trade-offs
 
