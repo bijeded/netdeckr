@@ -36,6 +36,32 @@ describe('FilterModal', () => {
     expect(labels).toEqual(['All tiers730 decks', 'Tier 1412 decks', 'Tier 2180 decks'])
   })
 
+  it('gives a second figure its own cell on every row once any row supplies one', () => {
+    renderModal({
+      rows: [
+        { key: 'all', value: null, content: 'All tiers', metaSecondary: '31 archetypes', meta: '730 decks' },
+        { key: 'T1', value: 'T1', content: 'Tier 1', metaSecondary: '1 archetype', meta: '412 decks' },
+      ],
+    })
+    const dialog = screen.getByRole('dialog', { name: 'Tiers' })
+    const cells = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+      .map((b) => Array.from(b.querySelectorAll('.filter-modal-row-meta')).map((c) => c.textContent))
+    // Two cells per row, second figure first — so the columns line up down the list.
+    expect(cells).toEqual([
+      ['31 archetypes', '730 decks'],
+      ['1 archetype', '412 decks'],
+    ])
+  })
+
+  it('renders no second figure cell when no row supplies one', () => {
+    renderModal()
+    const dialog = screen.getByRole('dialog', { name: 'Tiers' })
+    expect(dialog.querySelectorAll('.filter-modal-row-meta-secondary')).toHaveLength(0)
+    expect(dialog.querySelectorAll('.filter-modal-row-meta')).toHaveLength(3)
+  })
+
   it('marks the row matching the active value as selected', () => {
     renderModal({ value: 'T2' })
     expect(screen.getByRole('button', { name: /Tier 2/ })).toHaveAttribute('aria-current', 'true')

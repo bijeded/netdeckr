@@ -1,0 +1,68 @@
+## MODIFIED Requirements
+
+### Requirement: StatCard filter modals
+Each of the three header StatCards SHALL act as a control that opens a modal listing the options for one filter: **Events** opens the event filter, **Archetypes** opens the archetype filter, and **Decks** opens the tier filter. Each modal SHALL present the breakdown of the metric shown on its card — one row per event, per archetype, or per tier — with each row carrying the count or share that accounts for its part of that total. The tier modal's rows SHALL carry **two** figures: the number of distinct archetypes in that tier and the number of decks in that tier, the archetype count preceding the deck count. Selecting a row SHALL apply that filter and close the modal. Modal titles, row labels, count-aware figures, and the "All …" entries SHALL be localized in Spanish and English; event and archetype names are proper nouns and stay in English in both locales. The modals SHALL offer no search or free-text filtering; rows SHALL keep the ordering already used elsewhere in the dashboard — archetypes by metagame share descending, events by date descending, tiers in T1, T2, T3, Rogue order.
+
+#### Scenario: Events card opens the event filter
+- **WHEN** the user activates the Events StatCard
+- **THEN** a modal opens listing every event in the current format and window, each row showing the event name, its abbreviated date, and its deck count
+
+#### Scenario: Archetypes card opens the archetype filter
+- **WHEN** the user activates the Archetypes StatCard
+- **THEN** a modal opens listing every archetype in the current corpus in share-descending order, each row showing its color-identity pips, name, tier badge, and metagame share
+
+#### Scenario: Tier badges form their own column
+- **WHEN** the archetype modal lists rows whose names are of differing lengths
+- **THEN** the tier badges are aligned in a column of their own between the names and the share figures, rather than each trailing the end of its own row's name
+
+#### Scenario: Decks card opens the tier filter
+- **WHEN** the user activates the Decks StatCard
+- **THEN** a modal opens listing the four tiers, each row showing the tier badge, its localized label, the number of archetypes in that tier, and the number of decks in that tier
+
+#### Scenario: Tier rows show archetype count and deck count in separate columns
+- **WHEN** the tier modal lists rows whose figures are of differing widths
+- **THEN** the archetype counts are aligned in a column of their own and the deck counts in another to their right, each row's two figures lining up with the corresponding figures of every other row rather than running together as one string
+
+#### Scenario: The tier modal's figures account for the whole field
+- **WHEN** the tier modal is opened with no event or archetype filter active
+- **THEN** the "All tiers" row shows the total number of archetypes and the total number of decks in the current format and window, and the four tier rows' archetype counts sum to that archetype total and their deck counts sum to that deck total
+
+#### Scenario: Tier figures are count-aware in both locales
+- **WHEN** a tier contains exactly one archetype, or exactly one deck
+- **THEN** that row's figure reads in the singular in the active locale (English "1 archetype" / "1 deck", Spanish "1 arquetipo" / "1 mazo"), and rows with other counts read in the plural
+
+#### Scenario: The other modals keep a single figure column
+- **WHEN** the user opens the Events modal or the Archetypes modal
+- **THEN** each row still carries exactly one figure — the event's deck count, or the archetype's metagame share — with no empty extra figure column introduced
+
+#### Scenario: Selecting a row applies the filter
+- **WHEN** the user selects a row in one of the modals
+- **THEN** that filter is applied, the modal closes, and the grid, captions, trending tables, and StatCard strip all reflect the new filter
+
+#### Scenario: The "All" row clears just that filter
+- **WHEN** the user selects the first row of a modal ("All events", "All archetypes", or "All tiers")
+- **THEN** only that filter returns to its default and any other active filters remain applied
+
+#### Scenario: The active row is marked
+- **WHEN** a modal opens while its filter is active
+- **THEN** the row matching the current selection is visibly marked as selected
+
+#### Scenario: A modal lists its full dimension regardless of its own filter
+- **WHEN** a filter is active and the user opens that filter's own modal
+- **THEN** every option for that dimension is still listed — computed over the corpus narrowed by the *other* active filters — so the user can switch to a different option or clear it
+
+#### Scenario: Long lists scroll within the modal
+- **WHEN** a modal's list is taller than the viewport allows
+- **THEN** the list scrolls inside the modal while the page behind it does not
+
+#### Scenario: Modal is dismissible without choosing
+- **WHEN** the user presses Escape, activates the close control, or clicks the overlay outside the modal
+- **THEN** the modal closes with no change to the active filters
+
+#### Scenario: Modal is keyboard and screen-reader accessible
+- **WHEN** a modal opens
+- **THEN** it is announced as a modal dialog with a localized accessible name, focus moves into it, and on close focus returns to the StatCard that opened it
+
+#### Scenario: Available on every viewport
+- **WHEN** the dashboard renders on a narrow or a wide viewport
+- **THEN** all three StatCards are interactive and their modals behave identically, and the tier modal's two figure columns remain legible beside their tier labels without the row wrapping onto a second line

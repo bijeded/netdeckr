@@ -26,6 +26,8 @@
     "reset": "Restablecer",
     "deckCount_one": "{{count}} mazo",
     "deckCount_other": "{{count}} mazos",
+    "archetypeCount_one": "{{count}} arquetipo",
+    "archetypeCount_other": "{{count}} arquetipos",
     "noResults": "Ningún mazo coincide con estos filtros."
   },
   "windows": {

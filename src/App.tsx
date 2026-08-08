@@ -247,6 +247,7 @@ function App() {
   const [openFilter, setOpenFilter] = useState<'event' | 'archetype' | 'tier' | null>(null)
   const closeFilter = () => setOpenFilter(null)
   const decks = (n: number) => t('filters.deckCount', { count: n })
+  const archetypes = (n: number) => t('filters.archetypeCount', { count: n })
 
   // A modal lists its own dimension in full — narrowed by the *other* active
   // filters, never by its own — so the current selection can always be changed or
@@ -287,23 +288,35 @@ function App() {
       meta: `${archetype.sharePct.toFixed(1)}%`,
     })),
   ]
+  // The only rows that account for themselves in two units: a tier's decks are
+  // its share of the Decks card that opened this modal, while its archetype
+  // count is what picking it actually puts on the grid (one card per archetype,
+  // not per deck). Each unit takes its own column so the figures line up.
   const tierRows: FilterModalRow<Tier>[] = [
-    { key: 'all', value: null, content: t('filters.allTiers'), meta: decks(totals.decks) },
-    ...TIER_ORDER.map((each) => ({
-      key: each,
-      value: each,
-      content: (
-        <>
-          <TierBadge tier={each} />
-          {/* The fringe tier's badge already reads "Rogue"/"Otros", so naming it
-              again would only repeat the word. */}
-          {each !== 'Otros' && <span>{t('filters.tierLabel', { n: Number(each.slice(1)) })}</span>}
-        </>
-      ),
-      meta: decks(
-        breakdown.filter((a) => a.tier === each).reduce((n, a) => n + (fullDecksByArchetype[a.name]?.length ?? 0), 0),
-      ),
-    })),
+    {
+      key: 'all',
+      value: null,
+      content: t('filters.allTiers'),
+      metaSecondary: archetypes(breakdown.length),
+      meta: decks(totals.decks),
+    },
+    ...TIER_ORDER.map((each) => {
+      const inTier = breakdown.filter((a) => a.tier === each)
+      return {
+        key: each,
+        value: each,
+        content: (
+          <>
+            <TierBadge tier={each} />
+            {/* The fringe tier's badge already reads "Rogue"/"Otros", so naming it
+                again would only repeat the word. */}
+            {each !== 'Otros' && <span>{t('filters.tierLabel', { n: Number(each.slice(1)) })}</span>}
+          </>
+        ),
+        metaSecondary: archetypes(inTier.length),
+        meta: decks(inTier.reduce((n, a) => n + (fullDecksByArchetype[a.name]?.length ?? 0), 0)),
+      }
+    }),
   ]
 
   return (

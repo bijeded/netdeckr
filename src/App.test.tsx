@@ -1094,13 +1094,40 @@ describe('StatCard filter modals', () => {
     expect(rows[1].querySelector('.filter-modal-row-content')).toHaveTextContent('Izzet Control')
   })
 
-  it('opens the tier filter from the Decks card, with each tier’s deck count', () => {
+  it('opens the tier filter from the Decks card, with each tier’s archetype and deck count', () => {
     render(<App />)
     const dialog = openCard(/Decks/)
     expect(dialog).toHaveAccessibleName('Tiers')
-    expect(within(dialog).getByRole('button', { name: /Tier 1.*1 deck/ })).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: /Tier 3.*1 deck/ })).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: /Tier 2.*0 decks/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /Tier 1.*1 archetype.*1 deck/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /Tier 3.*1 archetype.*1 deck/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /Tier 2.*0 archetypes.*0 decks/ })).toBeInTheDocument()
+  })
+
+  it('gives the tier rows two figure columns that account for the whole field', () => {
+    render(<App />)
+    const dialog = openCard(/Decks/)
+    const figures = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+      .map((b) => Array.from(b.querySelectorAll('.filter-modal-row-meta')).map((c) => c.textContent))
+    // The "All" row totals both units, and the tier rows below it sum to those
+    // totals — 2 archetypes (Izzet Control T1, Mono Red T3) over 2 decks.
+    expect(figures).toEqual([
+      ['2 archetypes', '2 decks'],
+      ['1 archetype', '1 deck'],
+      ['0 archetypes', '0 decks'],
+      ['1 archetype', '1 deck'],
+      ['0 archetypes', '0 decks'],
+    ])
+  })
+
+  it('leaves the other modals with a single figure column', () => {
+    render(<App />)
+    for (const card of [/Events/, /Archetypes/]) {
+      const dialog = openCard(card)
+      expect(dialog.querySelectorAll('.filter-modal-row-meta-secondary')).toHaveLength(0)
+      act(() => fireEvent.keyDown(document, { key: 'Escape' }))
+    }
   })
 
   it('applies the picked filter, closes the modal, and captions the view', () => {
