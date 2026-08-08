@@ -492,3 +492,9 @@
   font-size: var(--fs-xs);
   color: var(--text-faint);
 }
+/* A row that accounts for itself in two units puts the second figure in its own
+   column left of the first. Wider because its unit word is the longer one in
+   both locales ("archetypes" / "arquetipos" against "decks" / "mazos"). */
+.filter-modal-row-meta-secondary {
+  min-width: 88px;
+}

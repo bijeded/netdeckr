@@ -26,6 +26,8 @@
     "reset": "Reset",
     "deckCount_one": "{{count}} deck",
     "deckCount_other": "{{count}} decks",
+    "archetypeCount_one": "{{count}} archetype",
+    "archetypeCount_other": "{{count}} archetypes",
     "noResults": "No decks match these filters."
   },
   "windows": {
