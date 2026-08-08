@@ -41,6 +41,13 @@ export interface TrendingFilters {
   archetypeNames?: string[] | null
   /** Restrict to a single event. null/omitted = all. */
   eventId?: number | null
+  /**
+   * Restrict to a set of events — the event-size filter, already resolved to ids
+   * by the caller. null/omitted = all. An **empty array** means the selected size
+   * class matched no event and must yield empty tables, which is why this is not
+   * collapsed to null when empty.
+   */
+  eventIds?: number[] | null
 }
 
 interface TrendingState {
@@ -77,6 +84,7 @@ async function callTopCards(
   board: 'main' | 'side',
   archetypeIds: number[] | null,
   eventId: number | null,
+  eventIds: number[] | null,
 ): Promise<TopCardRow[]> {
   const { data, error } = await supabase.rpc('top_cards', {
     p_format: format,
@@ -85,6 +93,7 @@ async function callTopCards(
     p_board: board,
     p_archetype_ids: archetypeIds,
     p_event_id: eventId,
+    p_event_ids: eventIds,
   })
   if (error) throw error
   return toRows(data as TopCardQueryRow[] | null)
@@ -99,7 +108,10 @@ async function callTopCards(
  * lands are excluded server-side.
  *
  * Filters mirror the sidebar: `archetypeNames` (an archetype or tier selection)
- * narrows both calls via resolved ids; `eventId` narrows them to a single event.
+ * narrows both calls via resolved ids; `eventId` narrows them to a single event;
+ * `eventIds` narrows them to the events of the selected size class. The size
+ * bands themselves are never sent — the caller resolves them to ids, so the
+ * thresholds stay in one place and the aggregation stays generic.
  */
 export function useTrendingCards(
   format: FormatCode,
@@ -111,6 +123,10 @@ export function useTrendingCards(
   // the same contents doesn't re-run, and reconstruct inside the effect (names
   // contain spaces, so a naive join/split would corrupt them).
   const namesKey = filters.archetypeNames ? JSON.stringify(filters.archetypeNames) : null
+  // Same identity problem for the event ids, and the same fix. `?? null` rather
+  // than a truthiness check: an empty array is a meaningful value here (a size
+  // class with no events), not the absence of a filter.
+  const eventIdsKey = filters.eventIds != null ? JSON.stringify(filters.eventIds) : null
   const [state, setState] = useState<TrendingState>({ ...EMPTY, loading: true })
 
   useEffect(() => {
@@ -118,6 +134,7 @@ export function useTrendingCards(
     setState({ ...EMPTY, loading: true })
 
     const archetypeNames = namesKey ? (JSON.parse(namesKey) as string[]) : null
+    const eventIds = eventIdsKey !== null ? (JSON.parse(eventIdsKey) as number[]) : null
     const now = new Date()
     const start = windowStartISO(metaWindow, now) // now - n
     const end = isoOffset(now, -1) // tomorrow, so today's events are included
@@ -131,8 +148,8 @@ export function useTrendingCards(
             : await resolveArchetypeIds(format, archetypeNames)
 
       const [main, side] = await Promise.all([
-        callTopCards(format, start, end, 'main', archetypeIds, eventId),
-        callTopCards(format, start, end, 'side', archetypeIds, eventId),
+        callTopCards(format, start, end, 'main', archetypeIds, eventId, eventIds),
+        callTopCards(format, start, end, 'side', archetypeIds, eventId, eventIds),
       ])
 
       const { creatures, spells } = partitionByCategory(main)
@@ -156,7 +173,7 @@ export function useTrendingCards(
     return () => {
       active = false
     }
-  }, [format, metaWindow, namesKey, eventId])
+  }, [format, metaWindow, namesKey, eventId, eventIdsKey])
 
   return state
 }

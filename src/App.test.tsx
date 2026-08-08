@@ -582,7 +582,7 @@ describe('App dashboard', () => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } })
     })
     const lastCall = useMetagame.mock.calls.at(-1)
-    expect(lastCall?.[2]).toEqual({ eventId: 10 })
+    expect(lastCall?.[2]).toEqual({ eventId: 10, sizeClass: null })
   })
 
   it('collapses the grid to a single archetype and auto-expands all its decks', () => {
@@ -674,6 +674,192 @@ describe('App dashboard', () => {
     expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('')
   })
 
+  describe('event-size filter', () => {
+    const SIZED = {
+      breakdown: [
+        { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null },
+      ],
+      decksByArchetype: { 'Izzet Control': [] },
+      fullDecksByArchetype: { 'Izzet Control': [] },
+      // RCQ is a 128-player event → the `large` band.
+      events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128, deckCount: 1 }],
+      totals: { events: 1, archetypes: 1, decks: 1 },
+      loading: false,
+      error: null,
+    }
+    const sizeSelect = () => screen.getByRole('combobox', { name: 'Event size' })
+    const eventSelect = () => screen.getByRole('combobox', { name: 'Event' })
+    /** The filters the hook was last called with. */
+    const lastFilters = () => useMetagame.mock.calls.at(-1)?.[2]
+
+    it('passes the selected size class to the metagame hook', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      expect(lastFilters()).toMatchObject({ sizeClass: null })
+
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'medium' } }))
+      expect(lastFilters()).toMatchObject({ sizeClass: 'medium' })
+    })
+
+    it('clears a selected event that the newly chosen size class excludes', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(eventSelect(), { target: { value: '10' } }))
+      expect(eventSelect()).toHaveValue('10')
+
+      // RCQ is `large`; choosing `small` contradicts it, so the most recent
+      // choice wins and the event drops in the same update.
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'small' } }))
+      expect(eventSelect()).toHaveValue('')
+      expect(lastFilters()).toMatchObject({ eventId: null, sizeClass: 'small' })
+    })
+
+    it('keeps a selected event that the newly chosen size class includes', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(eventSelect(), { target: { value: '10' } }))
+
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
+      expect(eventSelect()).toHaveValue('10')
+      expect(lastFilters()).toMatchObject({ eventId: 10, sizeClass: 'large' })
+    })
+
+    it('never renders a pass with an event selected outside the active size class', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(eventSelect(), { target: { value: '10' } }))
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'small' } }))
+
+      // The handler clears the event as the size is applied, so no render ever
+      // asks the hook for a combination that is guaranteed to be empty — the
+      // auto-reset effect has nothing left to correct after the fact.
+      const contradictory = useMetagame.mock.calls.filter(
+        ([, , f]) => f?.eventId === 10 && f?.sizeClass === 'small',
+      )
+      expect(contradictory).toHaveLength(0)
+    })
+
+    it('uncaps the grid when a size class is active', () => {
+      // 15 archetypes — more than the top-12 default cap.
+      const many = Array.from({ length: 15 }, (_, i) => ({
+        rank: i + 1,
+        name: `Archetype ${i + 1}`,
+        colorIdentity: 'R',
+        sharePct: 20 - i,
+        tier: 'T3',
+        trend: null,
+      }))
+      useMetagame.mockReturnValue({ ...SIZED, breakdown: many })
+      render(<App />)
+      const grid = () => within(screen.getByTestId('archetype-grid'))
+      expect(grid().queryByText('Archetype 15')).not.toBeInTheDocument()
+      expect(grid().getByText('Archetype 12')).toBeInTheDocument()
+
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
+      // A narrowed field is shown in full, as it already is for a single event.
+      expect(grid().getByText('Archetype 15')).toBeInTheDocument()
+    })
+
+    it('captions the view with the short size label', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'medium' } }))
+
+      // "Mid", not the control's "Medium (32–95 players)", and no count. Scoped
+      // to the caption — the select's own option legitimately carries the range.
+      const caption = screen.getByTestId('grid-caption')
+      expect(caption).toHaveTextContent('Mid')
+      expect(caption).not.toHaveTextContent(/most popular archetypes/)
+      expect(caption).not.toHaveTextContent(/32–95|players/)
+    })
+
+    it('uses "Unknown" for the unsized class in the caption', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'unsized' } }))
+      expect(screen.getByText('Unknown')).toBeInTheDocument()
+    })
+
+    it('folds the size label into the tier and event captions', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
+      act(() => fireEvent.change(eventSelect(), { target: { value: '10' } }))
+      // Size and event both describe which events are in view — both are named.
+      expect(screen.getByText(/Large — RCQ/)).toBeInTheDocument()
+
+      act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), {
+        target: { value: 'T1' },
+      }))
+      expect(screen.getByText(/Tier 1 — Large — RCQ/)).toBeInTheDocument()
+    })
+
+    it('localizes the caption size label', async () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'massive' } }))
+      expect(screen.getByText('Massive')).toBeInTheDocument()
+
+      await act(() => i18n.changeLanguage('es'))
+      expect(screen.getByText('Masivo')).toBeInTheDocument()
+    })
+
+    it('sends the size class’s event ids to the trending tables', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      // Unfiltered: no event-id restriction reaches trending.
+      expect(useTrendingCards.mock.calls.at(-1)?.[2]).toMatchObject({ eventIds: null })
+
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
+      // Trending aggregates server-side, so it gets the resolved ids, not the band.
+      expect(useTrendingCards.mock.calls.at(-1)?.[2]).toMatchObject({ eventIds: [10] })
+    })
+
+    it('enables Clear filters when a size class is the only active filter', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      const clear = screen.getByRole('button', { name: 'Clear filters' })
+      expect(clear).toBeDisabled()
+
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'massive' } }))
+      expect(clear).toBeEnabled()
+
+      act(() => fireEvent.click(clear))
+      expect(sizeSelect()).toHaveValue('')
+      expect(lastFilters()).toMatchObject({ sizeClass: null })
+    })
+
+    it('resets the size class from the main-window Reset control', () => {
+      useMetagame.mockReturnValue(SIZED)
+      render(<App />)
+      const reset = screen.getByTestId('reset-filters')
+      expect(reset).toBeDisabled()
+
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
+      expect(reset).toBeEnabled()
+
+      act(() => fireEvent.click(reset))
+      expect(sizeSelect()).toHaveValue('')
+    })
+
+    it('keeps a size class that matches no event rather than auto-resetting it', () => {
+      useMetagame.mockReturnValue(SIZED)
+      const { rerender } = render(<App />)
+      act(() => fireEvent.change(sizeSelect(), { target: { value: 'massive' } }))
+
+      // No event falls in the band, so the hook returns an empty corpus. Unlike
+      // the event filter, the size selection stands and the view goes empty.
+      useMetagame.mockReturnValue({
+        ...SIZED,
+        breakdown: [],
+        events: [],
+        totals: { events: 0, archetypes: 0, decks: 0 },
+      })
+      act(() => rerender(<App />))
+      expect(sizeSelect()).toHaveValue('massive')
+    })
+  })
+
   it('auto-resets the event filter when the selected event leaves the corpus', () => {
     useMetagame.mockReturnValue({
       breakdown: [{ rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null }],
@@ -735,8 +921,9 @@ describe('App dashboard', () => {
     render(<App />)
     const sidebar = screen.getByTestId('sidebar')
     const comboboxes = within(sidebar).getAllByRole('combobox').map((c) => c.getAttribute('aria-label'))
-    // Order: Time Frame (WindowSelector uses buttons, not a combobox) → Event → Archetype → Tiers.
-    expect(comboboxes).toEqual(['Event', 'Archetype', 'Tiers'])
+    // Order: Time Frame (WindowSelector uses buttons, not a combobox) → Event
+    // size and Event, both inside the one Event group → Archetype → Tiers.
+    expect(comboboxes).toEqual(['Event size', 'Event', 'Archetype', 'Tiers'])
   })
 
   it('filters the grid to a selected tier, uncapped, as collapsible cards and hides the caption', () => {

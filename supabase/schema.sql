@@ -248,9 +248,17 @@ grant select on public.formats, public.archetypes, public.events, public.decks,
 --
 -- The return signature changed in revamp-trending-cards (added `category`), so
 -- the old function is dropped first — create-or-replace cannot alter a function's
--- OUT columns in place.
+-- OUT columns in place. add-event-size-filter added `p_event_ids`, changing the
+-- argument list, so both the pre- and post-`category` signatures are dropped.
+--
+-- `p_event_id` (one event) and `p_event_ids` (a set) are independent narrowings
+-- that AND together. The set exists for the event-size filter: the bands are
+-- classified in TypeScript (src/lib/eventSize.ts) and only the resulting event
+-- ids are sent, so the thresholds live in exactly one language and cannot drift
+-- between the grid and these tables.
 -- ---------------------------------------------------------------------------
 drop function if exists public.top_cards(text, date, date, text, bigint[], bigint);
+drop function if exists public.top_cards(text, date, date, text, bigint[], bigint, bigint[]);
 
 create function public.top_cards(
   p_format         text,
@@ -258,7 +266,8 @@ create function public.top_cards(
   p_end            date,
   p_board          text,
   p_archetype_ids  bigint[] default null,
-  p_event_id       bigint   default null
+  p_event_id       bigint   default null,
+  p_event_ids      bigint[] default null
 )
 returns table (
   card_name    text,
@@ -288,11 +297,15 @@ as $$
     and (dc.type_line is null or dc.type_line not ilike '%land%')
     and (p_archetype_ids is null or d.archetype_id = any (p_archetype_ids))
     and (p_event_id is null or d.event_id = p_event_id)
+    -- An empty array means "no events match the selected size class", which must
+    -- yield no rows — `= any('{}')` is false for every row, which is correct and
+    -- deliberately different from null (= no restriction).
+    and (p_event_ids is null or d.event_id = any (p_event_ids))
   group by dc.card_name
 $$;
 
 -- Let the browser (anon) and authenticated roles call the aggregation; RLS on the
 -- underlying tables still gates the rows it reads (SECURITY INVOKER).
 grant execute on function
-  public.top_cards(text, date, date, text, bigint[], bigint)
+  public.top_cards(text, date, date, text, bigint[], bigint, bigint[])
   to anon, authenticated;

@@ -399,4 +399,124 @@ describe('useMetagame', () => {
     // But the preceding decks fed the delta: 100% now vs 100% before → flat.
     expect(result.current.breakdown[0].shareDelta?.direction).toBe('flat')
   })
+
+  describe('event-size filter', () => {
+    /**
+     * Three events, one per size band plus one the source never sized. Each
+     * carries a different archetype so a band's effect is visible in the
+     * breakdown, not just in the counts.
+     */
+    function sizedCorpus() {
+      const archetype = (name: string, ci: string) => ({
+        name,
+        color_identity: ci,
+        art_image_url: null,
+        art_crop_url: null,
+      })
+      return [
+        deckRow({
+          source_deck_id: 'small',
+          archetypes: archetype('Small Deck', 'R'),
+          events: { id: 1, name: 'FNM', event_date: daysAgo(1), player_count: 20 },
+        }),
+        deckRow({
+          source_deck_id: 'large',
+          archetypes: archetype('Large Deck', 'U'),
+          events: { id: 2, name: 'RC', event_date: daysAgo(2), player_count: 128 },
+        }),
+        deckRow({
+          source_deck_id: 'none',
+          archetypes: archetype('Unsized Deck', 'G'),
+          events: { id: 3, name: 'League', event_date: daysAgo(3), player_count: null },
+        }),
+      ]
+    }
+
+    it('keeps every event when no size class is selected', async () => {
+      queryResult.data = sizedCorpus()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      // The unsized event is present by default — it is not hidden for lacking a size.
+      expect(result.current.totals.decks).toBe(3)
+      expect(result.current.events.map((e) => e.id).sort()).toEqual([1, 2, 3])
+    })
+
+    it('narrows the corpus to the selected size class and recomputes shares within it', async () => {
+      queryResult.data = sizedCorpus()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks', { sizeClass: 'small' }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.breakdown.map((a) => a.name)).toEqual(['Small Deck'])
+      // Share is recomputed within the retained decks, not over the full window.
+      expect(result.current.breakdown[0].sharePct).toBeCloseTo(100, 1)
+      expect(result.current.totals.decks).toBe(1)
+      expect(result.current.totals.events).toBe(1)
+    })
+
+    it('matches an unsized event only under the unsized class', async () => {
+      queryResult.data = sizedCorpus()
+      const { result: unsized } = renderHook(() =>
+        useMetagame('ST', '2weeks', { sizeClass: 'unsized' }),
+      )
+      await waitFor(() => expect(unsized.current.loading).toBe(false))
+      expect(unsized.current.breakdown.map((a) => a.name)).toEqual(['Unsized Deck'])
+
+      // And it is emphatically not folded into Small, the way sizeWeight() treats null.
+      const { result: small } = renderHook(() => useMetagame('ST', '2weeks', { sizeClass: 'small' }))
+      await waitFor(() => expect(small.current.loading).toBe(false))
+      expect(small.current.breakdown.map((a) => a.name)).not.toContain('Unsized Deck')
+    })
+
+    it('narrows the event options so an unreachable event is never offered', async () => {
+      queryResult.data = sizedCorpus()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks', { sizeClass: 'large' }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.events.map((e) => e.id)).toEqual([2])
+    })
+
+    it('yields an empty result for a size class no event falls into', async () => {
+      queryResult.data = sizedCorpus()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks', { sizeClass: 'massive' }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.breakdown).toEqual([])
+      expect(result.current.events).toEqual([])
+      expect(result.current.totals.decks).toBe(0)
+    })
+
+    it('leaves tier assignment unchanged when a size class is selected', async () => {
+      queryResult.data = sizedCorpus()
+      const { result: all } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(all.current.loading).toBe(false))
+      const unfilteredTier = all.current.breakdown.find((a) => a.name === 'Large Deck')?.tier
+
+      const { result: filtered } = renderHook(() =>
+        useMetagame('ST', '2weeks', { sizeClass: 'large' }),
+      )
+      await waitFor(() => expect(filtered.current.loading).toBe(false))
+
+      // Tiers stay anchored to the whole 2-week field, so narrowing by size does
+      // not re-tier the archetypes that survive the filter.
+      expect(filtered.current.breakdown[0].tier).toBe(unfilteredTier)
+    })
+
+    it('combines the size and event filters', async () => {
+      queryResult.data = sizedCorpus()
+      const { result } = renderHook(() =>
+        useMetagame('ST', '2weeks', { sizeClass: 'large', eventId: 2 }),
+      )
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.breakdown.map((a) => a.name)).toEqual(['Large Deck'])
+
+      // An event outside the size class yields nothing, rather than the size
+      // filter being quietly dropped.
+      const { result: contradictory } = renderHook(() =>
+        useMetagame('ST', '2weeks', { sizeClass: 'large', eventId: 1 }),
+      )
+      await waitFor(() => expect(contradictory.current.loading).toBe(false))
+      expect(contradictory.current.breakdown).toEqual([])
+    })
+  })
 })
