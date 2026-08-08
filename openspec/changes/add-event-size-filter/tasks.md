@@ -36,4 +36,4 @@
 - [x] 7.1 Widen the gap between the two selects in the Event group to `--sp-3` (confirmed on the preview).
 - [x] 7.2 Uncap the grid when a size class is active, matching the Event filter's uncapped behavior.
 - [x] 7.3 Name the active size class in the grid caption with the short labels (Small / Mid / Large / Massive / Unknown), composing with the archetype, tier, and event captions the way the event name already does. Add the ES/EN entries; these are shorter than the sidebar control's own labels.
-- [ ] 7.4 Confirm the three follow-ups on the refreshed preview.
+- [x] 7.4 Confirm the three follow-ups on the refreshed preview.
