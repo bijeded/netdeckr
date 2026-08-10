@@ -28,6 +28,12 @@ export interface FilterModalRow<T> {
 interface FilterModalProps<T> {
   /** Localized dialog title, also its accessible name. */
   title: string
+  /**
+   * Optional localized sentence under the title, saying what the list is and how
+   * to act on it. Presentational only — the dialog's accessible name stays the
+   * title, and a list that needs no explanation simply omits it.
+   */
+  description?: string
   rows: FilterModalRow<T>[]
   /** The active filter value; null matches the "All …" row. */
   value: T | null
@@ -46,6 +52,7 @@ interface FilterModalProps<T> {
  */
 export function FilterModal<T extends string | number>({
   title,
+  description,
   rows,
   value,
   onSelect,
@@ -118,23 +125,36 @@ export function FilterModal<T extends string | number>({
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             gap: 'var(--sp-3)',
             padding: '16px 22px',
             borderBottom: '1px solid var(--border-soft)',
             background: 'linear-gradient(120deg, var(--neon-tint-16), transparent 70%)',
           }}
         >
-          <span
-            id={titleId}
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 'var(--fw-bold)',
-              fontSize: 'var(--fs-lg)',
-              letterSpacing: 'var(--track-tight)',
-            }}
-          >
-            {title}
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-1)', minWidth: 0 }}>
+            <span
+              id={titleId}
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 'var(--fw-bold)',
+                fontSize: 'var(--fs-lg)',
+                letterSpacing: 'var(--track-tight)',
+              }}
+            >
+              {title}
+            </span>
+            {description && (
+              <span
+                style={{
+                  fontSize: 'var(--fs-xs)',
+                  lineHeight: 1.5,
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                {description}
+              </span>
+            )}
           </span>
           <button
             ref={closeRef}

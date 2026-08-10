@@ -329,17 +329,14 @@ function App() {
       meta: `${archetype.sharePct.toFixed(1)}%`,
     })),
   ]
-  // The only rows that account for themselves in two units: a tier's decks are
-  // its share of the Decks card that opened this modal, while its archetype
-  // count is what picking it actually puts on the grid (one card per archetype,
-  // not per deck). Each unit takes its own column so the figures line up.
+  // A tier row is figured in archetypes, not decks: picking it puts one card per
+  // archetype on the grid, so that is the count that describes the choice.
   const tierRows: FilterModalRow<Tier>[] = [
     {
       key: 'all',
       value: null,
       content: t('filters.allTiers'),
-      metaSecondary: archetypes(breakdown.length),
-      meta: decks(totals.decks),
+      meta: archetypes(breakdown.length),
     },
     ...TIER_ORDER.map((each) => {
       const inTier = breakdown.filter((a) => a.tier === each)
@@ -354,8 +351,7 @@ function App() {
             {each !== 'Otros' && <span>{t('filters.tierLabel', { n: Number(each.slice(1)) })}</span>}
           </>
         ),
-        metaSecondary: archetypes(inTier.length),
-        meta: decks(inTier.reduce((n, a) => n + (fullDecksByArchetype[a.name]?.length ?? 0), 0)),
+        meta: archetypes(inTier.length),
       }
     }),
   ]
@@ -716,6 +712,7 @@ function App() {
       {openFilter === 'event' && (
         <FilterModal
           title={t('filters.event')}
+          description={t('filters.eventHelp')}
           rows={eventRows}
           value={eventId}
           onSelect={(next) => {
@@ -728,6 +725,7 @@ function App() {
       {openFilter === 'archetype' && (
         <FilterModal
           title={t('filters.archetype')}
+          description={t('filters.archetypeHelp')}
           rows={archetypeRows}
           value={archetypeName}
           onSelect={(next) => {
@@ -740,6 +738,7 @@ function App() {
       {openFilter === 'tier' && (
         <FilterModal
           title={t('filters.tiers')}
+          description={t('filters.tierHelp')}
           rows={tierRows}
           value={tier}
           onSelect={(next) => {

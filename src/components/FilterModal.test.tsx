@@ -26,6 +26,17 @@ describe('FilterModal', () => {
     expect(screen.getByRole('dialog', { name: 'Tiers' })).toHaveAttribute('aria-modal', 'true')
   })
 
+  it('renders the description under the title, leaving the dialog named by the title alone', () => {
+    renderModal({ description: 'What this list is.' })
+    const dialog = screen.getByRole('dialog', { name: 'Tiers' })
+    expect(within(dialog).getByText('What this list is.')).toBeInTheDocument()
+  })
+
+  it('renders no description when none is given', () => {
+    renderModal()
+    expect(screen.queryByText('What this list is.')).toBeNull()
+  })
+
   it('renders one row per option with its content and meta figure', () => {
     renderModal()
     const dialog = screen.getByRole('dialog', { name: 'Tiers' })
