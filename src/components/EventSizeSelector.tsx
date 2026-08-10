@@ -33,7 +33,7 @@ export function EventSizeSelector({ value, onChange }: EventSizeSelectorProps) {
       aria-label={t('filters.eventSize')}
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value === '' ? null : (e.target.value as EventSizeClass))}
-      style={{ ...selectBase, marginBottom: 'var(--sp-3)' }}
+      style={{ ...selectBase, marginBottom: 'var(--sp-2)' }}
     >
       <option value="">{t('filters.allEventSizes')}</option>
       {EVENT_SIZE_CLASSES.map((sizeClass) => (
