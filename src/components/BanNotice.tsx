@@ -52,18 +52,21 @@ export function BanNotice({ formatCode, bannedCards, hiddenDecks }: BanNoticePro
     (max, card) => (card.firstSeenAt! > max ? card.firstSeenAt! : max),
     '',
   )
-  const [dismissed, setDismissed] = useState(() =>
-    latest === '' ? false : readDismissed(dismissalKey(formatCode, latest)),
-  )
+  // The component instance survives a format switch and a newly-detected ban, so
+  // dismissal is tracked BY KEY rather than as a bare boolean — otherwise
+  // dismissing one format's notice would also hide the next format's.
+  const key = latest === '' ? '' : dismissalKey(formatCode, latest)
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => new Set())
+  const dismissed = key !== '' && (dismissedKeys.has(key) || readDismissed(key))
 
   // Expiry first: outside the window there is nothing to show, dismissed or not.
   if (recent.length === 0) return null
   if (dismissed) return null
 
   const dismiss = () => {
-    setDismissed(true)
+    setDismissedKeys((prev) => new Set(prev).add(key))
     try {
-      window.sessionStorage.setItem(dismissalKey(formatCode, latest), '1')
+      window.sessionStorage.setItem(key, '1')
     } catch {
       // Storage unavailable — the notice still hides for this render.
     }
