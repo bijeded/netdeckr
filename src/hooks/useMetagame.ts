@@ -262,6 +262,9 @@ export function useMetagame(
         if (illegalDeckIds.size > 0) {
           for (const row of allRows) {
             if (!illegalDeckIds.has(row.id)) continue
+            // Same archetype guard the display loop applies below: a deck with no
+            // archetype would never have been shown, so hiding it hides nothing.
+            if (!row.archetypes?.name) continue
             const eventDate = row.events?.event_date ?? ''
             if (eventDate < selectedStart) continue
             if (eventId !== null && row.events?.id !== eventId) continue
