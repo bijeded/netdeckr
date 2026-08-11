@@ -106,7 +106,9 @@ Because the count follows the displayed corpus, it recomputes with the time fram
 
 Both bounds are hard, so a dismissal can never resurrect an expired notice: expiry is evaluated first.
 
-*Visual treatment — pending preview confirmation.* The notice sits between the StatCard strip and the archetype grid. It should read as informational rather than as an error; the semantic down colour (`--ff5470`) is the wrong register for what is neutral news. The exact surface, border and accent are to be settled on the Vercel preview and recorded here once confirmed, not guessed now.
+*Visual treatment — confirmed in production 2026-08-11.* The notice sits between the StatCard strip and the archetype grid. It reads as informational rather than as an error: the semantic down colour (`--down`) is the wrong register for what is neutral news, so it uses the amber **flat** semantic instead — `--flat-tint` surface, `--flat-border` hairline, `--flat-on-dark` heading over body text in `--text-muted`, `--r-2xl` corners. Confirmed against the real Standard ban (Badgermole Cub / Gran-Gran / Stormchaser's Talent), not a preview fixture — the notice's first render was on production data.
+
+*Note on the confirmation's limits.* It was confirmed at one viewport with three card names. A ban naming many more cards would make the card list the longest line in the notice, and that wrapping behaviour has not been seen.
 
 ## Risks / Trade-offs
 
@@ -114,7 +116,11 @@ Both bounds are hard, so a dismissal can never resurrect an expired notice: expi
 
 - **The corpus empties out.** A wide Standard ban could remove most of a format's 28-day corpus, leaving a nearly blank grid and thin, unstable tiers computed over a handful of decks — Jenks breaks over a tiny reference field are noisy. → The existing empty-state and the notice together explain the sparseness. Worth watching on the preview after the first real ban; if tiers visibly thrash, a minimum-corpus guard is a follow-up change, not part of this one.
 
+  **Observed 2026-08-11, first real ban:** the exclusion removed **350 of 581** Standard decks — 60% of the corpus, so the tier reference field fell to ~231 decks in a single day. The grid was judged to read fine at that size, so no guard was added. This is the largest thinning seen so far and it is a data point, not a bound: a wider ban, or the same ban against a thinner format, could go further. If a future ban leaves a format visibly thrashing, the minimum-corpus guard is still the follow-up.
+
 - **`not exists` subquery slows `top_cards`.** It runs per deck in the queried range. → `deck_cards_deck_idx` already exists, and `banned_cards` is tiny (tens of rows per format). Expected negligible; confirm on the largest format (Modern or Pauper over 2 weeks) rather than assuming.
+
+  **Measured 2026-08-11**, 2-week window, best of 3, wall clock from a dev machine (so inclusive of network round-trip, not pure DB time): ST main 517 ms / side 440 ms; MO main 1102 ms / side 837 ms; PAU main 913 ms / side 630 ms. No alarming cost. **This is not a regression measurement** — the control was an empty banlist, and the seeding run populated all five formats at once, so no before/after delta was ever captured and cannot now be reconstructed. Absolute numbers only.
 
 - **The extra round trip in `useMetagame`.** → Issued in parallel with the corpus fetch, and returns zero rows in the steady state. It does add a failure mode: if the banlist call fails while the corpus succeeds, the honest fallback is to render the unfiltered corpus rather than block the dashboard — a stale metagame beats no metagame. Worth an explicit decision in implementation rather than an accidental one.
 
@@ -132,4 +138,4 @@ Rollback: truncate `banned_cards`. Every consumer degrades to its pre-change beh
 
 ## Open Questions
 
-- The exact copy of the notice in ES/EN, and its visual treatment, are to be settled against the Vercel preview and recorded in Decision 8. They do not change the specs, the approach, or the task breakdown.
+- ~~The exact copy of the notice in ES/EN, and its visual treatment, are to be settled against the Vercel preview and recorded in Decision 8.~~ **Settled 2026-08-11** — confirmed on production against the real Standard ban; values recorded in Decision 8.

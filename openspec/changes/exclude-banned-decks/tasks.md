@@ -36,6 +36,6 @@
 ## 6. Verification
 
 - [x] 6.1 Run the full suite — `npm run lint`, `npm run type-check`, `npm run test`, and `cd scraper && pytest`.
-- [ ] 6.2 Check `top_cards` timing on the largest format (Modern or Pauper, 2-week window) with a non-empty banlist, against the same query with an empty one (design.md, Risks).
-- [ ] 6.3 Confirm on the Vercel preview: the notice's visual treatment and copy, the grid with a real exclusion applied, and that the notice does not read as an error state. Record the settled visual values in design.md Decision 8, replacing the pending note.
-- [ ] 6.4 This is a user-visible change — open the PR and wait for confirmation on the preview before merging (CLAUDE.md, exception 1).
+- [x] 6.2 Check `top_cards` timing on the largest format (Modern or Pauper, 2-week window) with a non-empty banlist, against the same query with an empty one (design.md, Risks).
+- [x] 6.3 Confirm on the Vercel preview: the notice's visual treatment and copy, the grid with a real exclusion applied, and that the notice does not read as an error state. Record the settled visual values in design.md Decision 8, replacing the pending note.
+- [x] 6.4 This is a user-visible change — open the PR and wait for confirmation on the preview before merging (CLAUDE.md, exception 1).
