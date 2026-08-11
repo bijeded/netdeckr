@@ -15,6 +15,7 @@ import { EventSelector } from './components/EventSelector'
 import { ArchetypeSelector } from './components/ArchetypeSelector'
 import { ClearFiltersButton } from './components/ClearFiltersButton'
 import { StatCard } from './components/StatCard'
+import { BanNotice } from './components/BanNotice'
 import { ArchetypeCard } from './components/ArchetypeCard'
 import { DeckCard } from './components/DeckCard'
 import { DecklistModal } from './components/DecklistModal'
@@ -70,6 +71,7 @@ function App() {
     fullDecksByArchetype = {},
     events = [],
     totals = { events: 0, archetypes: 0, decks: 0 },
+    banState = { bannedCards: [], hiddenDecks: 0 },
     loading,
     error,
   } = useMetagame(format, metaWindow, { eventId, sizeClass })
@@ -572,6 +574,16 @@ function App() {
 
             {/* Main */}
             <div style={{ marginTop: 'var(--sp-6)' }}>
+              {/* Above the grid, below the stat strip: it explains the numbers,
+                  so it has to be read before them. Renders nothing unless this
+                  format has a ban detected in the last few days. Shown even while
+                  the grid is empty — an empty grid after a ban is exactly the
+                  case that most needs explaining. */}
+              <BanNotice
+                formatCode={format}
+                bannedCards={banState.bannedCards}
+                hiddenDecks={banState.hiddenDecks}
+              />
               {loading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
                   <Spinner label={t('dashboard.loading')} />

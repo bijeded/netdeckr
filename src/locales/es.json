@@ -59,6 +59,15 @@
     "eventSize_one": "{{count}} jugador",
     "eventSize_other": "{{count}} jugadores"
   },
+  "banNotice": {
+    "title": "Anuncio de baneos — {{format}}",
+    "cards": "Ya no son legales: {{cards}}.",
+    "hidden_one": "Se oculta {{count}} mazo de esta vista.",
+    "hidden_other": "Se ocultan {{count}} mazos de esta vista.",
+    "hiddenNone": "Ningún mazo de esta vista se ve afectado.",
+    "effect": "Los tiers y los porcentajes de abajo se calculan sin ellos.",
+    "dismiss": "Cerrar"
+  },
   "tiers": {
     "rogue": "Otros"
   },

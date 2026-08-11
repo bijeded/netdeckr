@@ -32,6 +32,23 @@ import requests
 _EXCLUDED_SET_TYPES = frozenset({"funny", "memorabilia", "token", "alchemy"})
 BULK_META_URL = "https://api.scryfall.com/bulk-data"
 
+# DB format code -> the key that format uses in a bulk row's `legalities` map.
+# The single place the two vocabularies meet, so they cannot drift apart across
+# modules. (mtgtop8.FORMATS happens to hold the same five slugs, but those are
+# MTGTop8's own labels and are not this mapping — a coincidence, not a contract.)
+SCRYFALL_LEGALITY_KEY = {
+    "ST": "standard",
+    "PI": "pioneer",
+    "MO": "modern",
+    "PAU": "pauper",
+    "PREM": "premodern",
+}
+
+# The only legality status that is a ban. `restricted` is not a ban, and
+# `not_legal` means the card was never legal in the format at all — treating
+# either as a ban would discard decks over something that is not a ban.
+_BANNED_STATUS = "banned"
+
 
 @dataclass(frozen=True)
 class Printing:
@@ -186,11 +203,43 @@ def _name_keys(row: dict):
             yield _normalize(face["name"])
 
 
-class CardIndex:
-    """A ``name -> Printing`` lookup built from Scryfall bulk rows."""
+def _banned_formats(row: dict) -> Iterator[str]:
+    """Yield the DB format codes this row's card is BANNED in.
 
-    def __init__(self, by_name: dict[str, Printing]):
+    Legality is a property of the card, not of the printing, and every printing of
+    a card carries the same map — so any row will do and duplicates across a card's
+    printings collapse in the caller's set.
+
+    A row with no `legalities` map, or with a format key missing from it, yields
+    nothing for that format: a missing field can only under-report a ban, never
+    invent one. That is the safe direction — an unreported ban leaves a dead deck
+    counted for a day, while an invented one would delete a legal deck.
+    """
+    legalities = row.get("legalities") or {}
+    for code, key in SCRYFALL_LEGALITY_KEY.items():
+        if legalities.get(key) == _BANNED_STATUS:
+            yield code
+
+
+class CardIndex:
+    """A ``name -> Printing`` lookup built from Scryfall bulk rows.
+
+    Also carries, per supported format, the set of canonical card names banned in
+    it — read from the same rows in the same pass, so the banlist costs no extra
+    download and no per-card REST request.
+    """
+
+    def __init__(self, by_name: dict[str, Printing], banned_by_format: dict[str, set[str]] | None = None):
         self._by_name = by_name
+        self._banned_by_format = banned_by_format or {code: set() for code in SCRYFALL_LEGALITY_KEY}
+
+    def banned_cards(self, fmt: str) -> set[str]:
+        """Canonical Scryfall names banned in a DB format code (empty when none).
+
+        These are matched against `deck_cards.scryfall_name`, so they are the full
+        canonical names — never a face name or a scraped spelling.
+        """
+        return self._banned_by_format.get(fmt, set())
 
     @classmethod
     def from_bulk_rows(cls, rows) -> "CardIndex":
@@ -199,7 +248,16 @@ class CardIndex:
         # then the most recent, with set code as a stable tiebreak so selection
         # is deterministic regardless of bulk-file ordering.
         best: dict[str, dict] = {}
+        banned_by_format: dict[str, set[str]] = {code: set() for code in SCRYFALL_LEGALITY_KEY}
         for row in rows:
+            # Banned status is collected BEFORE the printing filter: legality is a
+            # property of the card, so a card whose only paper non-foil printing is
+            # rejected here (a reversible_card, say) must still be recognised as
+            # banned. `reversible_card` rows are skipped because Scryfall names them
+            # "<name> // <name>", which is not a name any deck card resolves to.
+            if row.get("layout") != "reversible_card":
+                for code in _banned_formats(row):
+                    banned_by_format[code].add(row["name"])
             if not _is_paper_nonfoil(row):
                 continue
             name = row["name"]
@@ -223,7 +281,7 @@ class CardIndex:
             )
             for key in _name_keys(row):
                 by_name.setdefault(key, printing)
-        return cls(by_name)
+        return cls(by_name, banned_by_format)
 
     def __len__(self) -> int:
         return len(self._by_name)

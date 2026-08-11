@@ -13,6 +13,7 @@ import {
 import { shareDeltas, type DeckForShareDelta } from '../lib/shareDelta'
 import { sizeClassOf, type EventSizeClass } from '../lib/eventSize'
 import { isUnrankedEvent } from '../lib/powerScore'
+import { EMPTY_BANLIST, type Banlist, type BannedCard } from '../lib/banlist'
 
 /** The 2-week window anchors the stable tier baseline; the selected window is a date subset of it. */
 const BASELINE_WINDOW: WindowCode = '2weeks'
@@ -77,6 +78,21 @@ export interface MetagameTotals {
 
 const EMPTY_TOTALS: MetagameTotals = { events: 0, archetypes: 0, decks: 0 }
 
+/** What the ban notice needs from a corpus load. */
+export interface BanState {
+  /** The format's banned cards, for the notice's recency test and card names. */
+  bannedCards: BannedCard[]
+  /**
+   * How many decks the legality filter removed **from the currently displayed
+   * corpus** — so it follows the selected window and the active filters, and is
+   * the number the notice reports. Zero when nothing was hidden, including when
+   * the banlist fetch failed.
+   */
+  hiddenDecks: number
+}
+
+const EMPTY_BAN_STATE: BanState = { bannedCards: [], hiddenDecks: 0 }
+
 /**
  * PostgREST caps a response at 1000 rows by default, so the corpus of a large
  * format (Modern/Pauper run past that over 28 days) must be fetched page by page
@@ -114,6 +130,50 @@ async function fetchCorpusDecks(
   return { data: all, error: null }
 }
 
+interface BannedCardRow {
+  card_name: string
+  first_seen_at: string | null
+}
+
+interface IllegalDeckRow {
+  deck_id: number
+}
+
+/**
+ * Fetch a format's banned cards and the ids of its illegal decks from `startISO`
+ * onward (the same start date as the corpus fetch, so the id set covers exactly
+ * the decks that could be displayed).
+ *
+ * **Never rejects.** A banlist failure degrades to `EMPTY_BANLIST` — the corpus
+ * renders unfiltered — because a stale metagame beats no metagame: the exclusion
+ * is a correction to the dashboard, not a precondition for having one. The caller
+ * therefore cannot distinguish "no bans" from "the banlist call failed", which is
+ * deliberate: both mean "show everything, hide nothing, announce nothing".
+ */
+async function fetchBanlist(formatCode: FormatCode, startISO: string): Promise<Banlist> {
+  try {
+    const [cards, decks] = await Promise.all([
+      supabase
+        .from('banned_cards')
+        .select('card_name, first_seen_at')
+        .eq('format_code', formatCode),
+      supabase.rpc('illegal_deck_ids', { p_format: formatCode, p_start: startISO }),
+    ])
+    if (cards.error || decks.error) return EMPTY_BANLIST
+    return {
+      bannedCards: ((cards.data as BannedCardRow[] | null) ?? []).map((row) => ({
+        cardName: row.card_name,
+        firstSeenAt: row.first_seen_at,
+      })),
+      illegalDeckIds: new Set(
+        ((decks.data as IllegalDeckRow[] | null) ?? []).map((row) => row.deck_id),
+      ),
+    }
+  } catch {
+    return EMPTY_BANLIST
+  }
+}
+
 /**
  * The metagame for a format, derived from one fetch of a **28-day** corpus (two
  * 2-week windows). The 2-week tier baseline and the selected window are date
@@ -148,6 +208,7 @@ export function useMetagame(
   const [fullDecksByArchetype, setFullDecksByArchetype] = useState<DecksByArchetype>({})
   const [events, setEvents] = useState<EventOption[]>([])
   const [totals, setTotals] = useState<MetagameTotals>(EMPTY_TOTALS)
+  const [banState, setBanState] = useState<BanState>(EMPTY_BAN_STATE)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
 
@@ -155,8 +216,11 @@ export function useMetagame(
     let active = true
     setLoading(true)
 
-    fetchCorpusDecks(formatCode)
-      .then(({ data: rows, error: queryError }) => {
+    // The banlist is fetched in parallel with the corpus and over the same start
+    // date. `fetchBanlist` never rejects: a banlist failure degrades to no bans,
+    // so the dashboard renders an unfiltered (stale) corpus rather than nothing.
+    Promise.all([fetchCorpusDecks(formatCode), fetchBanlist(formatCode, corpusFetchStartISO())])
+      .then(([{ data: rows, error: queryError }, banlist]) => {
         if (!active) return
         if (queryError) {
           setError(queryError)
@@ -165,6 +229,7 @@ export function useMetagame(
           setFullDecksByArchetype({})
           setEvents([])
           setTotals(EMPTY_TOTALS)
+          setBanState(EMPTY_BAN_STATE)
           setLoading(false)
           return
         }
@@ -175,6 +240,37 @@ export function useMetagame(
         // days feed only the preceding slice of the week-over-week share delta.
         const twoWeekStart = windowStartISO(BASELINE_WINDOW)
         const selectedStart = windowStartISO(metaWindow)
+
+        // Legality is applied HERE, at the boundary, and nowhere else. Because
+        // every figure below is a function of this one array — shares, Power
+        // Scores, the Jenks reference field, the T1 deck floor, trends, share
+        // deltas, totals, event options — removing the illegal decks once cleans
+        // all of them, and metagame.ts / powerScore.ts / shareDelta.ts stay pure
+        // and unaware that anything was filtered out. Do not push legality
+        // downstream.
+        const allRows = (rows as unknown as DeckQueryRow[] | null) ?? []
+        const { illegalDeckIds } = banlist
+        const legalRows =
+          illegalDeckIds.size === 0 ? allRows : allRows.filter((row) => !illegalDeckIds.has(row.id))
+
+        // The notice reports what was hidden **from the view being shown**, so the
+        // removed decks are counted against the same window/event/size predicates
+        // the display corpus uses. Counted in a separate pass over the excluded
+        // rows rather than inside the main loop, so the loop below only ever sees
+        // legal decks.
+        let hiddenDecks = 0
+        if (illegalDeckIds.size > 0) {
+          for (const row of allRows) {
+            if (!illegalDeckIds.has(row.id)) continue
+            const eventDate = row.events?.event_date ?? ''
+            if (eventDate < selectedStart) continue
+            if (eventId !== null && row.events?.id !== eventId) continue
+            if (sizeClass !== null && sizeClassOf(row.events?.player_count ?? null) !== sizeClass) {
+              continue
+            }
+            hiddenDecks += 1
+          }
+        }
 
         // Distinct events present in the window corpus (before the event filter),
         // for the Event filter options — first occurrence wins, query is date-desc.
@@ -206,7 +302,7 @@ export function useMetagame(
         // slices it into the selected window and the preceding equal-length window.
         const deltaCorpus: DeckForShareDelta[] = []
 
-        for (const row of (rows as unknown as DeckQueryRow[] | null) ?? []) {
+        for (const row of legalRows) {
           const archetypeName = row.archetypes?.name ?? ''
           if (!archetypeName) continue
           const colorIdentity = row.archetypes?.color_identity ?? ''
@@ -350,6 +446,7 @@ export function useMetagame(
         setFullDecksByArchetype(full)
         setEvents(eventOptions)
         setTotals(totals)
+        setBanState({ bannedCards: banlist.bannedCards, hiddenDecks })
         setLoading(false)
       })
 
@@ -358,5 +455,14 @@ export function useMetagame(
     }
   }, [formatCode, metaWindow, eventId, sizeClass])
 
-  return { breakdown, decksByArchetype, fullDecksByArchetype, events, totals, loading, error }
+  return {
+    breakdown,
+    decksByArchetype,
+    fullDecksByArchetype,
+    events,
+    totals,
+    banState,
+    loading,
+    error,
+  }
 }
