@@ -6,8 +6,13 @@ import { corpusFetchStartISO } from '../lib/windows'
 // decks -> select -> eq(format) -> gte(date) -> order(date desc) -> order(id)
 //   -> range(from, to) => a page of rows (a slice of queryResult.data), so the
 // hook's pagination loop is exercised.
-const { from, eq, gte, range, queryResult } = vi.hoisted(() => {
+// `banned_cards` reads and the `illegal_deck_ids` RPC are mocked alongside, so
+// the legality filter can be driven from a test. Both default to "no bans", which
+// is what every pre-existing test expects.
+const { from, rpc, eq, gte, range, queryResult, bannedResult, illegalResult } = vi.hoisted(() => {
   const queryResult = { data: null as unknown, error: null as unknown }
+  const bannedResult = { data: [] as unknown, error: null as unknown }
+  const illegalResult = { data: [] as unknown, error: null as unknown }
   const range = vi.fn((f: number, t: number) =>
     Promise.resolve(
       queryResult.error
@@ -21,11 +26,15 @@ const { from, eq, gte, range, queryResult } = vi.hoisted(() => {
   const gte = vi.fn((..._args: unknown[]) => ({ order }))
   const eq = vi.fn(() => ({ gte }))
   const select = vi.fn(() => ({ eq }))
-  const from = vi.fn(() => ({ select }))
-  return { from, eq, gte, range, queryResult }
+  const bannedSelect = vi.fn(() => ({ eq: vi.fn(() => Promise.resolve(bannedResult)) }))
+  const from = vi.fn((table: string) =>
+    table === 'banned_cards' ? { select: bannedSelect } : { select },
+  )
+  const rpc = vi.fn(() => Promise.resolve(illegalResult))
+  return { from, rpc, eq, gte, range, queryResult, bannedResult, illegalResult }
 })
 
-vi.mock('../lib/supabase', () => ({ supabase: { from } }))
+vi.mock('../lib/supabase', () => ({ supabase: { from, rpc } }))
 
 import { useMetagame } from './useMetagame'
 
@@ -51,6 +60,10 @@ describe('useMetagame', () => {
     vi.clearAllMocks()
     queryResult.data = null
     queryResult.error = null
+    bannedResult.data = []
+    bannedResult.error = null
+    illegalResult.data = []
+    illegalResult.error = null
   })
 
   it('fetches the 2-week corpus and derives the breakdown, tiers, and display decks', async () => {
@@ -582,6 +595,153 @@ describe('useMetagame', () => {
       expect(ladder.sharePct).toBeGreaterThan(0)
       expect(result.current.totals.decks).toBe(17)
       expect(result.current.totals.events).toBe(2)
+    })
+  })
+
+  describe('banned-card exclusion', () => {
+    /** Three Izzet decks and one Mono Red, all inside the window. */
+    function corpus() {
+      return [
+        deckRow({ id: 1, source_deck_id: 'a', placement: '1' }),
+        deckRow({ id: 2, source_deck_id: 'b', placement: '2' }),
+        deckRow({ id: 3, source_deck_id: 'c', placement: '3-4' }),
+        deckRow({
+          id: 4,
+          source_deck_id: 'd',
+          placement: '1',
+          archetypes: { name: 'Mono Red', color_identity: 'R', art_image_url: null, art_crop_url: null },
+        }),
+      ]
+    }
+
+    it('queries the banlist and illegal decks for the format over the corpus range', async () => {
+      queryResult.data = corpus()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(from).toHaveBeenCalledWith('banned_cards')
+      expect(rpc).toHaveBeenCalledWith('illegal_deck_ids', {
+        p_format: 'ST',
+        p_start: corpusFetchStartISO(),
+      })
+    })
+
+    it('removes illegal decks from the breakdown, shares and totals', async () => {
+      queryResult.data = corpus()
+      // Two of the three Izzet decks are illegal.
+      illegalResult.data = [{ deck_id: 1 }, { deck_id: 2 }]
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.totals.decks).toBe(2)
+      // The denominator is the legal field: 1 Izzet + 1 Mono Red = 50% each.
+      const shares = Object.fromEntries(result.current.breakdown.map((a) => [a.name, a.sharePct]))
+      expect(shares['Izzet Lesson']).toBeCloseTo(50, 5)
+      expect(shares['Mono Red']).toBeCloseTo(50, 5)
+      // And the excluded decks are gone from the drill-down, not merely unlabelled.
+      expect(result.current.decksByArchetype['Izzet Lesson']).toHaveLength(1)
+      expect(result.current.decksByArchetype['Izzet Lesson'][0].sourceDeckId).toBe('c')
+    })
+
+    it('drops an archetype whose every deck is illegal', async () => {
+      queryResult.data = corpus()
+      illegalResult.data = [{ deck_id: 1 }, { deck_id: 2 }, { deck_id: 3 }]
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.breakdown.map((a) => a.name)).toEqual(['Mono Red'])
+      expect(result.current.decksByArchetype['Izzet Lesson']).toBeUndefined()
+      expect(result.current.fullDecksByArchetype['Izzet Lesson']).toBeUndefined()
+      expect(result.current.totals.archetypes).toBe(1)
+    })
+
+    it('keeps a surviving archetype, scored only on its legal finishes', async () => {
+      // The illegal deck is the 1st-place finish; only the 3-4 finish survives, so
+      // the archetype must not keep the Power Score credit from the win.
+      queryResult.data = corpus()
+      illegalResult.data = [{ deck_id: 1 }, { deck_id: 2 }]
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const izzet = result.current.breakdown.find((a) => a.name === 'Izzet Lesson')!
+      expect(izzet).toBeDefined()
+      // `wins` counts first places in the displayed corpus — the win was excluded.
+      expect(izzet.wins).toBe(0)
+    })
+
+    it('excludes illegal decks from the event filter options', async () => {
+      queryResult.data = [
+        deckRow({ id: 1, source_deck_id: 'a', events: { id: 10, name: 'Dead Event', event_date: daysAgo(1) } }),
+        deckRow({ id: 2, source_deck_id: 'b', events: { id: 11, name: 'Live Event', event_date: daysAgo(1) } }),
+      ]
+      illegalResult.data = [{ deck_id: 1 }]
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.events.map((e) => e.name)).toEqual(['Live Event'])
+    })
+
+    it('reports the banned cards and how many decks were hidden', async () => {
+      queryResult.data = corpus()
+      illegalResult.data = [{ deck_id: 1 }, { deck_id: 2 }]
+      bannedResult.data = [{ card_name: 'Banned Card', first_seen_at: daysAgo(1) }]
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.banState.hiddenDecks).toBe(2)
+      expect(result.current.banState.bannedCards).toEqual([
+        { cardName: 'Banned Card', firstSeenAt: daysAgo(1) },
+      ])
+    })
+
+    it('counts only the decks hidden from the window actually shown', async () => {
+      queryResult.data = [
+        deckRow({ id: 1, source_deck_id: 'a', events: { name: 'Recent', event_date: daysAgo(1) } }),
+        // Inside the 28-day fetch but outside the selected 7-day window.
+        deckRow({ id: 2, source_deck_id: 'b', events: { name: 'Older', event_date: daysAgo(10) } }),
+      ]
+      illegalResult.data = [{ deck_id: 1 }, { deck_id: 2 }]
+      const { result } = renderHook(() => useMetagame('ST', '7days'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      // Only the in-window deck was hidden from what the user is looking at.
+      expect(result.current.banState.hiddenDecks).toBe(1)
+    })
+
+    it('counts only the decks hidden from the filtered view', async () => {
+      queryResult.data = [
+        deckRow({ id: 1, source_deck_id: 'a', events: { id: 10, name: 'A', event_date: daysAgo(1) } }),
+        deckRow({ id: 2, source_deck_id: 'b', events: { id: 11, name: 'B', event_date: daysAgo(1) } }),
+      ]
+      illegalResult.data = [{ deck_id: 1 }, { deck_id: 2 }]
+      const { result } = renderHook(() => useMetagame('ST', '2weeks', { eventId: 10 }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.banState.hiddenDecks).toBe(1)
+    })
+
+    it('hides nothing and reports nothing when the format has no bans', async () => {
+      queryResult.data = corpus()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.totals.decks).toBe(4)
+      expect(result.current.banState).toEqual({ bannedCards: [], hiddenDecks: 0 })
+    })
+
+    it('renders the unfiltered corpus when the banlist call fails', async () => {
+      // A stale metagame beats no metagame: the exclusion is a correction to the
+      // dashboard, not a precondition for having one.
+      queryResult.data = corpus()
+      illegalResult.error = { message: 'rpc exploded' }
+      bannedResult.error = { message: 'select exploded' }
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.error).toBeNull()
+      expect(result.current.totals.decks).toBe(4)
+      expect(result.current.banState.hiddenDecks).toBe(0)
+      expect(result.current.banState.bannedCards).toEqual([])
     })
   })
 })

@@ -538,3 +538,82 @@ def test_malformed_line_names_the_file_and_line(tmp_path):
 
     with pytest.raises(ValueError, match="line 2"):
         load_bulk_index(str(path))
+
+
+# -- per-format banned status ----------------------------------------------
+# Built from a separate small fixture so the printing-selection sample stays
+# exactly as captured. No network: the index is built straight from the file.
+
+LEGALITIES_FIXTURE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "fixtures", "scryfall_legalities_sample.jsonl.gz"
+)
+
+
+def _legalities_index():
+    with gzip.open(LEGALITIES_FIXTURE, "rt", encoding="utf-8") as f:
+        return CardIndex.from_bulk_rows(json.loads(line) for line in f if line.strip())
+
+
+def test_banned_status_is_surfaced_per_format():
+    index = _legalities_index()
+    assert "Banned In Standard" in index.banned_cards("ST")
+    # Banned in Standard says nothing about the other formats.
+    assert "Banned In Standard" not in index.banned_cards("PI")
+    assert "Banned In Standard" not in index.banned_cards("MO")
+
+
+def test_banned_in_several_formats_appears_in_each():
+    index = _legalities_index()
+    assert "Banned In Two Formats" in index.banned_cards("ST")
+    assert "Banned In Two Formats" in index.banned_cards("MO")
+
+
+def test_pauper_and_premodern_bans_are_covered():
+    """The two formats with no Wizards of the Coast banlist page — the whole
+    reason Scryfall is the source rather than a scraped page."""
+    index = _legalities_index()
+    assert "Banned In Pauper" in index.banned_cards("PAU")
+    assert "Banned In Premodern" in index.banned_cards("PREM")
+
+
+def test_restricted_is_not_a_ban():
+    assert "Restricted Card" not in _legalities_index().banned_cards("ST")
+
+
+def test_not_legal_is_not_a_ban():
+    """A card that was never legal in the format cannot appear in a legal list
+    for it, so treating not_legal as a ban would discard decks over nothing."""
+    index = _legalities_index()
+    assert "Not Legal Card" not in index.banned_cards("PAU")
+    assert "Not Legal Card" not in index.banned_cards("PREM")
+
+
+def test_missing_legalities_map_is_not_a_ban():
+    """A missing field must under-report a ban, never invent one."""
+    index = _legalities_index()
+    for fmt in ("ST", "PI", "MO", "PAU", "PREM"):
+        assert "No Legalities Card" not in index.banned_cards(fmt)
+
+
+def test_reversible_printing_does_not_enter_the_banlist():
+    """Scryfall names these "<name> // <name>", which no deck card resolves to."""
+    assert "Reversible Card // Reversible Card" not in _legalities_index().banned_cards("MO")
+
+
+def test_repeated_printings_collapse_to_one_banned_name():
+    banned = [n for n in _legalities_index().banned_cards("ST") if n == "Banned In Standard"]
+    assert banned == ["Banned In Standard"]
+
+
+def test_format_with_no_bans_returns_an_empty_set():
+    assert _legalities_index().banned_cards("PI") == set()
+
+
+def test_unknown_format_code_returns_an_empty_set():
+    assert _legalities_index().banned_cards("NOPE") == set()
+
+
+def test_index_without_legalities_data_reports_no_bans():
+    """The printing-selection fixture carries no `legalities` at all."""
+    for fmt in ("ST", "PI", "MO", "PAU", "PREM"):
+        assert _index().banned_cards(fmt) == set()

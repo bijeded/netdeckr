@@ -97,6 +97,39 @@ create table if not exists public.deck_cards (
   constraint deck_cards_board_check check (board in ('main', 'side'))
 );
 
+-- ---------------------------------------------------------------------------
+-- Banned cards, per format (change exclude-banned-decks).
+-- Populated each pipeline run from the per-format `legalities` map on Scryfall's
+-- bulk card rows — there is no second upstream source and no banlist page is
+-- scraped. Only the `banned` status is stored: `restricted` and `not_legal` are
+-- not bans (a not_legal card cannot appear in a legal list for the format at
+-- all, so treating it as a ban would discard decks over a resolution artifact).
+--
+-- `card_name` holds the **canonical Scryfall name**, so it joins to
+-- `deck_cards.scryfall_name` as a plain equality with no normalization on either
+-- side. Matching the canonical name (not the raw scraped `card_name`) means an
+-- unresolved card can never be recognised as banned — a resolution gap
+-- under-filters (a dead deck survives a day longer) rather than over-filters (a
+-- legal deck disappears), which is the safe direction to fail in.
+--
+-- `first_seen_at` is the run date on which the pipeline FIRST observed this ban,
+-- and is the system's only proxy for an announcement date (Scryfall carries
+-- none). Null means "historical — never announce": the first population of a
+-- format's list writes null for every row, so shipping this does not fire a
+-- notice for every ban in the format's history. See supabase_writer.refresh_banlist.
+create table if not exists public.banned_cards (
+  id            bigint generated always as identity primary key,
+  format_code   text not null references public.formats(code) on delete cascade,
+  card_name     text not null,               -- canonical Scryfall name
+  first_seen_at date,                        -- null = pre-existing ban, never announced
+  unique (format_code, card_name)
+);
+
+-- The legality join runs per deck card (deck_cards.scryfall_name -> banned_cards),
+-- so index the lookup side by format.
+create index if not exists banned_cards_format_name_idx
+  on public.banned_cards (format_code, card_name);
+
 -- Common access paths: an event's decks, and an archetype's decks by recency.
 create index if not exists decks_event_idx on public.decks (event_id);
 create index if not exists decks_archetype_idx on public.decks (archetype_id);
@@ -193,12 +226,14 @@ alter table public.archetypes              enable row level security;
 alter table public.events                  enable row level security;
 alter table public.decks                   enable row level security;
 alter table public.deck_cards              enable row level security;
+alter table public.banned_cards            enable row level security;
 
 drop policy if exists formats_read                 on public.formats;
 drop policy if exists archetypes_read              on public.archetypes;
 drop policy if exists events_read                  on public.events;
 drop policy if exists decks_read                   on public.decks;
 drop policy if exists deck_cards_read              on public.deck_cards;
+drop policy if exists banned_cards_read            on public.banned_cards;
 
 create policy formats_read
   on public.formats for select to anon, authenticated using (true);
@@ -215,9 +250,15 @@ create policy decks_read
 create policy deck_cards_read
   on public.deck_cards for select to anon, authenticated using (true);
 
+-- The banlist is public data, and `top_cards` is SECURITY INVOKER — without this
+-- policy the caller's RLS would hide every banned_cards row from the exclusion
+-- subquery, silently disabling it for the browser.
+create policy banned_cards_read
+  on public.banned_cards for select to anon, authenticated using (true);
+
 -- Ensure the anon/authenticated roles have table-level SELECT (RLS still gates rows).
 grant select on public.formats, public.archetypes, public.events, public.decks,
-                public.deck_cards
+                public.deck_cards, public.banned_cards
   to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -251,6 +292,19 @@ grant select on public.formats, public.archetypes, public.events, public.decks,
 -- OUT columns in place. add-event-size-filter added `p_event_ids`, changing the
 -- argument list, so both the pre- and post-`category` signatures are dropped.
 --
+-- Legality (change exclude-banned-decks): decks that are no longer legal in the
+-- queried format are excluded outright, so that after a ban the tables describe
+-- the field a player may actually register. The exclusion is of the **whole
+-- deck**, not merely of the banned card's own rows: filtering just the banned
+-- card would still let a dead deck's other 59 cards vote in the rankings, which
+-- would give "illegal deck" a second meaning here that drifts from the one the
+-- archetype grid applies. The banned set is read at query time, so a banlist
+-- change takes effect immediately with no backfill over stored deck data.
+--
+-- This changed the function's BEHAVIOR but not its argument list or its return
+-- columns, so unlike the `category` and `p_event_ids` changes it needs no
+-- drop-and-recreate — the create-or-replace below suffices.
+--
 -- `p_event_id` (one event) and `p_event_ids` (a set) are independent narrowings
 -- that AND together. The set exists for the event-size filter: the bands are
 -- classified in TypeScript (src/lib/eventSize.ts) and only the resulting event
@@ -260,7 +314,7 @@ grant select on public.formats, public.archetypes, public.events, public.decks,
 drop function if exists public.top_cards(text, date, date, text, bigint[], bigint);
 drop function if exists public.top_cards(text, date, date, text, bigint[], bigint, bigint[]);
 
-create function public.top_cards(
+create or replace function public.top_cards(
   p_format         text,
   p_start          date,
   p_end            date,
@@ -301,6 +355,17 @@ as $$
     -- yield no rows — `= any('{}')` is false for every row, which is correct and
     -- deliberately different from null (= no restriction).
     and (p_event_ids is null or d.event_id = any (p_event_ids))
+    -- Whole-deck legality: drop every card of a deck holding a card banned in
+    -- this format, in either board. Matching `scryfall_name` (not the raw scraped
+    -- `card_name`) means an unresolved name can never make a deck illegal.
+    and not exists (
+      select 1
+      from public.deck_cards banned_line
+      join public.banned_cards b
+        on b.card_name = banned_line.scryfall_name
+       and b.format_code = p_format
+      where banned_line.deck_id = dc.deck_id
+    )
   group by dc.card_name
 $$;
 
@@ -309,3 +374,51 @@ $$;
 grant execute on function
   public.top_cards(text, date, date, text, bigint[], bigint, bigint[])
   to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Illegal decks in a format's corpus (change exclude-banned-decks).
+-- Returns the ids of decks from `p_start` onward that hold at least one card
+-- banned in `p_format`, in either board. The frontend fetches this alongside its
+-- deck corpus and removes these ids before deriving anything, so no illegal deck
+-- reaches a share, a Power Score, a tier cutoff, a trend, or a filter option.
+--
+-- Returning the id SET rather than pre-filtering the corpus query is deliberate:
+-- the ban notice must report how many decks were hidden, and a pre-filtered query
+-- cannot say what it removed. One call answers both.
+--
+-- Legality is resolved here at query time rather than stamped onto `decks` at
+-- scrape time, because a ban's whole value is immediacy: a stored flag would need
+-- a full re-scan of every deck at exactly the moment the answer matters most, and
+-- would be wrong for any deck scraped before the ban and never revisited.
+--
+-- Normally returns zero rows (no bans, or none reachable in the window), so the
+-- payload is proportional to a ban's actual impact.
+-- SECURITY INVOKER (the default) so the caller's RLS applies — anon keeps its
+-- read-only access and no write path is exposed.
+-- ---------------------------------------------------------------------------
+create or replace function public.illegal_deck_ids(
+  p_format text,
+  p_start  date
+)
+returns table (deck_id bigint)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select d.id
+  from public.decks d
+  join public.events e on e.id = d.event_id
+  where e.format_code = p_format
+    and e.event_date >= p_start
+    and exists (
+      select 1
+      from public.deck_cards dc
+      join public.banned_cards b
+        on b.card_name = dc.scryfall_name
+       and b.format_code = p_format
+      where dc.deck_id = d.id
+    )
+$$;
+
+grant execute on function public.illegal_deck_ids(text, date) to anon, authenticated;

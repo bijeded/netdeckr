@@ -234,3 +234,57 @@ def test_scrape_proceeds_when_resolver_available(monkeypatch):
 
     assert rc == 0
     assert run.SupabaseWriter.call_args.kwargs.get("card_resolver") is resolver
+
+
+# -- banlist pass ----------------------------------------------------------
+
+class _FakeResolver:
+    """A card resolver that also reports per-format bans, like the real CardIndex."""
+
+    def __init__(self, banned=None):
+        self._banned = banned or {}
+
+    def banned_cards(self, fmt):
+        return self._banned.get(fmt, set())
+
+
+def test_scrape_refreshes_every_formats_banlist(monkeypatch):
+    """The banlist pass covers ALL formats, not just the ones this run scrapes —
+    the crons are staggered per format, and a stale banlist for an unscraped
+    format would keep counting decks that are no longer legal."""
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    resolver = _FakeResolver({"ST": {"Banned Card"}})
+    monkeypatch.setattr(run, "build_card_resolver", lambda: resolver)
+    writer = MagicMock()
+    writer.existing_event_ids.return_value = set()
+    writer.refresh_banlist.return_value = 1
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+    monkeypatch.setattr(run, "sync_decklists", MagicMock(return_value=0))
+
+    # Scrape a single format; the banlist pass must still cover all five.
+    rc = run.main(["run.py", "ST"])
+
+    assert rc == 0
+    refreshed = {call.args[0] for call in writer.refresh_banlist.call_args_list}
+    assert refreshed == set(FORMATS)
+    st_call = next(c for c in writer.refresh_banlist.call_args_list if c.args[0] == "ST")
+    assert st_call.args[1] == {"Banned Card"}
+
+
+def test_banlist_failure_does_not_fail_the_scrape(monkeypatch):
+    """The banlist is a correction, not worth failing a scrape over."""
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    monkeypatch.setattr(run, "build_card_resolver", lambda: _FakeResolver())
+    writer = MagicMock()
+    writer.existing_event_ids.return_value = set()
+    writer.refresh_banlist.side_effect = RuntimeError("banlist table missing")
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+    sync_decklists = MagicMock(return_value=4)
+    monkeypatch.setattr(run, "sync_decklists", sync_decklists)
+
+    rc = run.main(["run.py", "ST"])
+
+    assert rc == 0
+    assert sync_decklists.called  # the scrape went ahead regardless

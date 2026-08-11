@@ -215,6 +215,27 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     writer = SupabaseWriter(url, key, card_resolver=resolver)
     now = datetime.now(timezone.utc).isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    # Banlist pass: reconcile every format's banned cards from the Scryfall bulk
+    # data just synced. Runs over ALL formats regardless of which ones this run
+    # scrapes (the crons are staggered per format) — it costs no network beyond the
+    # bulk file already on disk, and a stale banlist for an unscraped format would
+    # keep counting decks that are no longer legal.
+    #
+    # Runs BEFORE the decklist pass so a run that both bans and scrapes ends with a
+    # banlist at least as current as the decks it just wrote. Best-effort per format:
+    # the banlist is a correction, not worth failing a scrape over.
+    #
+    # The per-format count is logged so a drop to zero — the visible symptom if
+    # Scryfall ever reshapes `legalities` — shows up in the workflow output rather
+    # than silently disabling the exclusion.
+    for fmt in FORMATS:
+        try:
+            banned = writer.refresh_banlist(fmt, resolver.banned_cards(fmt), today)
+            print(f"{fmt}/banlist: {banned} banned cards")
+        except Exception as exc:  # noqa: BLE001 — the banlist must not fail the scrape
+            print(f"[error] {fmt}/banlist: {exc}", file=sys.stderr)
 
     # Decklist pass: for each format, gather the two-week window's events and store
     # every NEW deck + its cards, then refresh archetype art and stamp the format's

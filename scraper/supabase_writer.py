@@ -82,6 +82,72 @@ class SupabaseWriter:
         )
         patch.raise_for_status()
 
+    # -- Banlist ------------------------------------------------------------
+
+    def refresh_banlist(self, fmt: str, banned_names, today: str) -> int:
+        """Reconcile a format's `banned_cards` rows to `banned_names`; return the count.
+
+        `banned_names` are canonical Scryfall names (from the bulk data's per-format
+        `legalities` map), so they join to `deck_cards.scryfall_name` directly.
+
+        Additions are inserted, removals (unbans) are deleted, and rows that are
+        still banned are left completely untouched — including their `first_seen_at`,
+        which must keep its original value so a ban does not re-announce itself on
+        every run. The reconcile is therefore idempotent: a second run over unchanged
+        data issues no write at all.
+
+        **Seeding.** `first_seen_at` is the system's only proxy for an announcement
+        date, and a naive diff would stamp today on every historical ban the first
+        time this runs — announcing a decade of Modern bans at once. So when the
+        format has NO stored rows yet, every row is written with a null
+        `first_seen_at`, meaning "pre-existing, never announce". The condition is
+        per format rather than a one-off migration flag, so a format populated later
+        (a new format, or one restored after a wipe) seeds correctly too.
+
+        The cost is that a genuine ban landing in the same run that first populates a
+        format will not announce. That happens once per format, ever.
+        """
+        stored = self._banned_rows(fmt)
+        wanted = set(banned_names)
+        is_first_population = not stored
+
+        obsolete_ids = [row["id"] for name, row in stored.items() if name not in wanted]
+        if obsolete_ids:
+            ids = ",".join(str(i) for i in obsolete_ids)
+            delete = self._session.delete(
+                f"{self._rest}/banned_cards?id=in.({ids})",
+                headers=self._headers,
+            )
+            delete.raise_for_status()
+
+        new_names = sorted(wanted - set(stored))
+        if new_names:
+            first_seen = None if is_first_population else today
+            insert = self._session.post(
+                f"{self._rest}/banned_cards",
+                headers=self._headers,
+                json=[
+                    {"format_code": fmt, "card_name": name, "first_seen_at": first_seen}
+                    for name in new_names
+                ],
+            )
+            insert.raise_for_status()
+
+        return len(wanted)
+
+    def _banned_rows(self, fmt: str) -> dict[str, dict]:
+        """A format's stored banned rows as `card_name -> row`.
+
+        Banlists are tens of rows per format, well under PostgREST's 1000-row page
+        cap, so one GET returns them all.
+        """
+        resp = self._session.get(
+            f"{self._rest}/banned_cards?format_code=eq.{quote(fmt)}&select=id,card_name,first_seen_at",
+            headers=self._headers,
+        )
+        resp.raise_for_status()
+        return {row["card_name"]: row for row in resp.json()}
+
     # -- Decklists ----------------------------------------------------------
     # events/decks/deck_cards are upserted on their unique keys so daily re-runs
     # are idempotent (no duplicate events or decks). deck_cards are replaced per

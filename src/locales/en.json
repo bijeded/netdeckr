@@ -62,6 +62,15 @@
     "eventSize_one": "{{count}} player",
     "eventSize_other": "{{count}} players"
   },
+  "banNotice": {
+    "title": "Ban announcement — {{format}}",
+    "cards": "No longer legal: {{cards}}.",
+    "hidden_one": "{{count}} deck is hidden from this view.",
+    "hidden_other": "{{count}} decks are hidden from this view.",
+    "hiddenNone": "No decks in this view are affected.",
+    "effect": "The tiers and shares below are calculated without them.",
+    "dismiss": "Dismiss"
+  },
   "tiers": {
     "rogue": "Rogue"
   },
