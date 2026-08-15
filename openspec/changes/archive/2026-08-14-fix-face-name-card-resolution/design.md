@@ -92,7 +92,9 @@ The single outlier is `Replenish` → `Eiganjo Dynastorian // Replenish` — the
 ## Migration Plan
 
 1. Merge the code fix. Existing rows are untouched; new scrapes begin writing single-face type lines.
-2. Run `python scraper/run.py --remap-scryfall` against production with the service-role key. It re-resolves every distinct `card_name` and rewrites all Scryfall columns.
+2. Run the remap against production: `gh workflow run scrape.yml --ref main -f format=remap-scryfall`. It re-resolves every distinct `card_name` and rewrites all Scryfall columns.
+
+   Not `python scraper/run.py --remap-scryfall` from a laptop, as this plan first said: `SUPABASE_SERVICE_ROLE_KEY` is a GitHub Actions secret and is deliberately absent from `.env.local`, which holds only the read-only anon key. Every write path runs in CI. `scrape.yml` already exposes `remap-scryfall` as a `workflow_dispatch` option.
 3. Verify on the site: Pre-Modern `Replenish` shows the Urza's Destiny card and art; `Esper Origins` appears in Top Spells, not Top Creatures.
 
 **Rollback:** revert the code and re-run the remap. Because the pass rewrites unconditionally from whatever the current resolver says, the previous resolver reproduces the previous data — the remap is the rollback mechanism as much as the migration one.
