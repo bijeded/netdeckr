@@ -66,6 +66,13 @@ class Printing:
     # decklist modal's grouping, signature-card land exclusion) asks a substring
     # question that a glued-together line answers wrong. See `_face_type_line`.
     type_line: str | None = None
+    # True when ANY face of the card is a land, whichever face this printing was
+    # looked up by. A whole-card fact, unlike `type_line` — every lookup key for a
+    # card carries the same value. It answers "would this card's art read as a
+    # land?" (signature-card selection) and NOT "what is the deck playing?": a
+    # modal double-faced card with a spell front and a land back is `has_land_face`
+    # yet its `type_line` is the spell's. Never classify a card with this.
+    has_land_face: bool = False
     rarity: str | None = None  # mythic/rare/uncommon/common
     cmc: float | None = None  # converted mana cost
     released_at: str | None = None  # printing's set release date (ISO YYYY-MM-DD)
@@ -249,6 +256,20 @@ def _face_type_line(row: dict, key: str) -> str | None:
     return row.get("type_line")
 
 
+def _has_land_face(row: dict) -> bool:
+    """True if any of the row's faces is a land.
+
+    Checks both the per-face type lines and the row's top-level one: a multi-face
+    row's top-level line is the combined "<front> // <back>" string, which is
+    exactly the right thing to ask a whole-card question of, and it is also the
+    only line a split card shipping without `card_faces` has (its synthesised faces
+    carry none).
+    """
+    if "land" in (row.get("type_line") or "").lower():
+        return True
+    return any("land" in (face.get("type_line") or "").lower() for face in _faces(row))
+
+
 def _banned_formats(row: dict) -> Iterator[str]:
     """Yield the DB format codes this row's card is BANNED in.
 
@@ -338,7 +359,8 @@ def _printing_for(name: str, row: dict, key: str) -> Printing:
 
     Identity (canonical name, set, collector number, images) always describes the
     whole card — that is what identifies the physical card and its Arena export
-    line — while `type_line` describes the face `key` names.
+    line — and so does `has_land_face` — while `type_line` describes the face `key`
+    names.
     """
     return Printing(
         name=name,
@@ -348,6 +370,7 @@ def _printing_for(name: str, row: dict, key: str) -> Printing:
         small_image_url=_image_url(row, "small"),
         art_crop_url=_image_url(row, "art_crop"),
         type_line=_face_type_line(row, key),
+        has_land_face=_has_land_face(row),
         rarity=row.get("rarity"),
         cmc=row.get("cmc"),
         released_at=row.get("released_at"),

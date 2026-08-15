@@ -888,6 +888,140 @@ def test_refresh_archetype_art_breaks_full_ties_by_name_ascending():
     assert body["signature_card_name"] == "Abrade"  # ties broken by name asc
 
 
+def test_refresh_archetype_art_excludes_a_card_whose_back_face_is_a_land():
+    # Modern Belcher: the deck plays Sea Gate Restoration as a land, but the stored
+    # type_line names only the face the deck plays ("Sorcery"), so the per-row land
+    # test cannot see it. The resolver's whole-card flag can.
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Belcher"}]),
+        _response(
+            [
+                _card_row(1, "Sea Gate Restoration", 16, type_line="Sorcery", rarity="rare"),
+                _card_row(2, "Goblin Charbelcher", 8, type_line="Artifact", rarity="rare"),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {
+            "Sea Gate Restoration": Printing(
+                name="Sea Gate Restoration // Sea Gate, Reborn",
+                set_code="ZNR",
+                collector_number="76",
+                type_line="Sorcery",
+                has_land_face=True,
+                image_url="seagate.jpg",
+            ),
+            "Goblin Charbelcher": Printing(
+                name="Goblin Charbelcher",
+                set_code="MH2",
+                collector_number="389",
+                type_line="Artifact",
+                image_url="belcher.jpg",
+            ),
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    body = session.patch.call_args[1]["json"]
+    assert body["signature_card_name"] == "Goblin Charbelcher"
+
+
+def test_refresh_archetype_art_keeps_a_multiface_card_without_a_land_face():
+    # The rule is about land faces, not about being double-faced.
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Rakdos"}]),
+        _response(
+            [
+                _card_row(1, "Valki, God of Lies", 16, type_line="Legendary Creature — God"),
+                _card_row(2, "Thoughtseize", 8),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {
+            "Valki, God of Lies": Printing(
+                name="Valki, God of Lies // Tibalt, Cosmic Impostor",
+                set_code="KHM",
+                collector_number="114",
+                type_line="Legendary Creature — God",
+                image_url="valki.jpg",
+            )
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    body = session.patch.call_args[1]["json"]
+    assert body["signature_card_name"] == "Valki, God of Lies"
+
+
+def test_refresh_archetype_art_leaves_null_when_every_candidate_has_a_land_face():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "All Lands"}]),
+        _response(
+            [
+                _card_row(1, "Mountain", 20, type_line="Basic Land — Mountain"),
+                _card_row(2, "Shatterskull Smashing", 16, type_line="Sorcery"),
+            ]
+        ),
+        _response([]),
+    ]
+    resolver = _StubResolver(
+        {
+            "Shatterskull Smashing": Printing(
+                name="Shatterskull Smashing // Shatterskull, the Hammer Pass",
+                set_code="ZNR",
+                collector_number="161",
+                type_line="Sorcery",
+                has_land_face=True,
+                image_url="shatterskull.jpg",
+            )
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    session.patch.assert_not_called()  # no candidate without a land face
+
+
+def test_refresh_archetype_art_keeps_an_unresolvable_card_eligible():
+    # A resolver miss must not be read as "this is a land" — that would blank an
+    # archetype's art over an unrelated resolution failure.
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 5, "name": "Homebrew"}]),
+        _response(
+            [
+                _card_row(1, "Unknown To Resolver", 16),
+                _card_row(2, "Known Card", 8),
+            ]
+        ),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 5}])
+    resolver = _StubResolver(
+        {"Known Card": Printing(name="Known Card", set_code="X", collector_number="1", image_url="k.jpg")}
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    writer.refresh_archetype_art("MO")
+
+    # It stays the top-ranked candidate, and art stays null only because it does
+    # not resolve to a printing — not because it was excluded as a land.
+    session.patch.assert_not_called()
+
+
 # -- Archetype color identity (name-first, card fallback) -------------------
 
 def _ci_card_row(cid, deck_id, name):

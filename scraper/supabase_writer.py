@@ -517,12 +517,12 @@ class SupabaseWriter:
     def refresh_archetype_art(self, fmt: str) -> int:
         """Set each archetype's signature card + art for a format.
 
-        The signature card is the highest-ranked non-land mainboard card across the
-        archetype's stored decks — ranked by total quantity desc, then rarity desc
-        (mythic>rare>uncommon>common), then set release date desc, then converted
-        mana cost desc, then card name asc (see ``_signature_card``). It is resolved
-        to a printing and stored as ``signature_card_name`` + ``art_image_url`` +
-        ``art_crop_url``; an archetype with no non-land card (only lands) or whose
+        The signature card is the highest-ranked mainboard card with no land face
+        across the archetype's stored decks — ranked by total quantity desc, then
+        rarity desc (mythic>rare>uncommon>common), then set release date desc, then
+        converted mana cost desc, then card name asc (see ``_signature_card``). It is
+        resolved to a printing and stored as ``signature_card_name`` +
+        ``art_image_url`` + ``art_crop_url``; an archetype with no such card or whose
         chosen card does not resolve is left null. Requires a card_resolver.
         Idempotent — recomputed from current decks each run. Returns the number of
         archetypes updated.
@@ -643,14 +643,21 @@ class SupabaseWriter:
         return (-quantity, rarity_rank, release_key, cmc_key, name)
 
     def _signature_card(self, archetype_id: int, *, page_size: int = 1000) -> str | None:
-        """Highest-ranked non-land mainboard card across an archetype's decks.
+        """Highest-ranked mainboard card with no land face across an archetype's decks.
 
         Sums quantities per card name over the archetype's mainboard deck_cards
-        (paged by ascending id), excludes any card whose ``type_line`` contains
-        "land" (all lands, basic and nonbasic; a null type_line is treated as
-        non-land so an unresolved card can still be a candidate), and returns the
-        top-ranked name via ``_signature_sort_key``, or None if there is no such
-        card.
+        (paged by ascending id), then excludes every card **any of whose faces is a
+        land** and returns the top-ranked survivor via ``_signature_sort_key``, or
+        None if there is no such card.
+
+        The exclusion runs in two steps because the stored ``type_line`` describes
+        only the face the deck plays: a row whose own line contains "land" is
+        dropped as it is read, and the remaining names are checked against the
+        resolver's whole-card ``has_land_face``. Without that second step a modal
+        double-faced card with a spell front and a land back (Sea Gate Restoration)
+        looks like a plain sorcery here and wins on quantity. A name the resolver
+        misses, or a null ``type_line``, is treated as non-land so an unresolved
+        card can still be a candidate.
         """
         totals: dict[str, int] = {}
         meta: dict[str, dict] = {}
@@ -680,6 +687,12 @@ class SupabaseWriter:
                     if m[field] is None and row.get(field) is not None:
                         m[field] = row[field]
             cursor = rows[-1]["id"]
+
+        if self._card_resolver is not None:
+            for name in list(totals):
+                printing = self._card_resolver.resolve(name)
+                if printing is not None and printing.has_land_face:
+                    del totals[name]
 
         if not totals:
             return None
