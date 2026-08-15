@@ -119,6 +119,10 @@
       "downloaded": "Decklist downloaded",
       "error": "Could not copy the decklist",
       "download": "Download Decklist"
+    },
+    "view": {
+      "toImages": "Card images",
+      "toList": "Card list"
     }
   },
   "language": {

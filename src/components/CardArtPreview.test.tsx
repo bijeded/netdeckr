@@ -67,6 +67,30 @@ describe('CardArtPreview', () => {
     expect(container.contains(img)).toBe(false)
   })
 
+  it('previews from arbitrary children (an image-view tile), not just the name', () => {
+    render(
+      <CardArtPreview name="Lightning Bolt" imageUrl={IMG}>
+        <span data-testid="tile">tile</span>
+      </CardArtPreview>,
+    )
+    // The name is not rendered — the tile is the trigger.
+    expect(screen.queryByText('Lightning Bolt')).toBeNull()
+    fireEvent.pointerEnter(screen.getByTestId('tile'), { pointerType: 'mouse', clientX: 20, clientY: 20 })
+    expect(screen.getByRole('img')).toBeInTheDocument()
+  })
+
+  it('renders children without preview behaviour when there is no image URL', () => {
+    render(
+      <CardArtPreview name="Homebrew" imageUrl={null}>
+        <span data-testid="tile">placeholder</span>
+      </CardArtPreview>,
+    )
+    const tile = screen.getByTestId('tile')
+    fireEvent.pointerEnter(tile, { pointerType: 'mouse', clientX: 10, clientY: 10 })
+    expect(screen.queryByRole('img')).toBeNull()
+    expect(tile).toBeInTheDocument()
+  })
+
   it('hides the preview if the image fails to load', () => {
     render(<CardArtPreview name="Lightning Bolt" imageUrl={IMG} />)
     fireEvent.pointerEnter(screen.getByText('Lightning Bolt'), { pointerType: 'mouse', clientX: 20, clientY: 20 })

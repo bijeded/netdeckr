@@ -1,9 +1,24 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
 
 interface CardArtPreviewProps {
   name: string
   imageUrl?: string | null
+  /**
+   * What the player hovers/touches to reveal the art. Defaults to the card name,
+   * which is how the decklist's list view and the trending tables use it; the
+   * decklist modal's image view passes a card tile instead.
+   */
+  children?: ReactNode
+  /** Extra styling for the trigger wrapper (e.g. to make a tile fill its grid cell). */
+  style?: CSSProperties
 }
 
 // Normal-size Scryfall art is ~488×680 (ratio ~0.717); render it compact.
@@ -26,12 +41,15 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * A card name that reveals its full Scryfall art on hover (mouse) or touch
- * (mobile). The art is lazy-loaded (fetched only when shown), hotlinked from
- * Scryfall's CDN, rendered in a portal so it never shifts the decklist, and
- * clamped to the viewport. A null `imageUrl` (unresolved card) is a plain label.
+ * A trigger — the card name by default, or any `children` such as a card tile —
+ * that reveals the card's full Scryfall art on hover (mouse) or touch (mobile).
+ * The art is lazy-loaded (fetched only when shown), hotlinked from Scryfall's CDN,
+ * rendered in a portal so it never shifts the decklist, and clamped to the
+ * viewport. It is always shown at full preview size, so a thumbnail tile too small
+ * to read stays previewable. A null `imageUrl` (unresolved card) renders the
+ * trigger with no preview behaviour.
  */
-export function CardArtPreview({ name, imageUrl }: CardArtPreviewProps) {
+export function CardArtPreview({ name, imageUrl, children, style }: CardArtPreviewProps) {
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const [failed, setFailed] = useState(false)
   const viaTouch = useRef(false)
@@ -59,7 +77,7 @@ export function CardArtPreview({ name, imageUrl }: CardArtPreviewProps) {
   }, [active])
 
   if (!imageUrl) {
-    return <span>{name}</span>
+    return <span style={style}>{children ?? name}</span>
   }
 
   const show = (e: ReactPointerEvent) => {
@@ -106,13 +124,13 @@ export function CardArtPreview({ name, imageUrl }: CardArtPreviewProps) {
     <>
       <span
         ref={anchorRef}
-        style={{ cursor: 'help' }}
+        style={{ cursor: 'help', ...style }}
         onPointerEnter={onPointerEnter}
         onPointerMove={onPointerMove}
         onPointerLeave={onPointerLeave}
         onPointerDown={onPointerDown}
       >
-        {name}
+        {children ?? name}
       </span>
       {active &&
         createPortal(

@@ -90,6 +90,7 @@ create table if not exists public.deck_cards (
   set_code         text,                       -- current non-foil set (null on a miss)
   collector_number text,                       -- printing collector number (null on a miss)
   image_url        text,                       -- hotlinked Scryfall CDN image (normal size; null on a miss)
+  small_image_url  text,                       -- same printing's thumbnail-size image, for the decklist image view (null on a miss)
   type_line        text,                       -- resolved printing type line, e.g. "Creature — Elf" (null on a miss)
   rarity           text,                       -- resolved printing rarity: mythic/rare/uncommon/common (null on a miss)
   cmc              numeric,                     -- resolved printing converted mana cost (null on a miss)
@@ -151,6 +152,15 @@ alter table public.deck_cards add column if not exists rarity text;
 alter table public.deck_cards add column if not exists cmc numeric;
 alter table public.deck_cards add column if not exists released_at date;
 alter table public.archetypes add column if not exists art_crop_url text;
+
+-- Thumbnail card image for the decklist modal's image view (change deck-image-view;
+-- added to databases created before it, the create-table definition above already
+-- includes it for a fresh apply). Nullable and hotlinked from Scryfall's CDN like
+-- the other art columns. Rows enriched before this column exists carry a non-null
+-- `image_url`, so they are invisible to the `image_url is null` backfill sentinel
+-- and are populated by their own `small_image_url is null` pass instead
+-- (supabase_writer.backfill_small_images).
+alter table public.deck_cards add column if not exists small_image_url text;
 
 -- Tournament size for size-weighted Power Score (added to databases created before
 -- it; the create-table definition above already includes it for a fresh apply).

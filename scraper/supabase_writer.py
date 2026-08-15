@@ -270,13 +270,18 @@ class SupabaseWriter:
         }
         if self._card_resolver is not None:
             printing = self._card_resolver.resolve(card.card_name)
-            # All four Scryfall columns are written together (identity + image);
+            # All the Scryfall columns are written together (identity + images);
             # image_url is never set independently. backfill_scryfall relies on this
             # coupling — it uses `image_url is null` as the completeness sentinel.
+            # small_image_url is written here too, but it is NOT part of that
+            # sentinel: rows enriched before the column existed already have a
+            # non-null image_url, so they are reached by backfill_small_images
+            # instead (see its own `small_image_url is null` sentinel).
             row["scryfall_name"] = printing.name if printing else None
             row["set_code"] = printing.set_code if printing else None
             row["collector_number"] = printing.collector_number if printing else None
             row["image_url"] = printing.image_url if printing else None
+            row["small_image_url"] = printing.small_image_url if printing else None
             row["type_line"] = printing.type_line if printing else None
             row["rarity"] = printing.rarity if printing else None
             row["cmc"] = printing.cmc if printing else None
@@ -445,11 +450,65 @@ class SupabaseWriter:
                     "set_code": printing.set_code,
                     "collector_number": printing.collector_number,
                     "image_url": printing.image_url,
+                    "small_image_url": printing.small_image_url,
                     "type_line": printing.type_line,
                     "rarity": printing.rarity,
                     "cmc": printing.cmc,
                     "released_at": printing.released_at,
                 },
+            )
+            patch.raise_for_status()
+            updated += len(patch.json())
+        return updated
+
+    def backfill_small_images(self, *, page_size: int = 1000) -> int:
+        """Populate `small_image_url` on existing deck_cards rows still missing it.
+
+        A one-time pass for the decklist modal's image view. It needs its own
+        sentinel: rows enriched before this column existed already carry a non-null
+        `image_url`, so `backfill_scryfall`'s `image_url is null` filter can never
+        see them. Keyed on `small_image_url is null` instead, and writes only that
+        column — the identity columns on these rows are already correct, and
+        rewriting them here would duplicate remap_scryfall's job.
+
+        Pages by ascending id (a cursor, so unresolvable rows don't loop forever),
+        collects the distinct scraped names, and PATCHes each resolvable name's
+        still-null rows. A name that does not resolve, or a printing with no
+        thumbnail, is skipped and left null. Requires a card_resolver. Idempotent:
+        the `small_image_url=is.null` filter excludes rows already carrying a
+        thumbnail. Returns the number of rows updated.
+        """
+        if self._card_resolver is None:
+            raise RuntimeError("backfill_small_images requires a card_resolver")
+
+        names: set[str] = set()
+        cursor = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/deck_cards"
+                f"?small_image_url=is.null&id=gt.{cursor}"
+                f"&select=id,card_name&order=id.asc&limit={page_size}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if not rows:
+                break
+            names.update(row["card_name"] for row in rows)
+            cursor = rows[-1]["id"]
+
+        updated = 0
+        for name in names:
+            printing = self._card_resolver.resolve(name)
+            if printing is None or printing.small_image_url is None:
+                continue  # a miss (or a printing with no thumbnail) stays null
+            # Percent-encode the whole value (safe="" so commas/slashes escape too)
+            # and do NOT double-quote it — see backfill_scryfall for the rationale.
+            patch = self._session.patch(
+                f"{self._rest}/deck_cards"
+                f"?card_name=eq.{quote(name, safe='')}&small_image_url=is.null",
+                headers={**self._headers, "Prefer": "return=representation"},
+                json={"small_image_url": printing.small_image_url},
             )
             patch.raise_for_status()
             updated += len(patch.json())
