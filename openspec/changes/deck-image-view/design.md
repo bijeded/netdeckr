@@ -113,13 +113,20 @@ W = 88  →  main needs 5×88 + 4×8 = 472  (23 spare)
            side needs 3×88 + 2×8 = 280  (13 spare)
 ```
 
-**W = 88px**, chosen for slack rather than for the largest tile that fits. The lesson is
-recorded in the CSS: `auto-fill` degrades a column at a time, silently, so a layout solved to
-the last pixel does not survive contact with a border.
+A fixed W = 88px was the next cut, chosen for slack rather than for the largest tile that
+fits. It held 5/3 — but slack is visible: each grid stopped 23px / 13px short of its section
+heading's right edge, which read as a misalignment rather than as breathing room.
 
-At 88px the tiles are 176 device px against a 146px source, so they are upscaled ~1.2× on a
-2× display — bigger but slightly softer. Scryfall publishes nothing between `small` (146) and
-`normal` (488), so crisper would mean ~10× the bytes.
+**Settled: explicit `repeat(5, 1fr)` / `repeat(3, 1fr)`, stretched to fill.** The grids now end
+flush with the headings, and the equal-tile property survives because `1.6fr / 1fr` is very
+nearly the split that makes 5 and 3 columns equal — solving `8t + 137 = 877` gives t = 92.5
+and a 539.5 : 337.5 = 1.5985 ratio, so the two boards land ~92.5px and ~92.4px apart by 0.1px.
+Stating the count also retires `auto-fill` from this layout entirely: `1fr` tracks absorb a
+future padding change instead of silently dropping a column.
+
+At ~92px the tiles are ~185 device px against a 146px source, so they are upscaled ~1.27× on
+a 2× display — bigger but slightly softer. Scryfall publishes nothing between `small` (146)
+and `normal` (488), so crisper would mean ~10× the bytes.
 
 **Superseded decision:** the earlier plan was to stack the two boards vertically in image
 view, on the reasoning that a 6-card sideboard in the narrow column would look lopsided
@@ -194,11 +201,13 @@ art).
 - **Scryfall bandwidth from grid views** → Tiles are `loading="lazy"` and only mount in image
   view, so list-view opens fetch nothing. At ~10 KB per thumbnail a full deck grid is ~250 KB,
   comparable to a single existing hover preview.
-- **`auto-fill` fails silently, a column at a time** → This bit twice: once on the desktop
-  split solved to the half-pixel, once on mobile where a 1px border desynchronised the two
-  boards. Mitigated by keeping ≥13px of slack in the desktop track and by stating mobile
-  counts explicitly. Any future change to the modal's width, padding, or borders should be
-  re-checked against the arithmetic in `dashboard.css`, not eyeballed.
+- **`auto-fill` fails silently, a column at a time** → It bit twice: once on the desktop split
+  solved to the half-pixel (shipped as 4/2), once on mobile where a 1px border desynchronised
+  the two boards (3 vs 4 from one rule). Retired from this layout entirely — every tile grid
+  now states its column count outright. The remaining coupling is the `1.6fr / 1fr` board
+  split, which is what keeps the two boards' tiles the same size; a change to the modal's
+  width, padding, or borders should be re-checked against the arithmetic in `dashboard.css`
+  rather than eyeballed.
 - **`small_image_url` missing on un-backfilled rows** → Falls back to `image_url`; heavier,
   still correct. Only a row with neither shows a placeholder.
 - **Adding a column to `deck_cards` touches a file CLAUDE.md gates** → The change is additive

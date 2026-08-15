@@ -354,7 +354,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
             <div style={{ padding: '20px 22px', borderRight: '1px solid var(--border-soft)' }}>
               <SectionHeading label={t('modal.main')} count={t('modal.cards', { count: mainCount })} />
               {images ? (
-                <div className="decklist-tiles">
+                <div className="decklist-tiles decklist-tiles-main">
                   {mainTiles.map((line, i) => (
                     <CardTile key={`mt-${i}-${line.name}`} line={line} />
                   ))}
@@ -382,7 +382,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
             <div style={{ padding: '20px 22px', background: 'var(--surface-faint)' }}>
               <SectionHeading label={t('modal.side')} count={t('modal.cards', { count: sideCount })} />
               {images ? (
-                <div className="decklist-tiles">
+                <div className="decklist-tiles decklist-tiles-side">
                   {side.map((line, i) => (
                     <CardTile key={`st-${i}-${line.name}`} line={line} />
                   ))}
