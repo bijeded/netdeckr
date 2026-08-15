@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ManaPips } from './ManaPips'
 import { CardArtPreview } from './CardArtPreview'
 import { CardTile } from './CardTile'
+import { GalleryIcon, ListIcon } from './viewIcons'
 import { Spinner } from './Spinner'
 import { EmptyState } from './EmptyState'
 import { useDeckCards, type DeckCardLine } from '../hooks/useDeckCards'
@@ -256,7 +257,9 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
                 whiteSpace: 'nowrap',
               }}
             >
-              <span aria-hidden="true">{images ? '≡' : '▦'}</span>
+              <span aria-hidden="true" style={{ display: 'inline-flex' }}>
+                {images ? <ListIcon /> : <GalleryIcon />}
+              </span>
               {/* Label is hidden below 640px — the mobile header row has no space
                   for a third labelled control (see .modal-view-label). */}
               <span className="modal-view-label">

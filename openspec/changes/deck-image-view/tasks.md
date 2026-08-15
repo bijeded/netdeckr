@@ -36,4 +36,4 @@
 
 - [x] 8.1 Cover the new modal behaviour with Vitest — image view renders one tile per distinct card with its quantity, lands come last in a flat grid with no headings, placeholder tile for a card with no image, toggle switches views and resets on reopen, export output identical in both views. Assert behaviour rather than exact style values. Run `npm run test`.
 - [x] 8.2 Run `npm run lint` and `npm run type-check`.
-- [ ] 8.3 Open a PR and confirm on the Vercel preview: the 6/4 desktop column count, the mobile tile track question left open in design.md (full-width vs capped), quantity-indicator legibility at tile size, and the header layout in both locales. Record the settled values in design.md.
+- [x] 8.3 Open a PR and confirm on the Vercel preview: the 6/4 desktop column count, the mobile tile track question left open in design.md (full-width vs capped), quantity-indicator legibility at tile size, and the header layout in both locales. Record the settled values in design.md.

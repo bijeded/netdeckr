@@ -218,18 +218,20 @@
   column-gap: 18px;
 }
 /* Image view. Tiles must be the SAME size in both boards, so the board split is
-   re-derived from one shared tile width W: solving 10W + 152 = 880 (6 tiles +
-   5 gaps + 2x22 padding on the main side, 4 tiles + 3 gaps + padding on the
-   sideboard) gives W = 72px and columns of 516 / 356 — hence 1.45fr / 1fr rather
-   than the list view's 1.55fr / 1fr. The track is FIXED, not 1fr: a fractional
+   re-derived from one shared tile width W. At 5 mainboard + 3 sideboard columns:
+   solving 8W + 136 = 880 (5 tiles + 4 gaps + 2x22 padding on the main side,
+   3 tiles + 2 gaps + padding on the sideboard) gives W = 93px and columns of
+   541 / 339 — hence 1.6fr / 1fr rather than the list view's 1.55fr / 1fr.
+   (A 6/4 layout at W = 72px was the first cut; 5/3 was chosen on the preview for
+   bigger, more readable thumbnails.) The track is FIXED, not 1fr: a fractional
    track would let each column size its tiles independently, which is exactly the
    equal-size property being preserved here. */
 .decklist-grid-images {
-  grid-template-columns: 1.45fr 1fr;
+  grid-template-columns: 1.6fr 1fr;
 }
 .decklist-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 72px);
+  grid-template-columns: repeat(auto-fill, 93px);
   gap: 8px;
 }
 /* Decklist modal header. Desktop: title/meta and the export/close actions sit
@@ -287,10 +289,12 @@
     columns: 1;
   }
   /* Stacked here, so both boards are already the same width and the equal-tile
-     guarantee holds without a fixed track. A fixed 72px would leave ~40px of dead
-     gutter on a 375px phone; letting the track grow fills the row instead. */
+     guarantee holds without a fixed track; letting the track grow fills the row
+     rather than leaving a dead gutter. The 62px floor sets the column count from
+     the phone's width — auto-fill takes floor((content + 8) / 70), so a 375px
+     phone (291px of content) gets 4 columns and a 430px one (346px) gets 5. */
   .decklist-tiles {
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
   }
   /* The mobile header row is already full with export + close — the view toggle
      drops to its glyph alone and keeps its aria-label. */

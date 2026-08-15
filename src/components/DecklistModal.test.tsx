@@ -220,7 +220,7 @@ describe('DecklistModal', () => {
       error: null,
     }
 
-    const toImages = () => fireEvent.click(screen.getByRole('button', { name: /card images/i }))
+    const toImages = () => fireEvent.click(screen.getByRole('button', { name: /gallery/i }))
 
     it('opens in list view and switches to tiles on the toggle', () => {
       useDeckCards.mockReturnValue(mixedDeck)
@@ -288,7 +288,7 @@ describe('DecklistModal', () => {
       useDeckCards.mockReturnValue(mixedDeck)
       render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
       toImages()
-      fireEvent.click(screen.getByRole('button', { name: /card list/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^list$/i }))
 
       expect(screen.queryAllByTestId('card-tile')).toHaveLength(0)
       expect(screen.getAllByTestId('card-group-heading').length).toBeGreaterThan(0)

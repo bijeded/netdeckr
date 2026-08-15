@@ -121,8 +121,8 @@
       "download": "Download Decklist"
     },
     "view": {
-      "toImages": "Card images",
-      "toList": "Card list"
+      "toImages": "Gallery",
+      "toList": "List"
     }
   },
   "language": {

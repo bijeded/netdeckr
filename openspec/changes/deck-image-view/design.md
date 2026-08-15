@@ -78,7 +78,7 @@ The frontend selects `small_image_url ?? image_url`, so a row missing the thumbn
 correct but heavier tile instead of a placeholder. This keeps the frontend independent of
 backfill timing.
 
-### Tile size derived from the shared-width constraint — *calculated*
+### Tile size derived from the shared-width constraint — *calculated, confirmed on the preview at 5/3*
 
 Requiring one tile width `W` across both boards, with 8px gaps and the existing 22px padding:
 
@@ -95,23 +95,33 @@ view's `1.55fr / 1fr`, and each board's tile grid is `repeat(auto-fill, 72px)`. 
 exactly the equal-size property we need to preserve. At 72px CSS the tiles are 144 device px
 on a 2× display against Scryfall small's 146px — effectively 1:1.
 
+**Superseded on the preview:** 6/4 shipped first and was legible, but the thumbnails read as
+small against the modal's width. Settled at **5 mainboard / 3 sideboard columns**, re-solving
+the same constraint: `8W + 136 = 880` → W = **93px**, columns 541 / 339 → `1.6fr / 1fr`. The
+arithmetic now lands exactly on 880 with no spare, so the scrollbar risk noted below applies
+more tightly than it did at 72px. Trade-off accepted deliberately: at 93px the tiles are
+186 device px against a 146px source, so they are upscaled ~1.27× on a 2× display — bigger
+but slightly softer. Scryfall publishes nothing between `small` (146) and `normal` (488), so
+crisper would mean ~10× the bytes.
+
 **Superseded decision:** the earlier plan was to stack the two boards vertically in image
 view, on the reasoning that a 6-card sideboard in the narrow column would look lopsided
 beside a 20-tile mainboard. The user's reference mockup overturned this — side-by-side reads
 fine, and stacking would have thrown away the modal's horizontal space on desktop.
 
-### Mobile uses a flexible track — *calculated, with a pending visual judgement*
+### Mobile uses a flexible track — *settled on the preview*
 
 Below 640px the boards stack, so both are already the same width and the equal-size guarantee
 holds without a fixed track. A fixed 72px track there would leave ~40px of dead gutter on a
 375px-wide phone (content ≈ 291px fits 3 tiles + 40px slack), so mobile uses
 `repeat(auto-fill, minmax(72px, 1fr))` — 3 across at ~88px, edge to edge.
 
-At ~88px the tiles are ~176 device px against a 146px source, so they will be **slightly
-soft**. Whether that softness is acceptable, or whether the track should be capped (e.g.
-`minmax(72px, 84px)`) to trade a little dead space for crispness, is a judgement only an eye
-can settle — **pending confirmation on the Vercel preview**. Record the outcome here once
-seen.
+**Settled on the preview:** neither the full-width `minmax(72px, 1fr)` nor a cap. The floor
+was dropped to **62px**, which sets the column count from the phone's width rather than
+fixing it — `auto-fill` takes `floor((content + 8) / 70)`, so a 375px phone (291px of
+content) gets **4** columns at ~67px and a 430px one (346px) gets **5** at ~63px. Softness at
+that size was judged acceptable in exchange for seeing more of the deck at once; the tiles are
+a browsing aid, and the full-size preview is one tap away.
 
 Both regimes reuse the existing 640px breakpoint; no new media query is introduced.
 
@@ -137,9 +147,15 @@ its pointer/touch logic, portal, and viewport clamping are untouched.
 ### View toggle
 
 A `useState` in `DecklistModal`, initialised to list view — the component unmounts on close,
-so "resets on every open" needs no explicit reset logic. `▦` / `≡` from the existing glyph
-vocabulary, with the label hidden below 640px via the same breakpoint and an `aria-label`
-carrying the action in both locales either way.
+so "resets on every open" needs no explicit reset logic. The label is hidden below 640px via
+the same breakpoint, with an `aria-label` carrying the action in both locales either way.
+
+**Superseded on the preview:** the icons shipped as `▦` / `≡` from the existing glyph
+vocabulary. At the 13px they render at, both read as the same grey texture — and on mobile the
+icon *is* the whole control, with no label to disambiguate. Replaced by an inline SVG pair
+(`viewIcons.tsx`): four squares for the gallery, three bars for the list. This is a new
+precedent — the repo had no inline SVG in components — so CLAUDE.md's iconography rule was
+widened to allow SVG where a glyph cannot carry the meaning alone.
 
 ### Quantity indicator
 
@@ -154,10 +170,10 @@ art).
 - **Scryfall bandwidth from grid views** → Tiles are `loading="lazy"` and only mount in image
   view, so list-view opens fetch nothing. At ~10 KB per thumbnail a full deck grid is ~250 KB,
   comparable to a single existing hover preview.
-- **The 8px spare in the desktop calculation is tight** → If a scrollbar or a padding change
-  eats it, `auto-fill` drops the mainboard to 5 columns rather than overflowing. Degrades,
-  doesn't break — but it means the 6/4 layout should be confirmed on the preview, not assumed
-  from the arithmetic.
+- **The desktop calculation now lands exactly on 880 with no spare** → If a scrollbar or a
+  padding change eats a few pixels, `auto-fill` drops the mainboard to 4 columns rather than
+  overflowing. Degrades, doesn't break, and the 5/3 layout was confirmed on the preview rather
+  than assumed from the arithmetic.
 - **`small_image_url` missing on un-backfilled rows** → Falls back to `image_url`; heavier,
   still correct. Only a row with neither shows a placeholder.
 - **Adding a column to `deck_cards` touches a file CLAUDE.md gates** → The change is additive
@@ -183,6 +199,5 @@ nullable) rather than being dropped.
 
 ## Open Questions
 
-- The mobile tile track — full-width `1fr` versus a capped `minmax(72px, 84px)` — is settled
-  on the preview, not now. Either choice is a one-line CSS change that affects no spec, no
-  task boundary, and no other decision here.
+None outstanding — the mobile tile track, the desktop column count, and the toggle icons were
+all settled on the preview and recorded above.
