@@ -638,3 +638,191 @@ def test_index_without_legalities_data_reports_no_bans():
     """The printing-selection fixture carries no `legalities` at all."""
     for fmt in ("ST", "PI", "MO", "PAU", "PREM"):
         assert _index().banned_cards(fmt) == set()
+
+
+# -- face-name resolution priority and per-face type lines -----------------
+
+def _multiface_row(name, faces, set_code, num, *, layout, released_at="2024-01-01", **extra):
+    """A paper non-foil multi-face printing.
+
+    `faces` is a list of (face name, face type line); the row's top-level
+    `type_line` is the combined "<front> // <back>" string Scryfall publishes.
+    """
+    row = _printing_row(name, set_code, num, released_at=released_at, **extra)
+    row["layout"] = layout
+    row["type_line"] = " // ".join(type_line for _, type_line in faces)
+    row["card_faces"] = [{"name": n, "type_line": t} for n, t in faces]
+    return row
+
+
+def _replenish_rows():
+    """The real collision: a standalone sorcery whose name is also another card's
+    back face."""
+    standalone = _printing_row(
+        "Replenish", "uds", "12", released_at="1999-06-07", type_line="Sorcery"
+    )
+    foreign = _multiface_row(
+        "Eiganjo Dynastorian // Replenish",
+        [("Eiganjo Dynastorian", "Creature — Fox Advisor"), ("Replenish", "Sorcery")],
+        "soc",
+        "5",
+        layout="prepare",
+        released_at="2026-01-01",
+    )
+    return standalone, foreign
+
+
+@pytest.mark.parametrize("reverse", [False, True], ids=["standalone-first", "face-first"])
+def test_standalone_card_is_not_displaced_by_another_cards_back_face(reverse):
+    # Whichever order the bulk file happens to use, the Urza's Destiny sorcery owns
+    # the name "Replenish" — the SOC card only carries a face by that name.
+    rows = list(_replenish_rows())
+    index = CardIndex.from_bulk_rows(rows[::-1] if reverse else rows)
+    printing = index.resolve("Replenish")
+    assert printing is not None
+    assert printing.name == "Replenish"
+    assert printing.set_code == "UDS"
+    assert printing.type_line == "Sorcery"
+
+
+def test_the_other_cards_own_front_name_still_resolves_to_it():
+    index = CardIndex.from_bulk_rows(list(_replenish_rows()))
+    printing = index.resolve("Eiganjo Dynastorian")
+    assert printing is not None
+    assert printing.name == "Eiganjo Dynastorian // Replenish"
+    assert printing.type_line == "Creature — Fox Advisor"
+
+
+@pytest.mark.parametrize("reverse", [False, True], ids=["front-first", "back-first"])
+def test_a_front_face_outranks_another_cards_back_face(reverse):
+    # No standalone card claims "Bramble Familiar"; one card has it as a front face
+    # and another as a back face. The front face wins from either bulk order.
+    front = _multiface_row(
+        "Bramble Familiar // Fetch Quest",
+        [("Bramble Familiar", "Creature — Otter"), ("Fetch Quest", "Sorcery — Adventure")],
+        "woe",
+        "160",
+        layout="adventure",
+    )
+    back = _multiface_row(
+        "Some Other Card // Bramble Familiar",
+        [("Some Other Card", "Creature — Human"), ("Bramble Familiar", "Sorcery")],
+        "xxx",
+        "1",
+        layout="transform",
+    )
+    rows = [front, back]
+    index = CardIndex.from_bulk_rows(rows[::-1] if reverse else rows)
+    printing = index.resolve("Bramble Familiar")
+    assert printing is not None
+    assert printing.name == "Bramble Familiar // Fetch Quest"
+    assert printing.type_line == "Creature — Otter"
+
+
+def test_a_back_face_only_name_still_resolves():
+    # Nothing else claims "Stomp", so the fallback tier must still answer it —
+    # a miss would silently leave the columns null instead.
+    row = _multiface_row(
+        "Bonecrusher Giant // Stomp",
+        [("Bonecrusher Giant", "Creature — Giant"), ("Stomp", "Instant — Adventure")],
+        "eld",
+        "115",
+        layout="adventure",
+    )
+    printing = CardIndex.from_bulk_rows([row]).resolve("Stomp")
+    assert printing is not None
+    assert printing.name == "Bonecrusher Giant // Stomp"
+    assert printing.type_line == "Instant — Adventure"
+
+
+@pytest.mark.parametrize(
+    "layout,faces,scraped,expected",
+    [
+        (
+            "transform",
+            [("Esper Origins", "Sorcery"), ("Summon: Esper Maduin", "Enchantment Creature — Saga Elemental")],
+            "Esper Origins",
+            "Sorcery",
+        ),
+        (
+            "prepare",
+            [("Eiganjo Dynastorian", "Creature — Fox Advisor"), ("Replenish", "Sorcery")],
+            "Eiganjo Dynastorian",
+            "Creature — Fox Advisor",
+        ),
+        (
+            "modal_dfc",
+            [("Agadeem's Awakening", "Sorcery — Arcane"), ("Agadeem, the Undercrypt", "Land")],
+            "Agadeem's Awakening",
+            "Sorcery — Arcane",
+        ),
+        (
+            "adventure",
+            [("Brazen Borrower", "Creature — Faerie Rogue"), ("Petty Theft", "Instant — Adventure")],
+            "Brazen Borrower",
+            "Creature — Faerie Rogue",
+        ),
+        (
+            "split",
+            [("Fire", "Instant"), ("Ice", "Instant")],
+            "Fire / Ice",
+            "Instant",
+        ),
+        (
+            "flip",
+            [("Erayo, Soratami Ascendant", "Legendary Creature — Moonfolk Monk"), ("Erayo's Essence", "Legendary Enchantment")],
+            "Erayo, Soratami Ascendant",
+            "Legendary Creature — Moonfolk Monk",
+        ),
+    ],
+)
+def test_type_line_describes_one_face_per_layout(layout, faces, scraped, expected):
+    row = _multiface_row(f"{faces[0][0]} // {faces[1][0]}", faces, "set", "1", layout=layout)
+    printing = CardIndex.from_bulk_rows([row]).resolve(scraped)
+    assert printing is not None
+    assert printing.type_line == expected
+    assert "//" not in printing.type_line
+
+
+def test_full_multiface_name_carries_the_front_faces_type_line():
+    # Whichever spelling was scraped, classification must describe one face.
+    row = _multiface_row(
+        "Agadeem's Awakening // Agadeem, the Undercrypt",
+        [("Agadeem's Awakening", "Sorcery — Arcane"), ("Agadeem, the Undercrypt", "Land")],
+        "znr",
+        "90",
+        layout="modal_dfc",
+    )
+    printing = CardIndex.from_bulk_rows([row]).resolve("Agadeem's Awakening // Agadeem, the Undercrypt")
+    assert printing.type_line == "Sorcery — Arcane"
+
+
+def test_multiface_identity_still_describes_the_whole_card():
+    # Only the type line narrows to a face; the Arena export line and art must not.
+    row = _multiface_row(
+        "Brazen Borrower // Petty Theft",
+        [("Brazen Borrower", "Creature — Faerie Rogue"), ("Petty Theft", "Instant — Adventure")],
+        "eld",
+        "39",
+        layout="adventure",
+    )
+    printing = CardIndex.from_bulk_rows([row]).resolve("Brazen Borrower")
+    assert printing.name == "Brazen Borrower // Petty Theft"
+    assert printing.set_code == "ELD"
+    assert printing.collector_number == "39"
+
+
+def test_split_card_without_card_faces_splits_its_type_line_positionally():
+    # The rare split row that ships without `card_faces`: each half still gets a
+    # single-face line rather than the combined one.
+    row = _printing_row(
+        "Assault // Battery", "inv", "128", released_at="2000-10-02",
+        type_line="Sorcery // Sorcery",
+    )
+    index = CardIndex.from_bulk_rows([row])
+    assert index.resolve("Assault").type_line == "Sorcery"
+    assert index.resolve("Battery").type_line == "Sorcery"
+
+
+def test_single_face_card_type_line_is_unchanged():
+    assert _index().resolve("Lightning Bolt").type_line == "Instant"

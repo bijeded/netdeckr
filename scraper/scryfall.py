@@ -60,7 +60,12 @@ class Printing:
     image_url: str | None = None  # hotlinked Scryfall CDN image (normal size), if any
     small_image_url: str | None = None  # same image at thumbnail size, for grid display
     art_crop_url: str | None = None  # hotlinked Scryfall CDN art_crop image, if any
-    type_line: str | None = None  # printing type line, e.g. "Creature — Elf"
+    # Type line of the FACE this printing was looked up by, e.g. "Creature — Elf".
+    # Never a multi-face card's combined "<front> // <back>" line: a scraped name
+    # names one face, and every consumer (trending's creature/spell split, the
+    # decklist modal's grouping, signature-card land exclusion) asks a substring
+    # question that a glued-together line answers wrong. See `_face_type_line`.
+    type_line: str | None = None
     rarity: str | None = None  # mythic/rare/uncommon/common
     cmc: float | None = None  # converted mana cost
     released_at: str | None = None  # printing's set release date (ISO YYYY-MM-DD)
@@ -177,19 +182,71 @@ def _image_url(row: dict, size: str) -> str | None:
     return None
 
 
-def _name_keys(row: dict):
-    """Yield the lookup keys a printing should answer to: the full name and,
-    for split/DFC/adventure cards, each individual face name. The `//` split and
-    `card_faces` branches overlap for multi-face cards (both yield the face
-    names, deduped by the caller's setdefault); the split branch is kept for the
-    rare split card that ships without a `card_faces` array."""
-    yield _normalize(row["name"])
+def _faces(row: dict) -> list[dict]:
+    """The row's faces in printed order, or [] for a single-face card.
+
+    Falls back to synthesising faces from a `//` name for the rare split card that
+    ships without a `card_faces` array; such a row has no per-face type line, so
+    the synthesised faces carry none either.
+    """
+    faces = row.get("card_faces") or []
+    if faces:
+        return [f for f in faces if f.get("name")]
     if "//" in row["name"]:
-        for part in row["name"].split("//"):
-            yield _normalize(part)
-    for face in row.get("card_faces") or []:
-        if face.get("name"):
-            yield _normalize(face["name"])
+        return [{"name": part.strip()} for part in row["name"].split("//") if part.strip()]
+    return []
+
+
+def _primary_keys(row: dict):
+    """Yield the lookup keys this card owns outright: its full canonical name and
+    its FRONT face's name.
+
+    These are the forms MTGTop8 actually emits (verified over production's
+    multi-face rows: front-face name or the single-slash split form, never a back
+    face), so a card must never lose one of them to another card's back face.
+    """
+    yield _normalize(row["name"])
+    faces = _faces(row)
+    if faces:
+        yield _normalize(faces[0]["name"])
+
+
+def _secondary_keys(row: dict):
+    """Yield the lookup keys this card answers to only as a fallback: the names of
+    its non-front faces.
+
+    A back face name is a weaker claim than any card's own name — `Replenish` is a
+    standalone Urza's Destiny sorcery first and `Eiganjo Dynastorian`'s back face
+    second — so these are registered in a later pass and can only fill a key no
+    primary claim wanted.
+    """
+    for face in _faces(row)[1:]:
+        yield _normalize(face["name"])
+
+
+def _face_type_line(row: dict, key: str) -> str | None:
+    """The type line of the face `key` names, falling back to the front face's.
+
+    A multi-face row's top-level `type_line` is the combined "<front> // <back>"
+    string, which no consumer can classify correctly. The full-name key resolves to
+    the front face's line too: classification must describe one face whichever
+    spelling was scraped, and the front face is the one the deck plays.
+    """
+    faces = _faces(row)
+    if not faces:
+        return row.get("type_line")
+    index = next(
+        (i for i, face in enumerate(faces) if _normalize(face["name"]) == key), 0
+    )
+    face_line = faces[index].get("type_line")
+    if face_line:
+        return face_line
+    # A synthesised face (split card shipping without `card_faces`) carries no type
+    # line, so take the matching half of the row's combined one positionally.
+    halves = [part.strip() for part in (row.get("type_line") or "").split("//")]
+    if len(halves) == len(faces):
+        return halves[index] or None
+    return row.get("type_line")
 
 
 def _banned_formats(row: dict) -> Iterator[str]:
@@ -254,23 +311,18 @@ class CardIndex:
             if current is None or _selection_key(row) > _selection_key(current):
                 best[name] = row
 
+        # Register keys in two priority passes, so a name a real card owns can never
+        # be taken by some other card's back face (`Replenish` is the Urza's Destiny
+        # sorcery, not `Eiganjo Dynastorian`'s back half). Within a pass, iterate in
+        # sorted canonical-name order: a same-tier collision is not known to exist,
+        # but nothing prevents one, and this makes the winner independent of
+        # bulk-file order rather than merely unspecified.
         by_name: dict[str, Printing] = {}
-        for name, row in best.items():
-            printing = Printing(
-                name=name,
-                set_code=str(row["set"]).upper(),
-                collector_number=str(row["collector_number"]),
-                image_url=_image_url(row, "normal"),
-                small_image_url=_image_url(row, "small"),
-                art_crop_url=_image_url(row, "art_crop"),
-                type_line=row.get("type_line"),
-                rarity=row.get("rarity"),
-                cmc=row.get("cmc"),
-                released_at=row.get("released_at"),
-                color_identity=tuple(row.get("color_identity") or ()),
-            )
-            for key in _name_keys(row):
-                by_name.setdefault(key, printing)
+        ordered = sorted(best.items())
+        for keys_for in (_primary_keys, _secondary_keys):
+            for name, row in ordered:
+                for key in keys_for(row):
+                    by_name.setdefault(key, _printing_for(name, row, key))
         return cls(by_name, banned_by_format)
 
     def __len__(self) -> int:
@@ -279,6 +331,28 @@ class CardIndex:
     def resolve(self, name: str) -> Printing | None:
         """Return the canonical printing for a scraped card name, or None on a miss."""
         return self._by_name.get(_normalize(name))
+
+
+def _printing_for(name: str, row: dict, key: str) -> Printing:
+    """Build the Printing served for one lookup key.
+
+    Identity (canonical name, set, collector number, images) always describes the
+    whole card — that is what identifies the physical card and its Arena export
+    line — while `type_line` describes the face `key` names.
+    """
+    return Printing(
+        name=name,
+        set_code=str(row["set"]).upper(),
+        collector_number=str(row["collector_number"]),
+        image_url=_image_url(row, "normal"),
+        small_image_url=_image_url(row, "small"),
+        art_crop_url=_image_url(row, "art_crop"),
+        type_line=_face_type_line(row, key),
+        rarity=row.get("rarity"),
+        cmc=row.get("cmc"),
+        released_at=row.get("released_at"),
+        color_identity=tuple(row.get("color_identity") or ()),
+    )
 
 
 def _bulk_rows(path: str) -> Iterator[dict]:

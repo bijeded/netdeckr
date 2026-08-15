@@ -34,6 +34,15 @@ describe('cardCategory', () => {
     expect(cardCategory('Battle — Siege')).toBe('other')
   })
 
+  it('classifies a multi-face card by the single face the deck plays', () => {
+    // The scraper stores one face's line, never the combined "<front> // <back>"
+    // string, so a sorcery whose other face is a creature is a spell and a modal
+    // DFC played as a sorcery is a spell rather than a land.
+    expect(cardCategory('Sorcery')).toBe('spells') // Esper Origins (back: Saga creature)
+    expect(cardCategory('Sorcery — Arcane')).toBe('spells') // Agadeem's Awakening (back: Land)
+    expect(cardCategory('Creature — Fox Advisor')).toBe('creatures') // Eiganjo Dynastorian (back: Sorcery)
+  })
+
   it('classifies missing or empty type lines as other', () => {
     expect(cardCategory(null)).toBe('other')
     expect(cardCategory('')).toBe('other')
