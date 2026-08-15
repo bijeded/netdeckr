@@ -21,6 +21,6 @@
 
 ## 5. Ship and migrate
 
-- [ ] 5.1 Open the PR and confirm on the Vercel preview: the decklist modal's Lands/Creatures/Spells grouping, the image view's land-last order, and the archetype grid's signature-card art (CLAUDE.md exception 1 — do not merge without confirmation)
-- [ ] 5.2 After merge, run `python scraper/run.py --remap-scryfall` against production and record the reported row count
-- [ ] 5.3 Verify on the live site: Pre-Modern `Replenish` shows the Urza's Destiny card and art, and `Esper Origins` appears in Top Spells rather than Top Creatures
+- [x] 5.1 Open the PR and confirm the user-visible change (CLAUDE.md exception 1). The Vercel preview could not show it — no frontend/SQL code changed and the preview reads the same production DB — so confirmation came from a dry run of the remap instead: 1 identity change, 40 grouping moves, 39 trending moves, 0 new misses, approved by the user before merge
+- [x] 5.2 After merge, run `--remap-scryfall` against production (dispatched via the `scrape.yml` workflow, which holds the service-role secret): re-resolved **149,320** rows, matching the dry run exactly
+- [x] 5.3 Verified against production: `Replenish` → UDS 15 `Sorcery`, `Esper Origins` → `Sorcery`, both `category=spell` from the `top_cards` RPC; zero rows retain a combined `//` type line
