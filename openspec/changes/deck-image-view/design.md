@@ -96,13 +96,30 @@ exactly the equal-size property we need to preserve. At 72px CSS the tiles are 1
 on a 2× display against Scryfall small's 146px — effectively 1:1.
 
 **Superseded on the preview:** 6/4 shipped first and was legible, but the thumbnails read as
-small against the modal's width. Settled at **5 mainboard / 3 sideboard columns**, re-solving
-the same constraint: `8W + 136 = 880` → W = **93px**, columns 541 / 339 → `1.6fr / 1fr`. The
-arithmetic now lands exactly on 880 with no spare, so the scrollbar risk noted below applies
-more tightly than it did at 72px. Trade-off accepted deliberately: at 93px the tiles are
-186 device px against a 146px source, so they are upscaled ~1.27× on a 2× display — bigger
-but slightly softer. Scryfall publishes nothing between `small` (146) and `normal` (488), so
-crisper would mean ~10× the bytes.
+small against the modal's width. Settled at **5 mainboard / 3 sideboard columns** at
+`1.6fr / 1fr`.
+
+The first attempt at 5/3 solved for a *snug* fit — `8W + 136 = 880` → W = 93px — and shipped
+broken: it fit the mainboard by half a pixel and missed the sideboard by half a pixel, so
+`auto-fill` dropped a column on each and 4/2 rendered. Two costs the original arithmetic
+ignored: the modal's own 1px border and the 1px divider between the boards. Re-derived against
+the real available width:
+
+```
+available     = 880 − 2 (modal border) − 1 (divider)            = 877
+main content  = 877 × 1.6/2.6 − 44 padding − 1 border           ≈ 495
+side content  = 877 × 1.0/2.6 − 44 padding                      ≈ 293
+W = 88  →  main needs 5×88 + 4×8 = 472  (23 spare)
+           side needs 3×88 + 2×8 = 280  (13 spare)
+```
+
+**W = 88px**, chosen for slack rather than for the largest tile that fits. The lesson is
+recorded in the CSS: `auto-fill` degrades a column at a time, silently, so a layout solved to
+the last pixel does not survive contact with a border.
+
+At 88px the tiles are 176 device px against a 146px source, so they are upscaled ~1.2× on a
+2× display — bigger but slightly softer. Scryfall publishes nothing between `small` (146) and
+`normal` (488), so crisper would mean ~10× the bytes.
 
 **Superseded decision:** the earlier plan was to stack the two boards vertically in image
 view, on the reasoning that a 6-card sideboard in the narrow column would look lopsided
@@ -116,12 +133,19 @@ holds without a fixed track. A fixed 72px track there would leave ~40px of dead 
 375px-wide phone (content ≈ 291px fits 3 tiles + 40px slack), so mobile uses
 `repeat(auto-fill, minmax(72px, 1fr))` — 3 across at ~88px, edge to edge.
 
-**Settled on the preview:** neither the full-width `minmax(72px, 1fr)` nor a cap. The floor
-was dropped to **62px**, which sets the column count from the phone's width rather than
-fixing it — `auto-fill` takes `floor((content + 8) / 70)`, so a 375px phone (291px of
-content) gets **4** columns at ~67px and a 430px one (346px) gets **5** at ~63px. Softness at
-that size was judged acceptable in exchange for seeing more of the deck at once; the tiles are
-a browsing aid, and the full-size preview is one tap away.
+**Settled on the preview:** neither the full-width `minmax(72px, 1fr)` nor a cap — and not
+`auto-fill` at all. **Explicit counts: 4 columns at ≤460px, 5 above it**, both boards.
+
+A `minmax(62px, 1fr)` auto-fill track was tried and produced boards that disagreed with each
+other: the mainboard rendered 3 columns while the sideboard rendered 4, from the same rule.
+The cause is that the mainboard div carries a 1px right border the sideboard does not, which
+was enough to put the two containers on opposite sides of an auto-fill threshold. The
+equal-size guarantee assumed identical container widths, and "identical" quietly wasn't.
+
+An explicit column count removes the failure mode rather than re-tuning around it — two
+boards cannot drift apart when both are told the same number. Softness at ~67px is accepted in
+exchange for seeing more of the deck at once; the tiles are a browsing aid, and the full-size
+preview is one tap away.
 
 Both regimes reuse the existing 640px breakpoint; no new media query is introduced.
 
@@ -170,10 +194,11 @@ art).
 - **Scryfall bandwidth from grid views** → Tiles are `loading="lazy"` and only mount in image
   view, so list-view opens fetch nothing. At ~10 KB per thumbnail a full deck grid is ~250 KB,
   comparable to a single existing hover preview.
-- **The desktop calculation now lands exactly on 880 with no spare** → If a scrollbar or a
-  padding change eats a few pixels, `auto-fill` drops the mainboard to 4 columns rather than
-  overflowing. Degrades, doesn't break, and the 5/3 layout was confirmed on the preview rather
-  than assumed from the arithmetic.
+- **`auto-fill` fails silently, a column at a time** → This bit twice: once on the desktop
+  split solved to the half-pixel, once on mobile where a 1px border desynchronised the two
+  boards. Mitigated by keeping ≥13px of slack in the desktop track and by stating mobile
+  counts explicitly. Any future change to the modal's width, padding, or borders should be
+  re-checked against the arithmetic in `dashboard.css`, not eyeballed.
 - **`small_image_url` missing on un-backfilled rows** → Falls back to `image_url`; heavier,
   still correct. Only a row with neither shows a placeholder.
 - **Adding a column to `deck_cards` touches a file CLAUDE.md gates** → The change is additive
