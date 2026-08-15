@@ -127,6 +127,7 @@ def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
                 set_code="CLU",
                 collector_number="141",
                 image_url="https://cards.scryfall.io/normal/bolt.jpg",
+                small_image_url="https://cards.scryfall.io/small/bolt.jpg",
                 type_line="Instant",
                 rarity="uncommon",
                 cmc=1,
@@ -148,6 +149,7 @@ def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
     assert rows[0]["set_code"] == "CLU"
     assert rows[0]["collector_number"] == "141"
     assert rows[0]["image_url"] == "https://cards.scryfall.io/normal/bolt.jpg"
+    assert rows[0]["small_image_url"] == "https://cards.scryfall.io/small/bolt.jpg"
     assert rows[0]["card_name"] == "Lightning Bolt"
     assert rows[0]["type_line"] == "Instant"
     assert rows[0]["rarity"] == "uncommon"
@@ -159,6 +161,7 @@ def test_replace_deck_cards_enriches_resolvable_cards_with_scryfall_identity():
     assert rows[1]["set_code"] is None
     assert rows[1]["collector_number"] is None
     assert rows[1]["image_url"] is None
+    assert rows[1]["small_image_url"] is None
     assert rows[1]["type_line"] is None
     assert rows[1]["rarity"] is None
     assert rows[1]["cmc"] is None
@@ -389,6 +392,88 @@ def test_backfill_scryfall_no_null_rows_is_a_noop():
     session.patch.assert_not_called()
 
 
+# -- Thumbnail backfill ----------------------------------------------------
+
+def test_backfill_small_images_requires_a_resolver():
+    import pytest
+
+    with pytest.raises(RuntimeError):
+        _writer(MagicMock()).backfill_small_images()
+
+
+def test_backfill_small_images_uses_its_own_sentinel_and_writes_only_the_thumbnail():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response([{"id": 1, "card_name": "Lightning Bolt"}, {"id": 2, "card_name": "Lightning Bolt"}]),
+        _response([]),
+    ]
+    session.patch.return_value = _response([{"id": 1}, {"id": 2}])
+    resolver = _StubResolver(
+        {
+            "Lightning Bolt": Printing(
+                name="Lightning Bolt",
+                set_code="CLU",
+                collector_number="141",
+                image_url="https://cards.scryfall.io/normal/bolt.jpg",
+                small_image_url="https://cards.scryfall.io/small/bolt.jpg",
+            )
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    updated = writer.backfill_small_images()
+
+    assert updated == 2
+    # Keyed on its OWN sentinel: rows enriched before this column exists already
+    # carry a non-null image_url, so backfill_scryfall's sentinel cannot see them.
+    read_url = session.get.call_args_list[0][0][0]
+    assert "small_image_url=is.null" in read_url
+    assert "image_url=is.null" not in read_url.replace("small_image_url=is.null", "")
+    patch_url = session.patch.call_args[0][0]
+    assert "small_image_url=is.null" in patch_url
+    assert "card_name=eq.Lightning%20Bolt" in patch_url
+    assert "%22" not in patch_url
+    # Only the thumbnail is written — the identity columns on these rows are
+    # already correct, and rewriting them is remap_scryfall's job.
+    assert session.patch.call_args[1]["json"] == {
+        "small_image_url": "https://cards.scryfall.io/small/bolt.jpg"
+    }
+
+
+def test_backfill_small_images_skips_misses_and_printings_without_a_thumbnail():
+    session = MagicMock()
+    session.get.side_effect = [
+        _response(
+            [
+                {"id": 1, "card_name": "Homebrew Nonsense"},  # unresolvable
+                {"id": 2, "card_name": "Imageless Card"},  # resolves, no thumbnail
+            ]
+        ),
+        _response([]),
+    ]
+    resolver = _StubResolver(
+        {
+            "Imageless Card": Printing(
+                name="Imageless Card", set_code="ABC", collector_number="7", small_image_url=None
+            )
+        }
+    )
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    assert writer.backfill_small_images() == 0
+    session.patch.assert_not_called()  # both rows stay null
+
+
+def test_backfill_small_images_is_idempotent_when_nothing_is_null():
+    session = MagicMock()
+    session.get.return_value = _response([])  # every row already has a thumbnail
+    resolver = _StubResolver({})
+    writer = SupabaseWriter(URL, KEY, session=session, card_resolver=resolver)
+
+    assert writer.backfill_small_images() == 0
+    session.patch.assert_not_called()
+
+
 # -- Metadata backfill -----------------------------------------------------
 
 def test_backfill_metadata_requires_a_resolver():
@@ -509,6 +594,7 @@ def test_remap_scryfall_rewrites_all_columns_for_resolvable_names():
                 set_code="CLU",
                 collector_number="141",
                 image_url="https://cards.scryfall.io/normal/bolt.jpg",
+                small_image_url="https://cards.scryfall.io/small/bolt.jpg",
                 art_crop_url="https://cards.scryfall.io/art_crop/bolt.jpg",
                 type_line="Instant",
                 rarity="uncommon",
@@ -538,6 +624,7 @@ def test_remap_scryfall_rewrites_all_columns_for_resolvable_names():
         "set_code": "CLU",
         "collector_number": "141",
         "image_url": "https://cards.scryfall.io/normal/bolt.jpg",
+        "small_image_url": "https://cards.scryfall.io/small/bolt.jpg",
         "type_line": "Instant",
         "rarity": "uncommon",
         "cmc": 1,

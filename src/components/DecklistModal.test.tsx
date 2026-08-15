@@ -206,4 +206,121 @@ describe('DecklistModal', () => {
       vi.unstubAllGlobals()
     })
   })
+  describe('image view', () => {
+    const mixedDeck = {
+      main: [
+        { quantity: 4, name: 'Island', typeLine: 'Basic Land — Island', imageUrl: 'i.jpg', thumbnailUrl: 'i-s.jpg' },
+        { quantity: 4, name: 'Snapcaster Mage', typeLine: 'Creature — Human Wizard', imageUrl: 'c.jpg', thumbnailUrl: 'c-s.jpg' },
+        { quantity: 2, name: 'Opt', typeLine: 'Instant', imageUrl: 'o.jpg', thumbnailUrl: 'o-s.jpg' },
+      ],
+      side: [{ quantity: 3, name: 'Negate', typeLine: 'Instant', imageUrl: 'n.jpg', thumbnailUrl: 'n-s.jpg' }],
+      mainCount: 10,
+      sideCount: 3,
+      loading: false,
+      error: null,
+    }
+
+    const toImages = () => fireEvent.click(screen.getByRole('button', { name: /gallery/i }))
+
+    it('opens in list view and switches to tiles on the toggle', () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+
+      expect(screen.queryAllByTestId('card-tile')).toHaveLength(0)
+      toImages()
+      // One tile per distinct card (3 main + 1 side), not one per copy.
+      expect(screen.getAllByTestId('card-tile')).toHaveLength(4)
+    })
+
+    it('shows each card once with its copy count', () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      toImages()
+
+      expect(screen.getAllByText('x4')).toHaveLength(2)
+      expect(screen.getByText('x2')).toBeInTheDocument()
+      expect(screen.getByText('x3')).toBeInTheDocument()
+    })
+
+    it('uses the thumbnail image, not the full-size art', () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      toImages()
+
+      expect(screen.getByAltText('Snapcaster Mage')).toHaveAttribute('src', 'c-s.jpg')
+    })
+
+    it('renders the mainboard flat with lands last and no group headings', () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      toImages()
+
+      expect(screen.queryAllByTestId('card-group-heading')).toHaveLength(0)
+      const names = screen.getAllByRole('img').map((img) => img.getAttribute('alt'))
+      // Creatures, then spells, then lands — the sideboard tile trails the main grid.
+      expect(names.slice(0, 3)).toEqual(['Snapcaster Mage', 'Opt', 'Island'])
+    })
+
+    it('keeps the section card totals unchanged', () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      toImages()
+
+      expect(screen.getByText('10 cards')).toBeInTheDocument()
+      expect(screen.getByText('3 cards')).toBeInTheDocument()
+    })
+
+    it('renders a placeholder tile for a card with no image', () => {
+      useDeckCards.mockReturnValue({
+        ...mixedDeck,
+        main: [{ quantity: 1, name: 'Homebrew Nonsense', typeLine: null, imageUrl: null, thumbnailUrl: null }],
+        mainCount: 1,
+      })
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      toImages()
+
+      expect(screen.getByTestId('card-tile-placeholder')).toHaveTextContent('Homebrew Nonsense')
+      expect(screen.getByText('x1')).toBeInTheDocument()
+      expect(screen.getByText('1 card')).toBeInTheDocument()
+    })
+
+    it('switches back to the list view', () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      toImages()
+      fireEvent.click(screen.getByRole('button', { name: /^list$/i }))
+
+      expect(screen.queryAllByTestId('card-tile')).toHaveLength(0)
+      expect(screen.getAllByTestId('card-group-heading').length).toBeGreaterThan(0)
+    })
+
+    it('resets to list view when the modal is reopened', () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      const { unmount } = render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      toImages()
+      expect(screen.getAllByTestId('card-tile').length).toBeGreaterThan(0)
+      unmount()
+
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      expect(screen.queryAllByTestId('card-tile')).toHaveLength(0)
+    })
+
+    it('exports the same decklist in either view', async () => {
+      useDeckCards.mockReturnValue(mixedDeck)
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /export to mtg arena/i }))
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+      const fromList = writeText.mock.calls[0][0]
+
+      toImages()
+      fireEvent.click(screen.getByRole('button', { name: /export to mtg arena/i }))
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+      expect(writeText.mock.calls[1][0]).toBe(fromList)
+
+      vi.unstubAllGlobals()
+    })
+  })
 })

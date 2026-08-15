@@ -9,6 +9,13 @@ export interface DeckCardLine {
   collectorNumber?: string | null
   /** Hotlinked Scryfall card image (normal size), when resolved; else null. */
   imageUrl?: string | null
+  /**
+   * Thumbnail-size image for the decklist modal's image-view tiles. Falls back to
+   * the normal image while `small_image_url` is still unpopulated (rows enriched
+   * before that column existed, until the backfill runs) — heavier but correct,
+   * so tiles never degrade to a placeholder over backfill timing alone.
+   */
+  thumbnailUrl?: string | null
   /** Scryfall type line (e.g. "Creature — Elf Druid"), when resolved; else null. */
   typeLine?: string | null
 }
@@ -21,6 +28,7 @@ interface DeckCardQueryRow {
   set_code?: string | null
   collector_number?: string | null
   image_url?: string | null
+  small_image_url?: string | null
   type_line?: string | null
 }
 
@@ -56,7 +64,9 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
 
     supabase
       .from('deck_cards')
-      .select('board, quantity, card_name, scryfall_name, set_code, collector_number, image_url, type_line')
+      .select(
+        'board, quantity, card_name, scryfall_name, set_code, collector_number, image_url, small_image_url, type_line',
+      )
       .eq('deck_id', deckId)
       .order('id')
       .then(({ data, error }) => {
@@ -74,6 +84,7 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
             setCode: row.set_code ?? null,
             collectorNumber: row.collector_number ?? null,
             imageUrl: row.image_url ?? null,
+            thumbnailUrl: row.small_image_url ?? row.image_url ?? null,
             typeLine: row.type_line ?? null,
           }
           ;(row.board === 'side' ? side : main).push(line)

@@ -217,6 +217,33 @@
   columns: 2;
   column-gap: 18px;
 }
+/* Image view: 5 mainboard + 3 sideboard columns, stated explicitly and stretched
+   to fill each board, so the grids end flush with the section headings' right
+   edge instead of stopping short of it.
+     available = 880 modal - 2 modal border - 1 column divider   = 877
+     main content = 877 x 1.6/2.6 - 44 padding - 1 border        ≈ 494.7
+     side content = 877 x 1.0/2.6 - 44 padding                   ≈ 293.3
+   Tiles stay the same size across both boards because 1.6fr/1fr is very nearly
+   the split that makes 5 and 3 columns equal: solving 8t + 137 = 877 gives
+   t = 92.5 and a 539.5 : 337.5 = 1.5985 ratio. At 1.6 the two boards' tiles land
+   ~92.5px and ~92.4px — a 0.1px difference.
+   Earlier cuts used a FIXED track with auto-fill, which silently dropped a column
+   whenever the arithmetic came up even half a pixel short (a snug W = 93 shipped
+   as 4/2). Stating the count removes that failure mode rather than tuning around
+   it, and 1fr tracks then absorb any future padding change instead of breaking. */
+.decklist-grid-images {
+  grid-template-columns: 1.6fr 1fr;
+}
+.decklist-tiles {
+  display: grid;
+  gap: 8px;
+}
+.decklist-tiles-main {
+  grid-template-columns: repeat(5, 1fr);
+}
+.decklist-tiles-side {
+  grid-template-columns: repeat(3, 1fr);
+}
 /* Decklist modal header. Desktop: title/meta and the export/close actions sit
    on one row (actions right-aligned). Mobile: the actions move to their own
    right-aligned top row and the title/meta stack below at full width, so a long
@@ -264,11 +291,35 @@
   }
 }
 @media (max-width: 640px) {
-  .decklist-grid {
+  .decklist-grid,
+  .decklist-grid-images {
     grid-template-columns: 1fr;
   }
   .decklist-main-cols {
     columns: 1;
+  }
+  /* Stacked here, so both boards are the same width and the equal-tile guarantee
+     holds without a fixed track. The count is stated EXPLICITLY rather than left
+     to auto-fill: the mainboard carries a 1px right border the sideboard does
+     not, which was enough to put it on the other side of an auto-fill threshold —
+     the mainboard rendered 3 columns while the sideboard rendered 4, from the
+     same rule. An explicit count cannot drift between the two boards. */
+  .decklist-tiles-main,
+  .decklist-tiles-side {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  /* The mobile header row is already full with export + close — the view toggle
+     drops to its glyph alone and keeps its aria-label. */
+  .modal-view-label {
+    display: none;
+  }
+}
+/* Small phones: 4 across. At 460px and below, 5 columns would put the tiles under
+   ~62px, where the art stops being recognisable at a glance. */
+@media (max-width: 460px) {
+  .decklist-tiles-main,
+  .decklist-tiles-side {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

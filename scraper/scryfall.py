@@ -58,6 +58,7 @@ class Printing:
     set_code: str  # uppercased set code, matching Arena's "(SET) NUM"
     collector_number: str
     image_url: str | None = None  # hotlinked Scryfall CDN image (normal size), if any
+    small_image_url: str | None = None  # same image at thumbnail size, for grid display
     art_crop_url: str | None = None  # hotlinked Scryfall CDN art_crop image, if any
     type_line: str | None = None  # printing type line, e.g. "Creature — Elf"
     rarity: str | None = None  # mythic/rare/uncommon/common
@@ -162,27 +163,15 @@ def _selection_key(row: dict) -> tuple[int, int, str, str]:
     )
 
 
-def _normal_image_url(row: dict) -> str | None:
-    """The printing's `normal`-size image URL. Split/DFC cards carry no top-level
-    `image_uris`; fall back to the front face's."""
-    top = (row.get("image_uris") or {}).get("normal")
+def _image_url(row: dict, size: str) -> str | None:
+    """The printing's image URL at one of Scryfall's sizes (`normal`, `small`,
+    `art_crop`). Split/DFC cards carry no top-level `image_uris`; fall back to the
+    front face's."""
+    top = (row.get("image_uris") or {}).get(size)
     if top:
         return top
     for face in row.get("card_faces") or []:
-        face_url = (face.get("image_uris") or {}).get("normal")
-        if face_url:
-            return face_url
-    return None
-
-
-def _art_crop_url(row: dict) -> str | None:
-    """The printing's `art_crop`-size image URL. Split/DFC cards carry no top-level
-    `image_uris`; fall back to the front face's (mirrors `_normal_image_url`)."""
-    top = (row.get("image_uris") or {}).get("art_crop")
-    if top:
-        return top
-    for face in row.get("card_faces") or []:
-        face_url = (face.get("image_uris") or {}).get("art_crop")
+        face_url = (face.get("image_uris") or {}).get(size)
         if face_url:
             return face_url
     return None
@@ -271,8 +260,9 @@ class CardIndex:
                 name=name,
                 set_code=str(row["set"]).upper(),
                 collector_number=str(row["collector_number"]),
-                image_url=_normal_image_url(row),
-                art_crop_url=_art_crop_url(row),
+                image_url=_image_url(row, "normal"),
+                small_image_url=_image_url(row, "small"),
+                art_crop_url=_image_url(row, "art_crop"),
                 type_line=row.get("type_line"),
                 rarity=row.get("rarity"),
                 cmc=row.get("cmc"),

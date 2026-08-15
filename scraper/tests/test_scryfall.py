@@ -59,6 +59,27 @@ def test_split_card_printing_uses_front_face_image():
     assert printing.image_url == "https://cards.scryfall.io/normal/fire.jpg"
 
 
+def test_resolved_printing_carries_a_thumbnail_image():
+    # The decklist modal's image view renders thumbnails, not full-size art.
+    printing = _index().resolve("Lightning Bolt")
+    assert printing.small_image_url == "https://cards.scryfall.io/small/bolt-m11.jpg"
+
+
+def test_split_card_thumbnail_uses_front_face():
+    # Split/DFC cards carry no top-level image_uris; the thumbnail uses the front
+    # face's, same as the normal image and art_crop.
+    printing = _index().resolve("Fire / Ice")
+    assert printing.small_image_url == "https://cards.scryfall.io/small/fire.jpg"
+
+
+def test_printing_without_images_has_no_thumbnail():
+    # Fable of the Mirror-Breaker's fixture faces carry no image_uris at all.
+    printing = _index().resolve("Fable of the Mirror-Breaker")
+    assert printing is not None
+    assert printing.image_url is None
+    assert printing.small_image_url is None
+
+
 def test_split_card_art_crop_uses_front_face():
     # Split/DFC cards carry no top-level image_uris; art_crop uses the front face's.
     printing = _index().resolve("Fire / Ice")

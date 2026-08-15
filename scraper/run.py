@@ -13,6 +13,7 @@ SUPABASE_SERVICE_ROLE_KEY set.
     python scraper/run.py --remap-scryfall     # one-time: re-resolve ALL rows (heuristic changes)
     python scraper/run.py --refresh-color-identity  # one-time: recompute archetype color identity
     python scraper/run.py --backfill-sizes     # one-time: fill events.player_count from event pages
+    python scraper/run.py --backfill-small-images  # one-time: fill deck_cards.small_image_url
 """
 from __future__ import annotations
 
@@ -198,6 +199,21 @@ def main(argv: list[str] | None = None) -> int:
         updated = writer.backfill_metadata()
         print(f"backfill: enriched {updated} deck_cards rows with card metadata")
         _refresh_all_archetype_derived(writer)
+        return 0
+
+    if "--backfill-small-images" in argv:
+        # One-time mode: fill small_image_url on existing deck_cards rows for the
+        # decklist modal's image view. Needs its own pass because those rows already
+        # carry a non-null image_url and so are invisible to --backfill-scryfall's
+        # sentinel. A standalone pass — it does not scrape, and it touches no
+        # archetype-derived data, so no refresh follows.
+        resolver = build_card_resolver()
+        if resolver is None:
+            print("Scryfall bulk sync unavailable; cannot backfill", file=sys.stderr)
+            return 1
+        writer = SupabaseWriter(url, key, card_resolver=resolver)
+        updated = writer.backfill_small_images()
+        print(f"backfill-small-images: set small_image_url on {updated} deck_cards rows")
         return 0
 
     formats = formats_to_scrape(argv, FORMATS)
