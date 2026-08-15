@@ -61,9 +61,42 @@ When a card has several eligible non-foil paper printings, the system SHALL choo
 
 Resolution SHALL match the scraped card name to a Scryfall card name, tolerating the split/double-faced card naming MTGTop8 emits (including its single-slash separator, e.g. resolving `Fire / Ice` or a front-face-only name to the full `Fire // Ice` card). When a scraped name has no confident match, resolution SHALL return no printing (a miss) rather than an incorrect one.
 
+**Whole cards outrank foreign faces.** A scraped name can be claimed by more than one card: a name that is a card's own full name may also appear as some *other* multi-face card's face name (for example `Replenish`, both a standalone Urza's Destiny sorcery and the back face of `Eiganjo Dynastorian // Replenish`). Resolution SHALL rank these claims rather than letting bulk-file ordering decide:
+1. A card whose full canonical name matches the scraped name.
+2. A multi-face card whose **front** face name matches — this is the form MTGTop8 emits for split, adventure, and double-faced cards.
+3. Any other face name of a multi-face card.
+
+A lower-priority claim SHALL NOT displace a higher-priority one regardless of the order the printings appear in the bulk data, and SHALL still resolve when no higher-priority claim exists. Ties within a priority tier SHALL be broken deterministically so resolution is independent of bulk-file ordering.
+
+**Metadata describes the matched face.** When a scraped name matches a face of a multi-face card, the resolved `type_line` SHALL be that face's type line, not the card's combined `"<front> // <back>"` line. The identity columns — canonical `name`, `set_code`, `collector_number`, and the image URLs — SHALL continue to describe the whole card and its selected printing, since that is what identifies the physical card and its Arena export line. A single-face card's type line is unchanged.
+
 #### Scenario: Known card resolves to a printing
 - **WHEN** a scraped card name matches a Scryfall card
 - **THEN** resolution returns the canonical name, a non-foil set code, a collector number, the printing's image URL, and the printing's cropped-art URL, type line, rarity, converted mana cost, and set release date
+
+#### Scenario: A standalone card is not displaced by another card's face
+- **WHEN** a scraped name is both a standalone card's full name and the non-front face name of a different multi-face card
+- **THEN** resolution returns the standalone card's identity and printing, regardless of which of the two appears first in the bulk data
+
+#### Scenario: A front face outranks another card's back face
+- **WHEN** a scraped name matches one multi-face card's front face and another multi-face card's back face, and no standalone card carries that name
+- **THEN** resolution returns the card whose front face matches
+
+#### Scenario: A non-front face still resolves when nothing else claims the name
+- **WHEN** a scraped name appears only as a non-front face of a single multi-face card
+- **THEN** resolution returns that card rather than a miss
+
+#### Scenario: Type line describes the matched face
+- **WHEN** a scraped name matches the sorcery front face of a transforming card whose back face is a creature
+- **THEN** the resolved type line is the sorcery face's line alone, and contains no part of the back face's line
+
+#### Scenario: Identity still describes the whole card
+- **WHEN** a scraped name matches one face of a multi-face card
+- **THEN** the resolved canonical name, set code, collector number, and image URLs are those of the whole card's selected printing, so the Arena export line and card art are unchanged
+
+#### Scenario: Single-face cards are unaffected
+- **WHEN** a scraped name matches a single-face card
+- **THEN** the resolved type line is that card's own type line, exactly as before
 
 #### Scenario: Reversible printings are never selected
 - **WHEN** a card has a plain printing plus a `reversible_card` printing whose `type_line` and `cmc` are null
