@@ -826,3 +826,78 @@ def test_split_card_without_card_faces_splits_its_type_line_positionally():
 
 def test_single_face_card_type_line_is_unchanged():
     assert _index().resolve("Lightning Bolt").type_line == "Instant"
+
+
+# -- whole-card land-face flag --------------------------------------------
+
+def _sea_gate_row():
+    """The card that started this: a spell front, a land back, played as a land."""
+    return _multiface_row(
+        "Sea Gate Restoration // Sea Gate, Reborn",
+        [("Sea Gate Restoration", "Sorcery"), ("Sea Gate, Reborn", "Land")],
+        "znr",
+        "76",
+        layout="modal_dfc",
+        released_at="2020-09-25",
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Sea Gate Restoration",
+        "Sea Gate, Reborn",
+        "Sea Gate Restoration // Sea Gate, Reborn",
+    ],
+    ids=["front", "back", "full"],
+)
+def test_land_backed_mdfc_has_a_land_face_under_every_name(name):
+    # The flag describes the whole card, so every lookup key agrees — unlike
+    # `type_line`, which describes only the face the name names.
+    printing = CardIndex.from_bulk_rows([_sea_gate_row()]).resolve(name)
+    assert printing is not None
+    assert printing.has_land_face is True
+
+
+def test_land_backed_mdfc_keeps_its_per_face_type_line():
+    index = CardIndex.from_bulk_rows([_sea_gate_row()])
+    assert index.resolve("Sea Gate Restoration").type_line == "Sorcery"
+    assert index.resolve("Sea Gate, Reborn").type_line == "Land"
+
+
+def test_multiface_card_without_a_land_face_has_none():
+    row = _multiface_row(
+        "Valki, God of Lies // Tibalt, Cosmic Impostor",
+        [
+            ("Valki, God of Lies", "Legendary Creature — God"),
+            ("Tibalt, Cosmic Impostor", "Legendary Planeswalker — Tibalt"),
+        ],
+        "khm",
+        "114",
+        layout="modal_dfc",
+    )
+    index = CardIndex.from_bulk_rows([row])
+    assert index.resolve("Valki, God of Lies").has_land_face is False
+    assert index.resolve("Tibalt, Cosmic Impostor").has_land_face is False
+
+
+def test_plain_land_has_a_land_face():
+    row = _printing_row(
+        "Wooded Foothills", "khm", "254", released_at="2021-02-05", type_line="Land"
+    )
+    assert CardIndex.from_bulk_rows([row]).resolve("Wooded Foothills").has_land_face is True
+
+
+def test_plain_spell_has_no_land_face():
+    assert _index().resolve("Lightning Bolt").has_land_face is False
+
+
+def test_split_card_without_card_faces_still_sees_a_land_half():
+    # No per-face type lines to read, so the combined top-level line answers.
+    row = _printing_row(
+        "Bala Ged Recovery // Bala Ged Sanctuary", "znr", "180",
+        released_at="2020-09-25", type_line="Sorcery // Land",
+    )
+    index = CardIndex.from_bulk_rows([row])
+    assert index.resolve("Bala Ged Recovery").has_land_face is True
+    assert index.resolve("Bala Ged Recovery").type_line == "Sorcery"
