@@ -43,10 +43,6 @@ import { privacyEs } from './content/legal/privacy.es'
 
 const SIDEBAR_MQ = '(max-width: 860px)'
 
-/* Stands in for a fact the data does not record, in a column that reserves room
-   for it either way. Locale-neutral, so it needs no translation key. */
-const EM_DASH = '—'
-
 function App() {
   const { t, i18n } = useTranslation()
   const { format, setFormat } = useFormatSelection()
@@ -305,21 +301,24 @@ function App() {
   //
   // The Events modal is the one whose rows carry no figure: its card counts
   // events, and one row per event already is that breakdown. Each row instead
-  // describes its event across three columns — date, name, size — with an em
-  // dash where the data records nothing, so a missing fact stays visible rather
-  // than reading as a fact nobody asked for. The "All events" row is not an
-  // event, so it spans the columns instead of filling them with dashes.
+  // describes its event across three columns — date, name, size — putting the
+  // word for it where the data records nothing, so a missing fact stays
+  // visible rather than reading as a fact nobody asked for — and reads as
+  // "unknown" to a screen reader rather than as a punctuation mark. The "All
+  // events" row is not an event, so it spans the columns instead of filling
+  // them.
+  const unknownFact = t('filters.unknownFact')
   const eventRows: FilterModalRow<number>[] = [
     { key: 'all', value: null, content: t('filters.allEvents'), fullWidth: true },
     ...events.map((event) => ({
       key: String(event.id),
       value: event.id,
-      lead: formatShortDate(event.eventDate, i18n.language) || EM_DASH,
+      lead: formatShortDate(event.eventDate, i18n.language) || unknownFact,
       content: event.name,
       meta:
         event.playerCount != null && event.playerCount > 0
           ? t('dashboard.eventSize', { count: event.playerCount })
-          : EM_DASH,
+          : unknownFact,
     })),
   ]
   const archetypeRows: FilterModalRow<string>[] = [

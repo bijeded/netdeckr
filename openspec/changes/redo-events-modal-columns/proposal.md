@@ -7,7 +7,7 @@ The deck figure is also answering a question the card never asked. The Events St
 ## What Changes
 
 - The Events modal renders each event across three aligned columns — **date**, **event name**, **player count** — replacing the single composed label.
-- An event with **no recorded date** or **no recorded player count** shows an em dash in that cell, rather than silently dropping the fact. Unsized events are a real class in this product (the Event size filter offers "Unsized"), so their absence of size is worth showing.
+- An event with **no recorded date** or **no recorded player count** names that fact as "Unknown" / "Desconocido" in the cell, rather than silently dropping it. Unsized events are a real class in this product (the Event size filter offers "Unsized"), so their absence of size is worth showing.
 - The per-event **deck count is removed** from the modal.
 - The leading **"All events" row spans the full row width** instead of taking the column grid. It is the filter's default, not an event, so the columns do not apply to it and em dashes would misstate "not applicable" as "not reported".
 - The shared `FilterModal` gains two optional per-row capabilities — a **leading fixed column** and a **full-width row** — both reserved list-wide the way its middle column already is. The Archetypes and Decks modals use neither and are unchanged.
@@ -43,6 +43,6 @@ None.
 
 User-visible and confined to one modal. Per the project's merge rules this is exception 1 — it needs confirmation on the Vercel preview before merge.
 
-**Noted, deliberately out of scope**
+**Brought into scope on review**
 
-The spec's `StatCard filter modals` requirement states the tier modal's rows carry two figures (archetype count and deck count), but `tierRows` in `App.tsx` sets only one, leaving `FilterModal`'s `metaSecondary` field and its CSS exercised solely by `FilterModal.test.tsx`. That drift predates this change and is left alone here.
+Originally noted here as out of scope: the spec's `StatCard filter modals` requirement stated the tier modal's rows carry two figures, but `tierRows` in `App.tsx` sets only one, leaving `FilterModal`'s `metaSecondary` field and its CSS exercised solely by `FilterModal.test.tsx`. The user asked for the dead field to be deleted, so it is — along with its CSS and the spec scenarios that described the two-figure behavior the app had already abandoned.

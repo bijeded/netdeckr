@@ -1269,7 +1269,7 @@ describe('StatCard filter modals', () => {
     for (const row of rows) expect(row.textContent).not.toMatch(/deck/i)
   })
 
-  it('shows an em dash for an event fact the data does not record', () => {
+  it('names an unrecorded event fact rather than punctuating it', () => {
     useMetagame.mockReturnValue({
       ...useMetagame(),
       events: [
@@ -1280,18 +1280,32 @@ describe('StatCard filter modals', () => {
     render(<App />)
     const dialog = openCard(/Events/)
     const ptq = within(dialog).getByRole('button', { name: /PTQ/ })
-    // Both cells keep their place in the column band rather than collapsing.
-    expect(ptq.querySelector('.filter-modal-row-lead')).toHaveTextContent('\u2014')
-    expect(ptq.querySelector('.filter-modal-row-meta')).toHaveTextContent('\u2014')
+    // Both cells keep their place in the column band rather than collapsing, and
+    // carry the word so a screen reader says "Unknown", not "em dash".
+    expect(ptq.querySelector('.filter-modal-row-lead')).toHaveTextContent('Unknown')
+    expect(ptq.querySelector('.filter-modal-row-meta')).toHaveTextContent('Unknown')
     expect(ptq.querySelector('.filter-modal-row-content')).toHaveTextContent('PTQ')
   })
 
-  it('spans the "All events" row across the columns instead of dashing them', () => {
+  it('localizes the unrecorded-fact word in Spanish', () => {
+    i18n.changeLanguage('es')
+    useMetagame.mockReturnValue({
+      ...useMetagame(),
+      events: [{ id: 20, name: 'PTQ', eventDate: '', playerCount: null, deckCount: 1 }],
+    })
+    render(<App />)
+    const dialog = openCard(/Eventos/)
+    const ptq = within(dialog).getByRole('button', { name: /PTQ/ })
+    // The date column is sized for this word, the longer of the two locales.
+    expect(ptq.querySelector('.filter-modal-row-lead')).toHaveTextContent('Desconocido')
+  })
+
+  it('spans the "All events" row across the columns instead of filling them', () => {
     render(<App />)
     const dialog = openCard(/Events/)
     const all = within(dialog).getByRole('button', { name: 'All events' })
     // "All events" is the default, not an event with unrecorded facts, so it
-    // renders no cells at all rather than em dashes.
+    // renders no cells at all rather than calling them unknown.
     expect(all.querySelector('.filter-modal-row-lead')).toBeNull()
     expect(all.querySelector('.filter-modal-row-meta')).toBeNull()
     expect(all).toHaveTextContent('All events')
@@ -1358,11 +1372,14 @@ describe('StatCard filter modals', () => {
     expect(figures).toEqual([['2 archetypes'], ['1 archetype'], ['0 archetypes'], ['1 archetype'], ['0 archetypes']])
   })
 
-  it('leaves every modal with a single figure column', () => {
+  it('leaves every modal with at most one figure per row', () => {
     render(<App />)
     for (const card of [/Events/, /Archetypes/, /Decks/]) {
       const dialog = openCard(card)
-      expect(dialog.querySelectorAll('.filter-modal-row-meta-secondary')).toHaveLength(0)
+      const rows = Array.from(dialog.querySelectorAll('.filter-modal-row'))
+      for (const row of rows) {
+        expect(row.querySelectorAll('.filter-modal-row-meta').length).toBeLessThanOrEqual(1)
+      }
       act(() => fireEvent.keyDown(document, { key: 'Escape' }))
     }
   })

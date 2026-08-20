@@ -14,8 +14,13 @@
 - [x] 3.1 Update the Events-modal assertions in `App.test.tsx` to the three-column rows, and add cases for an event with no player count, an event with no date, and the full-width "All events" row.
 - [x] 3.2 Run `npm run lint`, `npm run type-check`, and `npm run test` clean. Lint and type-check are what confirm the `decks` / `windowDecks` removal left nothing dangling.
 
-## 4. Visual confirmation
+## 4. Review revisions
 
-- [ ] 4.1 Open the PR and check the Events modal on the Vercel preview at a wide and a narrow viewport: rows do not wrap, the three columns form clean vertical bands, and a long event name ellipsizes rather than pushing the player count out of line.
-- [ ] 4.2 Settle the lead column's width against the preview and record the confirmed value in `design.md`, replacing the deferred note.
-- [ ] 4.3 Hold for the user's confirmation on the preview before merging — this is merge-rule exception 1 (user-visible change, no staging environment).
+- [x] 4.1 Replace the em dash with a localized word — `filters.unknownFact` ("Unknown" / "Desconocido") — in both the date and player-count cells, and drop the planned `aria-label`: the visible text now carries the meaning.
+- [x] 4.2 Delete `metaSecondary` from `FilterModal`, its CSS, and its tests, and correct the spec's tier scenarios to the single-figure behavior the app already had.
+
+## 5. Visual confirmation
+
+- [ ] 5.1 Open the PR and check the Events modal on the Vercel preview at a wide and a narrow viewport: rows do not wrap, the three columns form clean vertical bands, and a long event name ellipsizes rather than pushing the player count out of line.
+- [ ] 5.2 Confirm the date column's provisional 84px against the preview — it is sized for "Desconocido", not for a date — and record the settled value in `design.md`.
+- [ ] 5.3 Hold for the user's confirmation on the preview before merging — this is merge-rule exception 1 (user-visible change, no staging environment).

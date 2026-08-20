@@ -49,15 +49,29 @@ The other shaping constraint: `src/lib/eventLabel.ts` composes the flat string t
 
 It is a figure, and `meta` is already the mono, right-aligned figure column. No new column is needed for it, and it inherits the mono treatment the project applies to all data. It reuses the existing `dashboard.eventSize` translation key (count-aware, already used by `eventLabel`), so no new string is added for the populated case.
 
-### The em dash is a literal, with no translation key and no `aria-label`
+### ~~The em dash is a literal, with no translation key and no `aria-label`~~ — superseded
 
-`—` is locale-neutral, so no ES/EN string is required. Deliberately not adding an `aria-label` saying "unknown": it would need a new key in both locales and would make the row's accessible name diverge from its visible text, and the dash's meaning is legible from the column it sits in.
+*Original decision:* `—` is locale-neutral, so no ES/EN string is required, and no `aria-label` saying "unknown" is added — it would need a new key in both locales, would make the row's accessible name diverge from its visible text, and the dash's meaning is legible from the column it sits in. Recorded at the time as a reversible call.
 
-*This is a reversible call.* If screen-reader review finds the bare dash unclear, adding the label later is additive and touches only the row builder.
+**Overturned by the user on review of the first preview**, on two grounds: the dash read as visually odd in the column, and a screen reader announces it as punctuation rather than as its meaning.
 
-### The date column's exact width is deferred
+### An unrecorded fact is named, not punctuated
 
-`formatShortDate` yields short, stable output ("14 Aug" / "14 ago"), so a fixed lead column is calculable in principle. The exact px value is not settled here — per project practice it is set against the Vercel preview and recorded back into this document once confirmed, rather than guessed now.
+The empty cell carries a localized word — `filters.unknownFact`, "Unknown" / "Desconocido" — as its visible text. Because the word *is* the visible text, no `aria-label` is needed and the accessible name does not diverge from what is on screen, which was the concern that argued against the label in the superseded decision. It is a real ES/EN key like every other user-facing string.
+
+### The date column is sized by the word, not by the date
+
+`formatShortDate` yields short, stable output ("14 Aug" / "14 ago"), so the dates alone would fit a narrow column. The column's widest content is not a date but "Desconocido" — the longer locale's word for the unrecorded case — so that is what the fixed width has to clear.
+
+Set provisionally at **84px** (≈11 characters of JetBrains Mono at `--fs-xs`), still **pending visual confirmation on the preview**: this is a calculated starting point, not a confirmed one, and it widens the left band for every row to accommodate a case that may be rare in the data. If the preview shows it crowding the name column, the alternatives are a shorter Spanish word or letting that one cell overflow its column.
+
+### `metaSecondary` is removed rather than left in place
+
+`FilterModal`'s second figure column, its CSS, and its `metaSecondary` row field are deleted. The tier modal stopped passing it before this change — `tierRows` figures each tier in archetypes alone — leaving the field exercised only by `FilterModal`'s own unit test.
+
+The proposal listed this as noted-but-out-of-scope. **The user brought it into scope on review.** It is included here because removing the last vestige of a second figure column is what makes the "one figure per row" rule in the spec true rather than aspirational.
+
+Its removal makes the main spec's tier scenarios unimplementable as written — but those scenarios already did not describe the code. The spec delta therefore corrects them to the single-figure behavior the app has. One scenario keeps a now-inaccurate name (`Tier rows show archetype count and deck count in separate columns`) because a MODIFIED requirement may not drop scenarios the main spec still has; its body states the actual behavior and says so.
 
 ## Risks / Trade-offs
 
