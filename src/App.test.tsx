@@ -1246,13 +1246,82 @@ describe('StatCard filter modals', () => {
     return screen.getByRole('dialog')
   }
 
-  it('opens the event filter from the Events card, listing every event with its deck count', () => {
+  it('opens the event filter from the Events card, listing each event as date, name, size', () => {
     render(<App />)
     const dialog = openCard(/Events/)
     expect(dialog).toHaveAccessibleName('Event')
     expect(within(dialog).getByRole('button', { name: /All events/ })).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: /RCQ.*1 deck/ })).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: /PTQ.*1 deck/ })).toBeInTheDocument()
+    const rcq = within(dialog).getByRole('button', { name: /RCQ/ })
+    expect(rcq.querySelector('.filter-modal-row-lead')).toHaveTextContent('Jul 5')
+    expect(rcq.querySelector('.filter-modal-row-content')).toHaveTextContent('RCQ')
+    expect(rcq.querySelector('.filter-modal-row-meta')).toHaveTextContent('128 players')
+  })
+
+  it('carries no deck count on any event row', () => {
+    render(<App />)
+    const dialog = openCard(/Events/)
+    // The Events card counts events; one row per event already is that
+    // breakdown, so no row figures itself in decks. Scoped to the rows: the
+    // dialog's own description sentence legitimately says "decks".
+    const rows = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+    for (const row of rows) expect(row.textContent).not.toMatch(/deck/i)
+  })
+
+  it('names an unrecorded event fact rather than punctuating it', () => {
+    useMetagame.mockReturnValue({
+      ...useMetagame(),
+      events: [
+        { id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128, deckCount: 1 },
+        { id: 20, name: 'PTQ', eventDate: '', playerCount: null, deckCount: 1 },
+      ],
+    })
+    render(<App />)
+    const dialog = openCard(/Events/)
+    const ptq = within(dialog).getByRole('button', { name: /PTQ/ })
+    // Both cells keep their place in the column band rather than collapsing, and
+    // carry the word so a screen reader says "Unknown", not "em dash".
+    expect(ptq.querySelector('.filter-modal-row-lead')).toHaveTextContent('Unknown')
+    expect(ptq.querySelector('.filter-modal-row-meta')).toHaveTextContent('Unknown')
+    expect(ptq.querySelector('.filter-modal-row-content')).toHaveTextContent('PTQ')
+  })
+
+  it('localizes the unrecorded-fact word in Spanish', () => {
+    i18n.changeLanguage('es')
+    useMetagame.mockReturnValue({
+      ...useMetagame(),
+      events: [{ id: 20, name: 'PTQ', eventDate: '', playerCount: null, deckCount: 1 }],
+    })
+    render(<App />)
+    const dialog = openCard(/Eventos/)
+    const ptq = within(dialog).getByRole('button', { name: /PTQ/ })
+    // The date column is sized for this word, the longer of the two locales.
+    expect(ptq.querySelector('.filter-modal-row-lead')).toHaveTextContent('Desconocido')
+  })
+
+  it('spans the "All events" row across the columns instead of filling them', () => {
+    render(<App />)
+    const dialog = openCard(/Events/)
+    const all = within(dialog).getByRole('button', { name: 'All events' })
+    // "All events" is the default, not an event with unrecorded facts, so it
+    // renders no cells at all rather than calling them unknown.
+    expect(all.querySelector('.filter-modal-row-lead')).toBeNull()
+    expect(all.querySelector('.filter-modal-row-meta')).toBeNull()
+    expect(all).toHaveTextContent('All events')
+  })
+
+  it('reserves the date column on every event row so the dates line up', () => {
+    render(<App />)
+    const dialog = openCard(/Events/)
+    const rows = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+      .slice(1)
+    for (const row of rows) {
+      expect(row.querySelector('.filter-modal-row-lead')).not.toBeNull()
+      expect(row.querySelector('.filter-modal-row-meta')).not.toBeNull()
+    }
   })
 
   it('opens the archetype filter from the Archetypes card, share-descending with tier', () => {
@@ -1303,11 +1372,14 @@ describe('StatCard filter modals', () => {
     expect(figures).toEqual([['2 archetypes'], ['1 archetype'], ['0 archetypes'], ['1 archetype'], ['0 archetypes']])
   })
 
-  it('leaves every modal with a single figure column', () => {
+  it('leaves every modal with at most one figure per row', () => {
     render(<App />)
     for (const card of [/Events/, /Archetypes/, /Decks/]) {
       const dialog = openCard(card)
-      expect(dialog.querySelectorAll('.filter-modal-row-meta-secondary')).toHaveLength(0)
+      const rows = Array.from(dialog.querySelectorAll('.filter-modal-row'))
+      for (const row of rows) {
+        expect(row.querySelectorAll('.filter-modal-row-meta').length).toBeLessThanOrEqual(1)
+      }
       act(() => fireEvent.keyDown(document, { key: 'Escape' }))
     }
   })
@@ -1356,8 +1428,9 @@ describe('StatCard filter modals', () => {
 
     const dialog = openCard(/Events/)
     expect(within(dialog).getByRole('button', { name: /RCQ/ })).toHaveAttribute('aria-current', 'true')
-    // The unselected event is still offered, with its own weight intact.
-    expect(within(dialog).getByRole('button', { name: /PTQ.*1 deck/ })).toBeInTheDocument()
+    // The unselected event is still offered, described in full.
+    const ptq = within(dialog).getByRole('button', { name: /PTQ/ })
+    expect(ptq.querySelector('.filter-modal-row-lead')).toHaveTextContent('Jul 1')
   })
 
   it('closes without changing the filters when dismissed', () => {

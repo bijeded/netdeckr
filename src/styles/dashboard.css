@@ -519,6 +519,21 @@
   background: var(--neon-tint-16);
   color: var(--text-primary);
 }
+/* Leading column: like the middle one, a fixed width, so a short fact that
+   prefixes every row forms a band down the left edge instead of shifting each
+   row's content to a different starting point. Mono because it carries data.
+   Sized for its widest content, which is not a date but the word standing in
+   for a date the data does not record — "Desconocido", the longer of the two
+   locales. Pending confirmation on the preview. */
+.filter-modal-row-lead {
+  flex: 0 0 auto;
+  width: 84px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+/* A `fullWidth` row needs no rule of its own: it renders no column cells, and
+   the content column already grows into the space they would have taken. */
 .filter-modal-row-content {
   display: flex;
   align-items: center;
@@ -542,20 +557,4 @@
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   color: var(--text-faint);
-}
-/* A row that accounts for itself in two units puts the second figure in its own
-   column left of the first. Wider because its unit word is the longer one in
-   both locales ("archetypes" / "arquetipos" against "decks" / "mazos"). */
-.filter-modal-row-meta-secondary {
-  min-width: 88px;
-  /* On top of the row gap: two figures in different units read as one run-on
-     number when they sit as close as a label sits to its own figure. */
-  margin-right: var(--sp-4);
-}
-/* The figure a second column sits beside reserves room for a four-digit count,
-   so a row that reaches the thousands does not widen its own cell and shove the
-   column to its left out of alignment. Scoped to that pairing: a modal with one
-   figure column has nothing to its left to knock out of line. */
-.filter-modal-row-meta-secondary + .filter-modal-row-meta {
-  min-width: 76px;
 }

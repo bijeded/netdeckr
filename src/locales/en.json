@@ -43,6 +43,7 @@
     "deckCount_other": "{{count}} decks",
     "archetypeCount_one": "{{count}} archetype",
     "archetypeCount_other": "{{count}} archetypes",
+    "unknownFact": "Unknown",
     "noResults": "No decks match these filters."
   },
   "windows": {

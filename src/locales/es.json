@@ -43,6 +43,7 @@
     "deckCount_other": "{{count}} mazos",
     "archetypeCount_one": "{{count}} arquetipo",
     "archetypeCount_other": "{{count}} arquetipos",
+    "unknownFact": "Desconocido",
     "noResults": "Ningún mazo coincide con estos filtros."
   },
   "windows": {
