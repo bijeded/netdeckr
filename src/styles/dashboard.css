@@ -519,6 +519,18 @@
   background: var(--neon-tint-16);
   color: var(--text-primary);
 }
+/* Leading column: like the middle one, a fixed width, so a short fact that
+   prefixes every row forms a band down the left edge instead of shifting each
+   row's content to a different starting point. Mono because it carries data. */
+.filter-modal-row-lead {
+  flex: 0 0 auto;
+  width: 56px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+/* A `fullWidth` row needs no rule of its own: it renders no column cells, and
+   the content column already grows into the space they would have taken. */
 .filter-modal-row-content {
   display: flex;
   align-items: center;

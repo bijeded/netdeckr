@@ -8,6 +8,7 @@ import { FORMATS } from './lib/formats'
 import { WINDOWS } from './lib/windows'
 import { relativeTimeFromNow } from './lib/relativeTime'
 import { eventLabel as buildEventLabel } from './lib/eventLabel'
+import { formatShortDate } from './lib/formatDate'
 import { sizeClassOf, type EventSizeClass } from './lib/eventSize'
 import { FormatSwitcher } from './components/FormatSwitcher'
 import { WindowSelector } from './components/WindowSelector'
@@ -41,6 +42,10 @@ import { privacyEn } from './content/legal/privacy.en'
 import { privacyEs } from './content/legal/privacy.es'
 
 const SIDEBAR_MQ = '(max-width: 860px)'
+
+/* Stands in for a fact the data does not record, in a column that reserves room
+   for it either way. Locale-neutral, so it needs no translation key. */
+const EM_DASH = '—'
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -289,7 +294,6 @@ function App() {
   // Which StatCard's filter modal is open, if any.
   const [openFilter, setOpenFilter] = useState<'event' | 'archetype' | 'tier' | null>(null)
   const closeFilter = () => setOpenFilter(null)
-  const decks = (n: number) => t('filters.deckCount', { count: n })
   const archetypes = (n: number) => t('filters.archetypeCount', { count: n })
 
   // A modal lists its own dimension in full — narrowed by the *other* active
@@ -298,16 +302,24 @@ function App() {
   // card while its own filter is active. `events` is collected before the event
   // filter, and `breakdown`/`fullDecksByArchetype` are event-narrowed but carry
   // every archetype and tier, so each list is already the right corpus.
-  // `totals` is narrowed by the event filter, so the Events modal's "All" row takes
-  // the window total from the (unfiltered) event options instead.
-  const windowDecks = events.reduce((n, event) => n + event.deckCount, 0)
+  //
+  // The Events modal is the one whose rows carry no figure: its card counts
+  // events, and one row per event already is that breakdown. Each row instead
+  // describes its event across three columns — date, name, size — with an em
+  // dash where the data records nothing, so a missing fact stays visible rather
+  // than reading as a fact nobody asked for. The "All events" row is not an
+  // event, so it spans the columns instead of filling them with dashes.
   const eventRows: FilterModalRow<number>[] = [
-    { key: 'all', value: null, content: t('filters.allEvents'), meta: decks(windowDecks) },
+    { key: 'all', value: null, content: t('filters.allEvents'), fullWidth: true },
     ...events.map((event) => ({
       key: String(event.id),
       value: event.id,
-      content: buildEventLabel(event, i18n.language, t),
-      meta: decks(event.deckCount),
+      lead: formatShortDate(event.eventDate, i18n.language) || EM_DASH,
+      content: event.name,
+      meta:
+        event.playerCount != null && event.playerCount > 0
+          ? t('dashboard.eventSize', { count: event.playerCount })
+          : EM_DASH,
     })),
   ]
   const archetypeRows: FilterModalRow<string>[] = [

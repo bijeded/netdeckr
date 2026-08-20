@@ -7,6 +7,12 @@ export interface FilterModalRow<T> {
   key: string
   /** The filter value this row applies; null for the leading "All …" row. */
   value: T | null
+  /**
+   * Optional leading column, before `content`, sized the same on every row so a
+   * short fact that prefixes each row (a date, say) forms its own vertical band
+   * instead of pushing each row's content to a different starting point.
+   */
+  lead?: ReactNode
   /** Row content (name, pips…) rendered on the left. */
   content: ReactNode
   /**
@@ -23,6 +29,13 @@ export interface FilterModalRow<T> {
    * `aside`, so the two figure columns line up down the list.
    */
   metaSecondary?: string
+  /**
+   * Renders `content` alone across the whole row, skipping every column cell.
+   * For a row the columns do not describe — a leading "All …" default is not one
+   * of the things the list enumerates, so filling its cells (even with a dash)
+   * would state something false about it.
+   */
+  fullWidth?: boolean
 }
 
 interface FilterModalProps<T> {
@@ -61,6 +74,7 @@ export function FilterModal<T extends string | number>({
   const { t } = useTranslation()
   const closeRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
+  const hasLead = rows.some((row) => row.lead != null)
   const hasAside = rows.some((row) => row.aside != null)
   const hasMetaSecondary = rows.some((row) => row.metaSecondary != null)
 
@@ -178,9 +192,10 @@ export function FilterModal<T extends string | number>({
           </button>
         </div>
 
-        {/* The middle and second-figure columns are reserved for the whole list
-            as soon as any row uses them, so rows that leave one empty still
-            align. A list where no row supplies them renders neither. */}
+        {/* The leading, middle, and second-figure columns are reserved for the
+            whole list as soon as any row uses them, so rows that leave one empty
+            still align. A list where no row supplies them renders none of them.
+            A `fullWidth` row opts out of the columns entirely. */}
         <div className="filter-modal-list">
           {rows.map((row) => {
             const selected = row.value === value
@@ -193,12 +208,19 @@ export function FilterModal<T extends string | number>({
                 className="filter-modal-row"
                 data-selected={selected || undefined}
               >
-                <span className="filter-modal-row-content">{row.content}</span>
-                {hasAside && <span className="filter-modal-row-aside">{row.aside}</span>}
-                {hasMetaSecondary && (
-                  <span className="filter-modal-row-meta filter-modal-row-meta-secondary">{row.metaSecondary}</span>
+                {row.fullWidth ? (
+                  <span className="filter-modal-row-content">{row.content}</span>
+                ) : (
+                  <>
+                    {hasLead && <span className="filter-modal-row-lead">{row.lead}</span>}
+                    <span className="filter-modal-row-content">{row.content}</span>
+                    {hasAside && <span className="filter-modal-row-aside">{row.aside}</span>}
+                    {hasMetaSecondary && (
+                      <span className="filter-modal-row-meta filter-modal-row-meta-secondary">{row.metaSecondary}</span>
+                    )}
+                    {row.meta && <span className="filter-modal-row-meta">{row.meta}</span>}
+                  </>
                 )}
-                {row.meta && <span className="filter-modal-row-meta">{row.meta}</span>}
               </button>
             )
           })}

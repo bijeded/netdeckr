@@ -66,6 +66,59 @@ describe('FilterModal', () => {
     ])
   })
 
+  it('gives a leading fact its own cell on every row once any row supplies one', () => {
+    renderModal({
+      rows: [
+        { key: 'a', value: 'a', lead: '14 Aug', content: 'RCQ Madrid', meta: '128 players' },
+        { key: 'b', value: 'b', lead: '—', content: 'PTQ Lyon', meta: '—' },
+      ],
+    })
+    const dialog = screen.getByRole('dialog', { name: 'Tiers' })
+    const leads = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+      .map((b) => b.querySelector('.filter-modal-row-lead')?.textContent)
+    // A cell on both rows, including the one whose fact is unrecorded, so the
+    // dates form a band rather than each row starting somewhere different.
+    expect(leads).toEqual(['14 Aug', '—'])
+  })
+
+  it('renders no leading cell when no row supplies one', () => {
+    renderModal()
+    const dialog = screen.getByRole('dialog', { name: 'Tiers' })
+    expect(dialog.querySelectorAll('.filter-modal-row-lead')).toHaveLength(0)
+  })
+
+  it('renders a fullWidth row as its content alone, with no column cells', () => {
+    renderModal({
+      rows: [
+        { key: 'all', value: null, content: 'All events', fullWidth: true },
+        { key: 'a', value: 'a', lead: '14 Aug', content: 'RCQ Madrid', meta: '128 players' },
+      ],
+    })
+    const dialog = screen.getByRole('dialog', { name: 'Tiers' })
+    const [allRow, eventRow] = within(dialog)
+      .getAllByRole('button')
+      .filter((b) => b.classList.contains('filter-modal-row'))
+    expect(allRow).toHaveTextContent('All events')
+    expect(allRow.querySelector('.filter-modal-row-lead')).toBeNull()
+    expect(allRow.querySelector('.filter-modal-row-meta')).toBeNull()
+    // The reserved columns still apply to every other row.
+    expect(eventRow.querySelector('.filter-modal-row-lead')).toHaveTextContent('14 Aug')
+  })
+
+  it('still applies its filter value when a fullWidth row is selected', () => {
+    const { onSelect } = renderModal({
+      rows: [
+        { key: 'all', value: null, content: 'All events', fullWidth: true },
+        { key: 'a', value: 'a', lead: '14 Aug', content: 'RCQ Madrid', meta: '128 players' },
+      ],
+      value: 'a',
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'All events' }))
+    expect(onSelect).toHaveBeenCalledWith(null)
+  })
+
   it('renders no second figure cell when no row supplies one', () => {
     renderModal()
     const dialog = screen.getByRole('dialog', { name: 'Tiers' })
