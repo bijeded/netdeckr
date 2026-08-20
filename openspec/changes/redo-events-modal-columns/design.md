@@ -63,7 +63,7 @@ The empty cell carries a localized word — `filters.unknownFact`, "Unknown" / "
 
 `formatShortDate` yields short, stable output ("14 Aug" / "14 ago"), so the dates alone would fit a narrow column. The column's widest content is not a date but "Desconocido" — the longer locale's word for the unrecorded case — so that is what the fixed width has to clear.
 
-Set provisionally at **84px** (≈11 characters of JetBrains Mono at `--fs-xs`), still **pending visual confirmation on the preview**: this is a calculated starting point, not a confirmed one, and it widens the left band for every row to accommodate a case that may be rare in the data. If the preview shows it crowding the name column, the alternatives are a shorter Spanish word or letting that one cell overflow its column.
+Set at **84px** (≈11 characters of JetBrains Mono at `--fs-xs`) — calculated from the word, then **confirmed on the Vercel preview**, where it neither crowded the event names nor wrapped a row. The alternatives held in reserve, a shorter Spanish word or letting that one cell overflow its column, were not needed.
 
 ### `metaSecondary` is removed rather than left in place
 

@@ -21,6 +21,6 @@
 
 ## 5. Visual confirmation
 
-- [ ] 5.1 Open the PR and check the Events modal on the Vercel preview at a wide and a narrow viewport: rows do not wrap, the three columns form clean vertical bands, and a long event name ellipsizes rather than pushing the player count out of line.
-- [ ] 5.2 Confirm the date column's provisional 84px against the preview — it is sized for "Desconocido", not for a date — and record the settled value in `design.md`.
-- [ ] 5.3 Hold for the user's confirmation on the preview before merging — this is merge-rule exception 1 (user-visible change, no staging environment).
+- [x] 5.1 Open the PR and check the Events modal on the Vercel preview at a wide and a narrow viewport: rows do not wrap, the three columns form clean vertical bands, and a long event name ellipsizes rather than pushing the player count out of line.
+- [x] 5.2 Confirm the date column's provisional 84px against the preview — it is sized for "Desconocido", not for a date — and record the settled value in `design.md`.
+- [x] 5.3 Hold for the user's confirmation on the preview before merging — this is merge-rule exception 1 (user-visible change, no staging environment).
