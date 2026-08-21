@@ -769,9 +769,9 @@ Selecting a row SHALL apply that filter and close the modal. Modal titles, row l
 - **WHEN** the user activates the Decks StatCard
 - **THEN** a modal opens listing the four tiers, each row showing the tier badge, its localized label, and the number of archetypes in that tier
 
-#### Scenario: Tier rows show archetype count and deck count in separate columns
+#### Scenario: Tier rows carry the archetype count alone
 - **WHEN** the tier modal lists its rows
-- **THEN** each row carries the archetype count alone and no deck-count column is rendered — this scenario's name is retained from the two-figure behavior it replaces, which the implementation had already dropped
+- **THEN** each row carries the archetype count and no deck-count column is rendered anywhere in the list
 
 #### Scenario: The tier modal's figures account for the whole field
 - **WHEN** the tier modal is opened with no event or archetype filter active
