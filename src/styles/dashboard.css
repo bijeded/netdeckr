@@ -453,14 +453,17 @@
 }
 /* Enabled, it is the way out of a filtered view and has to read as an action, so
    it takes the accent treatment (tint, accent rim, accent text) rather than the
-   quiet outline of the sidebar's Clear filters. */
+   quiet outline of the sidebar's Clear filters. The accent is the subdued green,
+   not the violet primary: the caption beside it is already --neon-text-soft, and
+   violet-on-violet made the control disappear into the row. It is equally not
+   --up — that triad is the ShareDelta pill rendered on the cards just below. */
 .reset-filters {
   flex: 0 0 auto;
   padding: 7px 14px;
   border-radius: var(--r-md);
-  border: 1px solid var(--neon-border);
-  background: var(--neon-tint-16);
-  color: var(--neon-text);
+  border: 1px solid var(--mana-g-border);
+  background: var(--mana-g-tint);
+  color: var(--mana-g);
   font-family: var(--font-body);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
@@ -468,9 +471,9 @@
   transition: all var(--dur) var(--ease);
 }
 .reset-filters:hover:not(:disabled) {
-  background: var(--neon-tint-22);
-  color: var(--neon-text-soft);
-  box-shadow: var(--neon-glow);
+  background: var(--mana-g-tint-strong);
+  color: var(--mana-g-text-soft);
+  box-shadow: var(--mana-g-glow);
 }
 /* Disabled rather than hidden, so the row keeps its height and the grid below it
    never jumps when a filter is applied or cleared. It drops the accent entirely

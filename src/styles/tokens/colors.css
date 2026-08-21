@@ -52,6 +52,17 @@
   --mana-r: #e0533d;
   --mana-g: #43a05c;
 
+  /* Subdued-green action accent. Reuses the green-mana hue as a fill/border/text
+     triad, following the --up / --down / --flat pattern. Deliberately not --up:
+     that triad is the ShareDelta "rising" pill, so a control wearing it would
+     read as a metric. --mana-g's other use is the ~8px circular mana pips, a
+     different silhouette, so the two never compete. */
+  --mana-g-tint: rgba(67,160,92,.12);
+  --mana-g-tint-strong: rgba(67,160,92,.18);
+  --mana-g-border: rgba(67,160,92,.45);
+  --mana-g-text-soft: #7fce95;   /* lifted for hover; the base #43a05c is ~5.1:1 on the tint */
+  --mana-g-glow: 0 0 14px rgba(67,160,92,.22);
+
   /* Tier accents — fills (badge rims, glows, second-place pills) */
   --tier-1: #b14bff;         /* T1 — violet */
   --tier-2: #7fd8ff;         /* T2 — cyan */
