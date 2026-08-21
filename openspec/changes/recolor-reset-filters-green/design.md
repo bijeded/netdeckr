@@ -45,6 +45,12 @@ It already drops all accent to `--border-line` / `--text-faint` / `opacity .5`, 
 - **Green still groups with the trend indicators at a glance, despite the different green** → Lower risk than `--up` but not zero; two greens in one viewport is still two greens. This is exactly what the "does not read as a metric" scenario is there to check on the preview.
 - **No automated test can catch a regression here** → Nothing in the repo asserts on computed color, and the existing `ClearFiltersButton.test.tsx` / App tests cover behavior, not appearance. The preview check is the only gate, which is why this is a merge exception 1.
 
-## Open Questions
+## Confirmed on the preview
 
-- Exact tint and border opacity values, and whether the hover keeps a glow. Deferrable: both are single-line CSS values that change no requirement, no approach, and no task — they are recorded here once the preview settles them.
+Checked on the PR #198 Vercel preview with a filter applied, and confirmed by the user. The values below are settled, not provisional:
+
+- Fill `--mana-g-tint: rgba(67,160,92,.12)`, border `--mana-g-border: rgba(67,160,92,.45)`.
+- Hover: `--mana-g-tint-strong: rgba(67,160,92,.18)`, text lifted to `--mana-g-text-soft: #7fce95`, and the glow **survives** — `--mana-g-glow: 0 0 14px rgba(67,160,92,.22)`. The concern that a subdued green could not carry a glow did not materialize.
+- The enabled control reads as an available action, does not group with the ShareDelta pills below, and separates from the violet caption beside it. These were the three questions the design could not answer by calculation; all three are now confirmed visually.
+
+This section supersedes the design's original Open Questions (exact tint/border opacities, and whether the hover keeps a glow), which are now answered.
