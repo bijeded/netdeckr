@@ -14,4 +14,4 @@
 
 ## 4. Merge
 
-- [ ] 4.1 This is a user-visible change (CLAUDE.md merge exception 1) — hold for the user's confirmation from the preview before merging, then merge and delete the branch.
+- [x] 4.1 This is a user-visible change (CLAUDE.md merge exception 1) — hold for the user's confirmation from the preview before merging, then merge and delete the branch.
