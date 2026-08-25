@@ -384,7 +384,7 @@ describe('App dashboard', () => {
 
   it('defaults to the Last 7 Days window and shows it in the header pill', () => {
     render(<App />)
-    expect(screen.getByTestId('window-pill').textContent).toBe('Last 7 days')
+    expect(screen.getByTestId('window-pill').textContent).toBe('Last 7 days →')
   })
 
   it('renders the Time Frame filter inside the sidebar', () => {
@@ -414,7 +414,43 @@ describe('App dashboard', () => {
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Last 2 weeks' }))
     })
-    expect(screen.getByTestId('window-pill').textContent).toBe('Last 2 weeks')
+    expect(screen.getByTestId('window-pill').textContent).toBe('← Last 2 weeks')
+  })
+
+  it('widens the window to Last 2 weeks when the header pill is activated', () => {
+    render(<App />)
+    const pill = screen.getByTestId('window-pill')
+    // The label names the current window; the action lives in the accessible name.
+    expect(pill).toHaveAttribute('aria-label', 'Switch to Last 2 weeks')
+    act(() => fireEvent.click(pill))
+    expect(screen.getByTestId('window-pill').textContent).toBe('← Last 2 weeks')
+    expect(screen.getByTestId('window-pill')).toHaveAttribute(
+      'aria-label',
+      'Switch to Last 7 days',
+    )
+  })
+
+  it('narrows back to Last 7 days when the pill is activated again', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByTestId('window-pill')))
+    act(() => fireEvent.click(screen.getByTestId('window-pill')))
+    expect(screen.getByTestId('window-pill').textContent).toBe('Last 7 days →')
+  })
+
+  it('keeps the sidebar Time Frame selector and the ?w= param in sync with the pill', () => {
+    render(<App />)
+    act(() => fireEvent.click(screen.getByTestId('window-pill')))
+    const sidebar = screen.getByTestId('sidebar')
+    expect(within(sidebar).getByRole('button', { name: 'Last 2 weeks' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(new URLSearchParams(window.location.search).get('w')).toBe('2weeks')
+  })
+
+  it('does not expose a pressed state on the pill (it swaps, it does not toggle on/off)', () => {
+    render(<App />)
+    expect(screen.getByTestId('window-pill')).not.toHaveAttribute('aria-pressed')
   })
 
   it('expands an archetype with decks to show its decklist rows, and collapses again', () => {
@@ -1107,7 +1143,11 @@ describe('App dashboard', () => {
     expect(screen.getByText('Evento')).toBeInTheDocument()
     expect(screen.getByText('Arquetipo')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
-    expect(screen.getByTestId('window-pill').textContent).toBe('Últimos 7 días')
+    expect(screen.getByTestId('window-pill').textContent).toBe('Últimos 7 días →')
+    expect(screen.getByTestId('window-pill')).toHaveAttribute(
+      'aria-label',
+      'Cambiar a Últimas 2 semanas',
+    )
   })
 })
 

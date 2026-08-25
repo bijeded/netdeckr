@@ -48,7 +48,8 @@
   },
   "windows": {
     "last7Days": "Últimos 7 días",
-    "last2Weeks": "Últimas 2 semanas"
+    "last2Weeks": "Últimas 2 semanas",
+    "switchTo": "Cambiar a {{window}}"
   },
   "dashboard": {
     "loading": "Cargando el metajuego…",
