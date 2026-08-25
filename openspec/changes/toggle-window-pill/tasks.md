@@ -13,5 +13,5 @@
 
 ## 4. Visual confirmation
 
-- [ ] 4.1 Open the Vercel preview and confirm the two items design.md marks pending: whether the glyph flip's one-glyph shift of the label's left edge reads as jumpy next to the `<h1>` (fallback: fixed trailing `→`), and whether the hover step is visible against the pill's existing neon tint; record the settled values in design.md
-- [ ] 4.2 Confirm the pill on a phone-width viewport — it reads as interactive without hover, and the title row still reflows cleanly with the StatCard strip
+- [x] 4.1 Open the Vercel preview and confirm the two items design.md marks pending: whether the glyph flip's one-glyph shift of the label's left edge reads as jumpy next to the `<h1>` (fallback: fixed trailing `→`), and whether the hover step is visible against the pill's existing neon tint; record the settled values in design.md
+- [x] 4.2 Confirm the pill on a phone-width viewport — it reads as interactive without hover, and the title row still reflows cleanly with the StatCard strip
