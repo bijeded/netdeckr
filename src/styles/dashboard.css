@@ -561,3 +561,24 @@
   font-size: var(--fs-xs);
   color: var(--text-faint);
 }
+
+/* The time-window pill on the format-title row: a label that is also the control
+   that swaps the window. It keeps the neon-tint look it had as a static tag, so
+   hover has to move something the rest state does not already use — the tint
+   depth, not the border, which is already neon at rest. No outline reset: the
+   user-agent focus ring is this app's only focus indicator. */
+.window-pill {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--neon-tint-16);
+  color: var(--neon-text-soft);
+  border: 1px solid var(--neon-border);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.window-pill:hover {
+  background: linear-gradient(140deg, rgba(177, 75, 255, 0.28), rgba(122, 43, 255, 0.2));
+  border-color: rgba(177, 75, 255, 0.6);
+}

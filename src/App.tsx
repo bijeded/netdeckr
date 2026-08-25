@@ -166,6 +166,11 @@ function App() {
 
   const formatName = t(FORMATS.find((f) => f.code === format)!.i18nKey)
   const windowLabel = t(WINDOWS.find((w) => w.code === metaWindow)!.i18nKey)
+  // The window pill is also the toggle. With exactly two windows a swap needs no
+  // menu, so the pill names the current window and activating it selects the
+  // other one — same setWindow the sidebar selector calls, so the two never disagree.
+  const otherWindow = metaWindow === '7days' ? '2weeks' : '7days'
+  const otherWindowLabel = t(WINDOWS.find((w) => w.code === otherWindow)!.i18nKey)
   const maxPct = breakdown.length > 0 ? breakdown[0].sharePct : 100
   const freshness = lastUpdated ? relativeTimeFromNow(lastUpdated, new Date(), i18n.language) : ''
 
@@ -495,20 +500,19 @@ function App() {
               >
                 {formatName}
               </h1>
-              <span
+              {/* The glyph points at the move: → widens to the containing window,
+                  ← steps back to the narrower one. The label stays the state, so
+                  the action lives in the accessible name instead. No aria-pressed —
+                  this swaps which of two windows is live, it is not an on/off state. */}
+              <button
+                type="button"
                 data-testid="window-pill"
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--fs-sm)',
-                  padding: '5px 12px',
-                  borderRadius: 'var(--r-pill)',
-                  background: 'var(--neon-tint-16)',
-                  color: 'var(--neon-text-soft)',
-                  border: '1px solid var(--neon-border)',
-                }}
+                className="window-pill"
+                aria-label={t('windows.switchTo', { window: otherWindowLabel })}
+                onClick={() => setWindow(otherWindow)}
               >
-                {windowLabel}
-              </span>
+                {metaWindow === '7days' ? `${windowLabel} →` : `← ${windowLabel}`}
+              </button>
               {/* StatCard strip: right-aligned on the title row (title stays left). */}
               {/* Each card opens the filter that breaks its number down: Events →
                   the event filter, Archetypes → the archetype filter, Decks →
