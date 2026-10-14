@@ -33,7 +33,7 @@ import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 import { useTrendingCards } from './hooks/useTrendingCards'
 import { TopCardsTable } from './components/TopCardsTable'
-import { hasNewCardsTable } from './lib/trendingCards'
+import { hasNewCardsTable, sliceDeckTotal } from './lib/trendingCards'
 import { useLegalPage } from './hooks/useLegalPage'
 import { Footer } from './components/Footer'
 import { LegalPage } from './components/LegalPage'
@@ -74,6 +74,8 @@ function App() {
     events = [],
     totals = { events: 0, archetypes: 0, decks: 0 },
     banState = { bannedCards: [], hiddenDecks: 0 },
+    sliceDeckCounts = { selected: {}, preceding: {} },
+    sizeClassEventIds = null,
     loading,
     error,
   } = useMetagame(format, metaWindow, { eventId, sizeClass })
@@ -210,21 +212,36 @@ function App() {
     : tierFiltered
       ? breakdown.filter((a) => a.tier === tier).map((a) => a.name)
       : null
+  // Play-rate denominators: the legal decks of the same slice, counted from the
+  // metagame corpus for the selected and the preceding window, narrowed to the
+  // same archetypes the trending calls are. Unknown (null) while it loads.
+  const trendingSliceTotals = loading
+    ? null
+    : {
+        selected: sliceDeckTotal(sliceDeckCounts.selected, trendingArchetypeNames),
+        preceding: sliceDeckTotal(sliceDeckCounts.preceding, trendingArchetypeNames),
+      }
   const {
     creatures,
     spells,
     sideboard,
     newCards,
     loading: trendingLoading,
-  } = useTrendingCards(format, metaWindow, {
-    archetypeNames: trendingArchetypeNames,
-    eventId,
-    // Trending aggregates server-side, so it cannot classify sizes itself: send
-    // the ids of the events in the selected class. `events` is already narrowed
-    // by the size filter, so this is exactly that set — and an empty array (a
-    // class with no events) correctly yields empty tables rather than all of them.
-    eventIds: sizeClass === null ? null : events.map((e) => e.id),
-  })
+  } = useTrendingCards(
+    format,
+    metaWindow,
+    {
+      archetypeNames: trendingArchetypeNames,
+      eventId,
+      // Trending aggregates server-side, so it cannot classify sizes itself: send
+      // the ids of the events in the selected class — across both the selected and
+      // the preceding window, since the trend queries both and each call's date
+      // range already limits which can match. An empty array (a class with no
+      // events) correctly yields empty tables rather than all of them.
+      eventIds: sizeClass === null ? null : (sizeClassEventIds ?? []),
+    },
+    trendingSliceTotals,
+  )
 
   const visibleBreakdown = archetypeFiltered
     ? breakdown.filter((a) => a.name === archetypeName)
@@ -710,19 +727,18 @@ function App() {
                 Sideboard, New Cards), stacked below ~900px in that order. Source
                 order drives both, so in Pre-Modern (no New Cards) Sideboard just
                 sits alone in row 2. Independent of the grid's data; only its own
-                load. */}
-            {!trendingLoading && (
+                load — and the metagame's, which supplies the play-rate
+                denominators, so Decks/Trend never flash blank. */}
+            {!trendingLoading && !loading && (
               <div className="trending-layout">
                 <TopCardsTable
                   title={t('trending.creaturesTitle')}
                   cards={creatures}
-                  showAvg
                   emptyMessage={t('trending.empty')}
                 />
                 <TopCardsTable
                   title={t('trending.spellsTitle')}
                   cards={spells}
-                  showAvg
                   emptyMessage={t('trending.empty')}
                 />
                 <TopCardsTable
@@ -734,7 +750,6 @@ function App() {
                   <TopCardsTable
                     title={t('trending.newCardsTitle')}
                     cards={newCards}
-                    showSet
                     emptyMessage={t('trending.newCardsEmpty')}
                   />
                 )}

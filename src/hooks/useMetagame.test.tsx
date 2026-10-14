@@ -744,4 +744,65 @@ describe('useMetagame', () => {
       expect(result.current.banState.bannedCards).toEqual([])
     })
   })
+  describe('trending slice deck counts', () => {
+    function archetype(name: string) {
+      return { name, color_identity: 'R', art_image_url: null, art_crop_url: null }
+    }
+    /** 7days window: 3 selected decks (2 events), 3 preceding decks, 1 too old. */
+    function corpus() {
+      return [
+        deckRow({ id: 1, source_deck_id: 'a', archetypes: archetype('Izzet'), events: { id: 1, name: 'Big', event_date: daysAgo(1), player_count: 200 } }),
+        deckRow({ id: 2, source_deck_id: 'b', archetypes: archetype('Izzet'), events: { id: 2, name: 'Small', event_date: daysAgo(2), player_count: 10 } }),
+        deckRow({ id: 3, source_deck_id: 'c', archetypes: archetype('Mono Red'), events: { id: 1, name: 'Big', event_date: daysAgo(1), player_count: 200 } }),
+        deckRow({ id: 4, source_deck_id: 'd', archetypes: archetype('Izzet'), events: { id: 3, name: 'Old Big', event_date: daysAgo(9), player_count: 200 } }),
+        deckRow({ id: 5, source_deck_id: 'e', archetypes: archetype('Mono Red'), events: { id: 3, name: 'Old Big', event_date: daysAgo(9), player_count: 200 } }),
+        deckRow({ id: 6, source_deck_id: 'f', archetypes: archetype('Mono Red'), events: { id: 4, name: 'Old Small', event_date: daysAgo(10), player_count: 10 } }),
+        deckRow({ id: 7, source_deck_id: 'g', archetypes: archetype('Izzet'), events: { id: 5, name: 'Ancient', event_date: daysAgo(20), player_count: 200 } }),
+      ]
+    }
+    const sum = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0)
+
+    it('counts the selected and preceding windows per archetype, the selected one matching totals.decks', async () => {
+      queryResult.data = corpus()
+      const { result } = renderHook(() => useMetagame('ST', '7days'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.sliceDeckCounts.selected).toEqual({ Izzet: 2, 'Mono Red': 1 })
+      expect(sum(result.current.sliceDeckCounts.selected)).toBe(result.current.totals.decks)
+      // Days 7–14 only: the 20-day-old deck is outside both windows.
+      expect(result.current.sliceDeckCounts.preceding).toEqual({ Izzet: 1, 'Mono Red': 2 })
+      expect(result.current.sizeClassEventIds).toBeNull()
+    })
+
+    it('excludes illegal decks from both windows', async () => {
+      queryResult.data = corpus()
+      illegalResult.data = [{ deck_id: 1 }, { deck_id: 5 }]
+      const { result } = renderHook(() => useMetagame('ST', '7days'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.sliceDeckCounts.selected).toEqual({ Izzet: 1, 'Mono Red': 1 })
+      expect(sum(result.current.sliceDeckCounts.selected)).toBe(result.current.totals.decks)
+      expect(result.current.sliceDeckCounts.preceding).toEqual({ Izzet: 1, 'Mono Red': 1 })
+    })
+
+    it('narrows both windows by size class and lists that class\'s events across the corpus', async () => {
+      queryResult.data = corpus()
+      const { result } = renderHook(() => useMetagame('ST', '7days', { sizeClass: 'small' }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.sliceDeckCounts.selected).toEqual({ Izzet: 1 })
+      expect(result.current.sliceDeckCounts.preceding).toEqual({ 'Mono Red': 1 })
+      expect([...(result.current.sizeClassEventIds ?? [])].sort()).toEqual([2, 4])
+    })
+
+    it('leaves the preceding window empty under an event filter', async () => {
+      queryResult.data = corpus()
+      const { result } = renderHook(() => useMetagame('ST', '7days', { eventId: 1 }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.sliceDeckCounts.selected).toEqual({ Izzet: 1, 'Mono Red': 1 })
+      expect(sum(result.current.sliceDeckCounts.selected)).toBe(result.current.totals.decks)
+      expect(result.current.sliceDeckCounts.preceding).toEqual({})
+    })
+  })
 })

@@ -139,9 +139,15 @@
     "col": {
       "rank": "#",
       "card": "Carta",
-      "set": "Set",
       "avg": "Prom.",
-      "count": "Copias"
+      "count": "Copias",
+      "decks": "Mazos",
+      "trend": "Tend."
+    },
+    "trend": {
+      "up": "Presencia en mazos +{{value}} puntos respecto al periodo anterior",
+      "down": "Presencia en mazos -{{value}} puntos respecto al periodo anterior",
+      "flat": "Presencia en mazos estable respecto al periodo anterior"
     },
     "empty": "Aún no hay cartas en tendencia",
     "sideboardEmpty": "Aún no hay cartas de sideboard",

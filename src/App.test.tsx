@@ -17,6 +17,11 @@ vi.mock('./hooks/useTrendingCards', () => ({ useTrendingCards: (...args: unknown
 
 const setFormat = vi.fn()
 
+/** A ranked trending row with a known play rate and no trend. */
+function trendingCard(cardName: string, totalCopies: number, avgCopies: number) {
+  return { cardName, imageUrl: null, totalCopies, avgCopies, deckCount: 10, playRatePct: 20, trend: null }
+}
+
 function setUrl(search: string) {
   window.history.replaceState({}, '', search || '/')
 }
@@ -39,10 +44,10 @@ beforeEach(() => {
   // Non-empty by default so the trending tables render (not their own frowny
   // empty-state), keeping the grid-empty assertions to a single frowny.
   useTrendingCards.mockReturnValue({
-    creatures: [{ cardName: 'Creature Card', imageUrl: null, totalCopies: 100, avgCopies: 4 }],
-    spells: [{ cardName: 'Spell Card', imageUrl: null, totalCopies: 80, avgCopies: 3 }],
-    sideboard: [{ cardName: 'Sideboard Card', imageUrl: null, totalCopies: 40, avgCopies: 2 }],
-    newCards: [{ cardName: 'New Card', imageUrl: null, totalCopies: 30, avgCopies: 2, setCode: 'FRA' }],
+    creatures: [trendingCard('Creature Card', 100, 4)],
+    spells: [trendingCard('Spell Card', 80, 3)],
+    sideboard: [trendingCard('Sideboard Card', 40, 2)],
+    newCards: [{ ...trendingCard('New Card', 30, 2), playRatePct: 12.4, trend: { direction: 'up', valuePct: 3.1 } }],
     loading: false,
     error: null,
     newCardsError: null,
@@ -94,10 +99,11 @@ describe('App dashboard', () => {
     expect(screen.getByText('12')).toBeInTheDocument()
     // Thousands separator applied.
     expect(screen.getByText('1,284')).toBeInTheDocument()
-    // Localized labels.
-    expect(screen.getByText('Events')).toBeInTheDocument()
-    expect(screen.getByText('Archetypes')).toBeInTheDocument()
-    expect(screen.getByText('Decks')).toBeInTheDocument()
+    // Localized labels (scoped: the trending tables also have a Decks column).
+    const strip = screen.getByTestId('stat-strip')
+    expect(within(strip).getByText('Events')).toBeInTheDocument()
+    expect(within(strip).getByText('Archetypes')).toBeInTheDocument()
+    expect(within(strip).getByText('Decks')).toBeInTheDocument()
   })
 
   it('narrows the strip to the event totals under an event filter', () => {
@@ -721,6 +727,9 @@ describe('App dashboard', () => {
       fullDecksByArchetype: { 'Izzet Control': [] },
       // RCQ is a 128-player event → the `large` band.
       events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128, deckCount: 1 }],
+      // The size class's events across both windows: RCQ plus one (11) from the
+      // preceding window, which the trend queries too.
+      sizeClassEventIds: [10, 11],
       totals: { events: 1, archetypes: 1, decks: 1 },
       loading: false,
       error: null,
@@ -849,8 +858,9 @@ describe('App dashboard', () => {
       expect(useTrendingCards.mock.calls.at(-1)?.[2]).toMatchObject({ eventIds: null })
 
       act(() => fireEvent.change(sizeSelect(), { target: { value: 'large' } }))
-      // Trending aggregates server-side, so it gets the resolved ids, not the band.
-      expect(useTrendingCards.mock.calls.at(-1)?.[2]).toMatchObject({ eventIds: [10] })
+      // Trending aggregates server-side, so it gets the resolved ids, not the band —
+      // including the preceding window's, for the trend.
+      expect(useTrendingCards.mock.calls.at(-1)?.[2]).toMatchObject({ eventIds: [10, 11] })
     })
 
     it('enables Clear filters when a size class is the only active filter', () => {
@@ -1580,7 +1590,7 @@ describe('Top New Cards table', () => {
   const tableTitles = () =>
     screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))
 
-  it('renders after Sideboard, with the set-code chip and copies but no average', () => {
+  it('renders after Sideboard, with average, copies, play rate and trend but no set code', () => {
     render(<App />)
     expect(tableTitles()).toEqual(
       expect.arrayContaining(['Top Creatures', 'Top Spells', 'Top Sideboard Cards', 'Top New Cards']),
@@ -1590,17 +1600,19 @@ describe('Top New Cards table', () => {
 
     const table = screen.getByRole('region', { name: 'Top New Cards' })
     expect(within(table).getByText('New Card')).toBeInTheDocument()
-    expect(within(table).getByText('FRA')).toBeInTheDocument()
+    expect(within(table).getByText('2x')).toBeInTheDocument()
     expect(within(table).getByText('30')).toBeInTheDocument()
-    expect(within(table).queryByText('Avg')).not.toBeInTheDocument()
-    expect(within(table).queryByText('2x')).not.toBeInTheDocument()
+    expect(within(table).getByText('12%')).toBeInTheDocument()
+    expect(within(table).getByRole('img', { name: 'Play rate up 3.1 points vs the previous period' })).toBeInTheDocument()
+    expect(within(table).queryByText('Set')).not.toBeInTheDocument()
   })
 
-  it('localizes the title in Spanish, keeping the set code', async () => {
+  it('localizes the title and columns in Spanish', async () => {
     render(<App />)
     await act(() => i18n.changeLanguage('es'))
     const table = screen.getByRole('region', { name: 'Top Cartas Nuevas' })
-    expect(within(table).getByText('FRA')).toBeInTheDocument()
+    expect(within(table).getByText('Mazos')).toBeInTheDocument()
+    expect(within(table).getByText('New Card')).toBeInTheDocument()
   })
 
   it('shows its own empty state when no new-set card is played', () => {
@@ -1623,5 +1635,23 @@ describe('Top New Cards table', () => {
     for (const name of ['Top Creatures', 'Top Spells', 'Top Sideboard Cards']) {
       expect(screen.getByRole('region', { name })).toBeInTheDocument()
     }
+  })
+})
+
+describe('Trending play-rate denominators', () => {
+  it('passes the slice deck totals of both windows to the trending hook', () => {
+    useMetagame.mockReturnValue({
+      ...useMetagame(),
+      sliceDeckCounts: { selected: { Izzet: 3, 'Mono Red': 2 }, preceding: { Izzet: 4 } },
+    })
+    render(<App />)
+    expect(useTrendingCards.mock.calls.at(-1)?.[3]).toEqual({ selected: 5, preceding: 4 })
+  })
+
+  it('passes no totals, and renders no trending table, while the metagame loads', () => {
+    useMetagame.mockReturnValue({ breakdown: [], decksByArchetype: {}, loading: true, error: null })
+    render(<App />)
+    expect(useTrendingCards.mock.calls.at(-1)?.[3]).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Top Creatures' })).not.toBeInTheDocument()
   })
 })
