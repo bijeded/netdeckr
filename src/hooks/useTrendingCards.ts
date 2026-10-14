@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { captureError } from '../lib/sentry'
 import type { FormatCode } from '../lib/formats'
 import { precedingWindowStartISO, windowStartISO, type WindowCode } from '../lib/windows'
 import {
@@ -187,9 +188,15 @@ async function callRecentSetTopCards(
   }))
 }
 
-/** Resolve a preceding-window fetch to its rows, or null on failure (blanks the trend only). */
-function orNull<T>(promise: Promise<T>): Promise<T | null> {
-  return promise.catch(() => null)
+/**
+ * Resolve a preceding-window fetch to its rows, or null on failure (blanks the
+ * trend only). The failure is still handed to `onError`, so it gets reported.
+ */
+function orNull<T>(promise: Promise<T>, onError: (e: unknown) => void): Promise<T | null> {
+  return promise.catch((e: unknown) => {
+    onError(e)
+    return null
+  })
 }
 
 /**
@@ -244,6 +251,10 @@ export function useTrendingCards(
     const prevStart = precedingWindowStartISO(metaWindow, now)
     const withNewCards = hasNewCardsTable(format)
     const withPreceding = eventId === null
+    // Every failed call is reported to Sentry, including the ones whose failure
+    // only blanks a table or a trend: a timeout must never pass as "no data".
+    const report = (rpc: string, slice: 'selected' | 'preceding') => (e: unknown) =>
+      captureError(e, { tags: { feature: 'trending', rpc, slice, format, window: metaWindow } })
 
     async function run() {
       const archetypeIds =
@@ -263,17 +274,27 @@ export function useTrendingCards(
         withNewCards
           ? callRecentSetTopCards(format, start, end, archetypeIds, eventId, eventIds).catch((e: unknown) => {
               newCardsError = e
+              report('recent_set_top_cards', 'selected')(e)
               return []
             })
           : Promise.resolve([]),
         withPreceding
-          ? orNull(callTopCards(format, prevStart, start, 'main', archetypeIds, eventId, eventIds))
+          ? orNull(
+              callTopCards(format, prevStart, start, 'main', archetypeIds, eventId, eventIds),
+              report('top_cards', 'preceding'),
+            )
           : skipped,
         withPreceding
-          ? orNull(callTopCards(format, prevStart, start, 'side', archetypeIds, eventId, eventIds))
+          ? orNull(
+              callTopCards(format, prevStart, start, 'side', archetypeIds, eventId, eventIds),
+              report('top_cards', 'preceding'),
+            )
           : skipped,
         withPreceding && withNewCards
-          ? orNull(callRecentSetTopCards(format, prevStart, start, archetypeIds, eventId, eventIds))
+          ? orNull(
+              callRecentSetTopCards(format, prevStart, start, archetypeIds, eventId, eventIds),
+              report('recent_set_top_cards', 'preceding'),
+            )
           : skipped,
       ])
 
@@ -287,6 +308,9 @@ export function useTrendingCards(
         setState({ raw, newCardsError, loading: false, error: null })
       })
       .catch((error) => {
+        // One report per failed load: main and side share this rejection (the
+        // first failure wins), as does a failed archetype-id resolution.
+        report('top_cards', 'selected')(error)
         if (!active) return
         setState({ ...EMPTY_FETCH, error })
       })

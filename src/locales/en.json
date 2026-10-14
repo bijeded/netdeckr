@@ -151,7 +151,8 @@
     },
     "empty": "No trending cards yet",
     "sideboardEmpty": "No sideboard cards yet",
-    "newCardsEmpty": "No new-set cards played yet"
+    "newCardsEmpty": "No new-set cards played yet",
+    "loadError": "Could not load these cards. Try reloading the page."
   },
   "footer": {
     "nav": "Legal pages",

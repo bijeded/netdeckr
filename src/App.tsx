@@ -227,6 +227,8 @@ function App() {
     sideboard,
     newCards,
     loading: trendingLoading,
+    error: trendingError,
+    newCardsError,
   } = useTrendingCards(
     format,
     metaWindow,
@@ -728,29 +730,34 @@ function App() {
                 order drives both, so in Pre-Modern (no New Cards) Sideboard just
                 sits alone in row 2. Independent of the grid's data; only its own
                 load — and the metagame's, which supplies the play-rate
-                denominators, so Decks/Trend never flash blank. */}
+                denominators, so Decks/Trend never flash blank. A failed load
+                swaps each affected table's empty text for `trending.loadError`
+                (the hook returns no rows on failure), so a timeout never reads
+                as "no cards". */}
             {!trendingLoading && !loading && (
               <div className="trending-layout">
                 <TopCardsTable
                   title={t('trending.creaturesTitle')}
                   cards={creatures}
-                  emptyMessage={t('trending.empty')}
+                  emptyMessage={trendingError ? t('trending.loadError') : t('trending.empty')}
                 />
                 <TopCardsTable
                   title={t('trending.spellsTitle')}
                   cards={spells}
-                  emptyMessage={t('trending.empty')}
+                  emptyMessage={trendingError ? t('trending.loadError') : t('trending.empty')}
                 />
                 <TopCardsTable
                   title={t('trending.sideboardTitle')}
                   cards={sideboard}
-                  emptyMessage={t('trending.sideboardEmpty')}
+                  emptyMessage={trendingError ? t('trending.loadError') : t('trending.sideboardEmpty')}
                 />
                 {hasNewCardsTable(format) && (
                   <TopCardsTable
                     title={t('trending.newCardsTitle')}
                     cards={newCards}
-                    emptyMessage={t('trending.newCardsEmpty')}
+                    emptyMessage={
+                      trendingError || newCardsError ? t('trending.loadError') : t('trending.newCardsEmpty')
+                    }
                   />
                 )}
               </div>

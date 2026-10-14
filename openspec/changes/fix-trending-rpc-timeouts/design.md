@@ -7,6 +7,7 @@ See proposal.md (Why) for the symptom and the measured cause. The state that sha
 - `top_cards` and `recent_set_top_cards` are `language sql` functions with `set search_path`, so they are never inlined. The legality filter is a correlated `not exists` over `deck_cards banned_line` joined to `banned_cards`. `illegal_deck_ids` uses the same lookup.
 - `deck_cards` is indexed only on `deck_id`. With no index on `scryfall_name`, the planner hashes the format's banned names and seq-scans the whole table. Measured on Modern 2 weeks: 177,804 rows scanned, 1,589 matches, 2.2 s of a 2.3 s query.
 - The browser calls three trending RPCs concurrently, alongside the paginated corpus fetch and `illegal_deck_ids`. The `anon` role's statement timeout is 3 s.
+  - *Updated during apply:* #211 (play rate and trend columns), merged after this design was drafted, repeats each trending call over the preceding window, so an unfiltered load now makes **six** concurrent trending RPCs. That doubles the load the index has to absorb; it does not change the approach. Preceding-window failures are swallowed (they only blank a trend), so they are reported too (decision 3).
 - `useTrendingCards` already exposes `error` (Creatures/Spells/Sideboard failed together: one `Promise.all`) and `newCardsError` (Top New Cards alone). `App.tsx` reads neither, and `TopCardsTable` only knows `emptyMessage`.
 - Sentry is loaded lazily (`src/lib/sentry.ts`). The only existing capture site, `ErrorBoundary`, dynamically imports `@sentry/react` and calls `captureException`.
 
@@ -43,7 +44,7 @@ Alternative considered: a separate `errorMessage` prop with its own visual treat
 
 ### 3. Report from the hook, through a small shared helper
 
-Add a `captureError(error, context)` helper in `src/lib/sentry.ts` that dynamically imports `@sentry/react` and calls `captureException`, swallowing import failures, mirroring `ErrorBoundary`. `useTrendingCards` calls it where it sets `error` and where it records `newCardsError`, tagged with the RPC, format and window. When no DSN is set, `Sentry.init` never ran and `captureException` is a no-op, so local dev and CI stay silent.
+Add a `captureError(error, context)` helper in `src/lib/sentry.ts` that dynamically imports `@sentry/react` and calls `captureException`, swallowing import failures, mirroring `ErrorBoundary`. `useTrendingCards` calls it where it sets `error`, where it records `newCardsError`, and where a preceding-window call fails, tagged with the RPC, the slice (`selected` / `preceding`), format and window. The preceding-window case was added during apply (see Context): those failures change no table, so without a report they would be invisible. When no DSN is set, `Sentry.init` never ran and `captureException` is a no-op, so local dev and CI stay silent.
 
 Reporting in the hook rather than in `App` keeps it to one report per failed load and leaves `App` purely presentational. Supabase errors are plain objects (`{ code, message }`), not `Error` instances, so the helper wraps them in an `Error` with the code in the message to keep Sentry's grouping readable.
 

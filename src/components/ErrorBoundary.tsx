@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { EmptyState } from './EmptyState'
+import { captureError } from '../lib/sentry'
 
 /** Localized fallback shown when the boundary catches a render error. */
 function ErrorFallback() {
@@ -73,16 +74,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Report to Sentry (dynamically imported so the SDK stays out of the initial
-    // chunk; no-ops when no DSN is configured) and mirror to the console so
-    // failures stay visible in local dev.
-    void import('@sentry/react')
-      .then((Sentry) => {
-        Sentry.captureException(error, {
-          contexts: { react: { componentStack: info.componentStack } },
-        })
-      })
-      .catch(() => {})
+    // Report to Sentry (no-ops when no DSN is configured) and mirror to the
+    // console so failures stay visible in local dev.
+    captureError(error, { contexts: { react: { componentStack: info.componentStack } } })
     console.error('Uncaught error in React tree:', error, info.componentStack)
   }
 

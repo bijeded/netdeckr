@@ -160,6 +160,20 @@ create index if not exists decks_archetype_idx on public.decks (archetype_id);
 create index if not exists deck_cards_deck_idx on public.deck_cards (deck_id);
 create index if not exists events_format_date_idx on public.events (format_code, event_date desc);
 
+-- Lookups by canonical name (change fix-trending-rpc-timeouts): the whole-deck
+-- legality check in `top_cards`, `recent_set_top_cards` and `illegal_deck_ids`
+-- (deck_cards.scryfall_name -> banned_cards), and the recent-set join in
+-- `recent_set_top_cards` (-> recent_set_cards). Without it every call seq-scans
+-- all of deck_cards (every format, every date) to find a format's banned lines:
+-- Modern 2-week `top_cards` took 2.3s, past the anon role's 3s statement timeout
+-- under the dashboard's concurrent calls; with it the planner probes the index
+-- once per banned name and the same query takes ~140ms. `deck_id` rides along
+-- so the probe is index-only and yields the anti-join key directly.
+-- Not `concurrently`: this script runs as one transaction in the SQL editor.
+-- Build it outside a scraper run — it briefly blocks writes to deck_cards.
+create index if not exists deck_cards_scryfall_name_idx
+  on public.deck_cards (scryfall_name, deck_id);
+
 -- Card-art columns for existing deployments (the create-table definitions above
 -- already include them for a fresh apply; these add them to a database created
 -- before card art). All nullable and hotlinked from Scryfall's CDN — no re-host.

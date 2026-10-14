@@ -38,3 +38,43 @@ export function initSentry() {
   if (typeof requestIdleCallback === 'function') requestIdleCallback(start)
   else setTimeout(start, 0)
 }
+
+/** Searchable tags, debug-only extras, and structured contexts for one report. */
+export interface ErrorContext {
+  tags?: Record<string, string>
+  extra?: Record<string, unknown>
+  contexts?: Record<string, Record<string, unknown>>
+}
+
+/**
+ * Normalize a thrown value to an `Error`. Supabase rejects with plain objects
+ * (`{ code, message, details, hint }`), which Sentry would serialize without a
+ * readable title or useful grouping, so they are wrapped with the code leading
+ * the message (e.g. "57014: canceling statement due to statement timeout").
+ */
+export function toError(value: unknown): Error {
+  if (value instanceof Error) return value
+  if (typeof value === 'object' && value !== null && 'message' in value) {
+    const { code, message } = value as { code?: unknown; message?: unknown }
+    const text = String(message)
+    return new Error(typeof code === 'string' && code ? `${code}: ${text}` : text)
+  }
+  return new Error(String(value))
+}
+
+/**
+ * Report a caught error to Sentry. The SDK is imported dynamically (the same
+ * async chunk `initSentry` loads) and a failed import is swallowed: reporting
+ * must never break the caller. No-ops when no DSN is configured, so local dev
+ * and CI stay silent. A non-`Error` value is wrapped by `toError` and the
+ * original is kept under `extra.raw`.
+ */
+export function captureError(error: unknown, context: ErrorContext = {}): void {
+  if (!import.meta.env.VITE_SENTRY_DSN) return
+  const extra = error instanceof Error ? context.extra : { ...context.extra, raw: error }
+  void import('@sentry/react')
+    .then((Sentry) => {
+      Sentry.captureException(toError(error), { ...context, extra })
+    })
+    .catch(() => {})
+}
