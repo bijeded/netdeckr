@@ -25,7 +25,7 @@
 
 ## 6. Preview confirmation
 
-- [ ] 6.1 Open the PR and, on the Vercel preview, confirm at 375px, 1280px (sidebar open and closed) and 1440px: the column widths, the Copies-hiding threshold, the trend chip vs a borderless variant, and the ES header abbreviations. Record the settled values in design.md D4/D5. Verify: the user signs off on the preview (CLAUDE.md exception 1, so no merge before that).
+- [x] 6.1 Open the PR and, on the Vercel preview, confirm at 375px, 1280px (sidebar open and closed) and 1440px: the column widths, the Copies-hiding threshold, the trend chip vs a borderless variant, and the ES header abbreviations. Record the settled values in design.md D4/D5. Verify: the user signs off on the preview (CLAUDE.md exception 1, so no merge before that).
 
 ## Workflow follow-up
 
