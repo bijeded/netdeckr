@@ -18,14 +18,14 @@ See proposal.md (Why) for the symptom and the measured cause. The state that sha
 - A trending load failure is visibly an error, and reaches Sentry.
 
 **Non-Goals:**
-- Rewriting the RPC SQL, merging the three calls into one, or caching aggregates.
+- Changing the RPCs' signatures or results, merging the trending calls into one, or caching aggregates. (Rewriting their SQL was a non-goal until decision 1 was superseded.)
 - Changing the `anon` statement timeout.
 - Retrying failed trending calls.
 - Changing the metagame grid's own error handling.
 
 ## Decisions
 
-### 1. An index alone, no RPC rewrite
+### 1. An index alone, no RPC rewrite — SUPERSEDED by decision 1b
 
 Add `create index if not exists deck_cards_scryfall_name_idx on public.deck_cards (scryfall_name, deck_id);`.
 
@@ -35,6 +35,22 @@ Alternatives considered:
 - **Rewrite the legality filter as a CTE of illegal deck ids.** Measured at 402 ms without the index, still a full read of `deck_cards`, and the gain depended on a parallel plan the planner happened to choose. With the index it adds nothing, and it touches three functions whose filter blocks must stay in sync.
 - **Merge the three trending RPCs into one.** Cuts concurrent load to a third, but changes the RPC contract and the hook. Not needed once each call is ~100–200 ms; revisit if load grows.
 - **Raise the `anon` statement timeout.** Hides the regression, and keeps a 2 s query on every page load.
+
+**What overturned it (found during apply):** the rolled-back test ran the query with a literal `'MO'`. Inside the functions the format and dates are parameters, so Postgres plans them generically. With the index live in production, `top_cards('MO', 2 weeks, main)` was unchanged (~1.6 s) and 3 of the page's 6 concurrent calls still timed out. A generic-plan test (`prepare` + `plan_cache_mode = force_generic_plan`) showed why. Without the format value the planner estimates 1 event and ~88 card rows (actual: 80 and 15,608), so it picks a `Nested Loop Anti Join` that re-reads each card row's deck and checks every card against the banlist: 510,515 lookups, 612k buffers, 1.7 s. That plan is cheap at 88 rows, so the index does not change the choice. The index is kept: decision 1b needs it.
+
+### 1b. Compute the banned-deck set once, from the banned names
+
+Rewrite the legality filter in all three functions so its cost cannot scale with the slice, whatever the row estimates:
+
+- `top_cards` and `recent_set_top_cards`: replace the correlated `not exists (...)` with `d.id not in (select banned_line.deck_id from banned_cards b join deck_cards banned_line on banned_line.scryfall_name = b.card_name where b.format_code = p_format)`. Postgres never pulls `NOT IN` up into a join (null semantics), so it evaluates the subquery once as a **hashed SubPlan**: one probe of `deck_cards_scryfall_name_idx` per banned name, then a hash lookup per deck. `deck_cards.deck_id` is `not null`, so `NOT IN`'s null trap cannot fire. Measured with a forced generic plan: 289 ms, 8k buffers (from 1,694 ms, 612k).
+- `illegal_deck_ids`: replace `exists (...)` with `d.id = any (array(select ...same subquery...))`. A positive `IN` would be pulled up into a semi-join and could land in the same per-row plan. `= any(array(...))` is an InitPlan, computed once. The array holds about 1k ids and is scanned per deck in the window, which is cheap.
+
+Results, signatures and the whole-deck legality rule are unchanged. The filter is moved from per card row (`dc.deck_id`) to per deck (`d.id`). Same set, applied earlier.
+
+Alternatives considered:
+- **Index only:** see decision 1.
+- **Materialized CTE plus `not exists` against it:** the planner can still choose a per-row nested loop over the CTE scan.
+- **`plpgsql` with dynamic SQL, for custom plans:** fixes the estimates, but rewrites three functions into a different language and plans on every call.
 
 ### 2. Error state through `TopCardsTable`'s existing message slot
 
@@ -51,6 +67,8 @@ Reporting in the hook rather than in `App` keeps it to one report per failed loa
 `ErrorBoundary` is switched to the helper so there is one capture path.
 
 ## Risks / Trade-offs
+
+- [A hashed SubPlan needs the banned-deck id set to fit in `hash_mem`; otherwise Postgres falls back to rescanning the subquery per row] → The set is ~1.6k ids against a multi-MB budget. It grows only with decks holding banned cards, inside the 30-day retention window.
 
 - [Building the index locks `deck_cards` against writes for a few seconds] → Apply it outside the scraper's cron windows. `create index concurrently` is not used, because `schema.sql` is applied as one script in the SQL editor, which runs it in a transaction where `concurrently` is not allowed.
 - [The index adds write cost to every scraped deck card] → One B-tree on a ~177k-row table pruned to 30 days. Negligible next to the scraper's rate limiting.
