@@ -76,6 +76,8 @@ Width (calculated): at the 1240px content max with a 22px gap, each table is ~60
 
 A mono chip showing the set code. It sits on the table surface, not on card art, so the over-art contrast rule doesn't apply. `CHIP_BASE`'s dark backdrop and blur exist for over-art chips and aren't required here. Whether to reuse its shape for consistency, and the chip's color (neutral `--text-muted` on a hairline border vs. a neon tint), are **pending visual confirmation**. Whichever is chosen, its text must clear 4.5:1 against the chip's own background. Check this with the token ratios once the colors are picked.
 
+As implemented, pending preview: `--text-muted` (#8b8d9e) mono text with a `--border-soft` hairline and no fill, in a 52px column placed before Copies. Calculated contrast: 5.68:1 against `--surface-card` (#11121b) and 5.99:1 against `--bg-app`. Both clear 4.5:1.
+
 ### D7. Copy
 
 - Title: `trending.newCardsTitle` = "Top New Cards" / "Top Cartas Nuevas" (calculated: matches the existing "Top …" pattern; ES follows "Top Criaturas").
