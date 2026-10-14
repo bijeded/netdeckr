@@ -42,11 +42,11 @@ describe('useDeckCards', () => {
     expect(from).toHaveBeenCalledWith('deck_cards')
     expect(eq).toHaveBeenCalledWith('deck_id', 7)
     expect(result.current.main).toEqual([
-      { quantity: 4, name: 'Llanowar Elves', setCode: null, collectorNumber: null, imageUrl: null, thumbnailUrl: null, typeLine: null },
-      { quantity: 6, name: 'Forest', setCode: null, collectorNumber: null, imageUrl: null, thumbnailUrl: null, typeLine: null },
+      { quantity: 4, name: 'Llanowar Elves', scrapedName: 'Llanowar Elves', setCode: null, collectorNumber: null, imageUrl: null, thumbnailUrl: null, typeLine: null },
+      { quantity: 6, name: 'Forest', scrapedName: 'Forest', setCode: null, collectorNumber: null, imageUrl: null, thumbnailUrl: null, typeLine: null },
     ])
     expect(result.current.side).toEqual([
-      { quantity: 2, name: 'Duress', setCode: null, collectorNumber: null, imageUrl: null, thumbnailUrl: null, typeLine: null },
+      { quantity: 2, name: 'Duress', scrapedName: 'Duress', setCode: null, collectorNumber: null, imageUrl: null, thumbnailUrl: null, typeLine: null },
     ])
     expect(result.current.mainCount).toBe(10)
     expect(result.current.sideCount).toBe(2)
@@ -59,6 +59,16 @@ describe('useDeckCards', () => {
     const { result } = renderHook(() => useDeckCards(7))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.main[0].name).toBe('Lightning Bolt (canonical)')
+  })
+
+  it('keeps the scraped name alongside the canonical one', async () => {
+    queryResult.data = [
+      { board: 'main', quantity: 2, card_name: 'Wear / Tear', scryfall_name: 'Wear // Tear' },
+    ]
+    const { result } = renderHook(() => useDeckCards(7))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.main[0].name).toBe('Wear // Tear')
+    expect(result.current.main[0].scrapedName).toBe('Wear / Tear')
   })
 
   it('exposes the thumbnail image when present', async () => {

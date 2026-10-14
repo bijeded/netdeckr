@@ -175,32 +175,58 @@ describe('DecklistModal', () => {
       vi.unstubAllGlobals()
     })
 
-    it('downloads a .txt file for a non-Arena format (Modern)', () => {
-      const createObjectURL = vi.fn().mockReturnValue('blob:mock')
-      const revokeObjectURL = vi.fn()
-      vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+  })
+
+  describe('MTGO export', () => {
+    beforeEach(() => {
+      useDeckCards.mockReturnValue({
+        main: [
+          {
+            quantity: 4,
+            name: 'Ajani, Nacatl Pariah // Ajani, Nacatl Avenger',
+            scrapedName: 'Ajani, Nacatl Pariah',
+            setCode: 'MH3',
+            collectorNumber: '237',
+            typeLine: 'Creature — Cat Warrior',
+          },
+          { quantity: 1, name: 'Mountain', scrapedName: 'Mountain', typeLine: 'Basic Land — Mountain' },
+        ],
+        side: [{ quantity: 2, name: 'Wear // Tear', scrapedName: 'Wear / Tear', typeLine: 'Instant' }],
+        mainCount: 5,
+        sideCount: 2,
+        loading: false,
+        error: null,
+      })
+    })
+
+    it.each(['MO', 'PAU', 'PREM'] as const)('labels the action as an MTGO export for %s', (format) => {
+      render(<DecklistModal deck={deck} format={format} onClose={vi.fn()} />)
+      expect(screen.getByRole('button', { name: /export to mtgo/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /mtg arena/i })).not.toBeInTheDocument()
+    })
+
+    it('copies MTGO text to the clipboard and confirms, without downloading a file (Modern)', async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
       const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-
       render(<DecklistModal deck={deck} format="MO" onClose={vi.fn()} />)
-      fireEvent.click(screen.getByRole('button', { name: /download decklist/i }))
 
-      expect(createObjectURL).toHaveBeenCalledTimes(1)
-      const blob = createObjectURL.mock.calls[0][0] as Blob
-      expect(blob).toBeInstanceOf(Blob)
-      expect(clickSpy).toHaveBeenCalledTimes(1)
+      fireEvent.click(screen.getByRole('button', { name: /export to mtgo/i }))
 
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+      expect(writeText).toHaveBeenCalledWith('4 Ajani, Nacatl Pariah\r\n1 Mountain\r\n\r\n2 Wear/Tear')
+      expect(await screen.findByText(/copied to clipboard/i)).toBeInTheDocument()
+      expect(clickSpy).not.toHaveBeenCalled()
       clickSpy.mockRestore()
       vi.unstubAllGlobals()
     })
 
-    it('surfaces an error message when the download fails', async () => {
-      const createObjectURL = vi.fn(() => {
-        throw new Error('no blob')
-      })
-      vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() })
-      render(<DecklistModal deck={deck} format="MO" onClose={vi.fn()} />)
+    it('surfaces an error message when the clipboard write fails', async () => {
+      const writeText = vi.fn().mockRejectedValue(new Error('denied'))
+      vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+      render(<DecklistModal deck={deck} format="PAU" onClose={vi.fn()} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /download decklist/i }))
+      fireEvent.click(screen.getByRole('button', { name: /export to mtgo/i }))
 
       expect(await screen.findByText(/could not copy/i)).toBeInTheDocument()
       vi.unstubAllGlobals()

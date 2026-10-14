@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 export interface DeckCardLine {
   quantity: number
   name: string
+  /** The name as scraped from MTGTop8 — the MTGO export uses it to tell split cards apart. */
+  scrapedName: string
   /** Canonical non-foil printing, when Scryfall mapping has populated it. */
   setCode?: string | null
   collectorNumber?: string | null
@@ -81,6 +83,7 @@ export function useDeckCards(deckId: number | null): DeckCardsState {
           const line: DeckCardLine = {
             quantity: row.quantity,
             name: row.scryfall_name ?? row.card_name,
+            scrapedName: row.card_name,
             setCode: row.set_code ?? null,
             collectorNumber: row.collector_number ?? null,
             imageUrl: row.image_url ?? null,

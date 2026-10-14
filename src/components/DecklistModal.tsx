@@ -9,13 +9,13 @@ import { EmptyState } from './EmptyState'
 import { useDeckCards, type DeckCardLine } from '../hooks/useDeckCards'
 import { groupMainByType, type CardTypeCategory } from '../lib/cardType'
 import { placementBadge, type PlacementKind } from '../lib/placement'
-import { arenaDelivery, buildArenaDeck, arenaFilename } from '../lib/arenaExport'
+import { buildArenaDeck, buildMtgoDeck, exportTarget } from '../lib/deckExport'
 import type { FormatCode } from '../lib/formats'
 import type { DeckRow } from '../lib/deckSelection'
 
 interface DecklistModalProps {
   deck: DeckRow
-  /** Current format — decides clipboard (Arena formats) vs .txt download. */
+  /** Current format — decides whether the export copies MTG Arena or MTGO text. */
   format: FormatCode
   onClose: () => void
 }
@@ -134,31 +134,15 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
   const badge = placementBadge(deck.placement)
   const badgeColors = BADGE[badge.kind]
 
-  const delivery = arenaDelivery(format)
+  const target = exportTarget(format)
 
   async function handleExport() {
-    const text = buildArenaDeck(main, side, deck.archetypeName)
-    if (delivery === 'clipboard') {
-      try {
-        await navigator.clipboard.writeText(text)
-        setNotice({ tone: 'ok', message: t('modal.export.copied') })
-      } catch {
-        setNotice({ tone: 'error', message: t('modal.export.error') })
-      }
-      return
-    }
-    let url: string | null = null
+    const text = target === 'arena' ? buildArenaDeck(main, side, deck.archetypeName) : buildMtgoDeck(main, side)
     try {
-      url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = arenaFilename(deck.archetypeName)
-      anchor.click()
-      setNotice({ tone: 'ok', message: t('modal.export.downloaded') })
+      await navigator.clipboard.writeText(text)
+      setNotice({ tone: 'ok', message: t('modal.export.copied') })
     } catch {
       setNotice({ tone: 'error', message: t('modal.export.error') })
-    } finally {
-      if (url) URL.revokeObjectURL(url)
     }
   }
 
@@ -288,7 +272,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
               }}
             >
               <span aria-hidden="true">⬇</span>
-              {t(delivery === 'clipboard' ? 'modal.export.action' : 'modal.export.download')}
+              {t(target === 'arena' ? 'modal.export.action' : 'modal.export.mtgo')}
             </button>
             <button
               ref={closeRef}

@@ -117,10 +117,9 @@
     "error": "Could not load this decklist.",
     "export": {
       "action": "Export to MTG Arena",
+      "mtgo": "Export to MTGO",
       "copied": "Decklist copied to clipboard",
-      "downloaded": "Decklist downloaded",
-      "error": "Could not copy the decklist",
-      "download": "Download Decklist"
+      "error": "Could not copy the decklist"
     },
     "view": {
       "toImages": "Gallery",
