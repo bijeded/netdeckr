@@ -619,32 +619,17 @@ function App() {
                   </div>
                 )}
               </div>
-              <div className="caption-actions">
-                {/* The isolated archetype's way back to the grid: leaves only the
-                    archetype, keeping any other filter the grid was showing. */}
-                {archetypeFiltered && (
-                  <button
-                    type="button"
-                    data-testid="leave-archetype"
-                    className="reset-filters"
-                    aria-label={t('filters.backLabel')}
-                    onClick={leaveArchetype}
-                  >
-                    ← {t('filters.back')}
-                  </button>
-                )}
-                {/* Always rendered, disabled when idle: appearing and disappearing
-                    would resize this row and shove the grid on every filter change. */}
-                <button
-                  type="button"
-                  data-testid="reset-filters"
-                  className="reset-filters"
-                  disabled={!filtersActive}
-                  onClick={clearFilters}
-                >
-                  {t('filters.reset')}
-                </button>
-              </div>
+              {/* Always rendered, disabled when idle: appearing and disappearing
+                  would resize this row and shove the grid on every filter change. */}
+              <button
+                type="button"
+                data-testid="reset-filters"
+                className="reset-filters"
+                disabled={!filtersActive}
+                onClick={clearFilters}
+              >
+                {t('filters.reset')}
+              </button>
             </div>
 
             {/* Main */}
@@ -742,7 +727,20 @@ function App() {
                             >
                               {t('decks.count', { count: decks.length })}
                             </span>
-                            {!isolated && (
+                            {/* One slot, two directions: a grid card opens its
+                                archetype view, the isolated card leads back out
+                                (clearing only the archetype, keeping other filters). */}
+                            {isolated ? (
+                              <button
+                                type="button"
+                                data-testid="leave-archetype"
+                                className="window-pill view-all-pill"
+                                aria-label={t('filters.backLabel')}
+                                onClick={leaveArchetype}
+                              >
+                                ← {t('filters.back')}
+                              </button>
+                            ) : (
                               <button
                                 type="button"
                                 data-testid="view-all-lists"

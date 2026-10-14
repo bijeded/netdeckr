@@ -473,15 +473,6 @@
   justify-content: space-between;
   gap: var(--sp-4);
 }
-/* Right side of the caption row: Reset, preceded by "← Back" in an isolated
-   archetype view. Back wears Reset's enabled treatment — both are ways out of a
-   filtered view. */
-.caption-actions {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
 /* Enabled, it is the way out of a filtered view and has to read as an action, so
    it takes the accent treatment (tint, accent rim, accent text) rather than the
    quiet outline of the sidebar's Clear filters. The accent is the subdued green,
@@ -614,7 +605,8 @@
   border-color: rgba(177, 75, 255, 0.6);
 }
 
-/* "View all lists →" in an expanded card's deck-list header wears the window
+/* "View all lists →" (and, on the isolated card, "← Back" in the same slot) in
+   an expanded card's deck-list header wears the window
    pill's treatment: the deck rows' "go to deck →" links share its text colour,
    so the pill's shape and fill are what set it apart. The height floor keeps it
    a comfortable tap target on touch. */

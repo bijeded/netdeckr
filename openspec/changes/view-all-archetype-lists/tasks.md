@@ -15,9 +15,13 @@
 - [x] 3.1 Move the "View all lists →" pill on mobile: keep the heading and count on one row, and give the pill its own full-width row at ≤640px (design D5, superseded note). Verify the desktop row is unchanged and the existing control tests pass with `npm run test`.
 - [x] 3.2 Add the "← Back" control to the isolated view (design D6): `leaveArchetype` in `useArchetypeSelection` (tagged push entry goes `history.back()`, otherwise clears in place), the button beside Reset, `filters.back` / `filters.backLabel` in ES/EN. Cover the hook paths and the App behavior (only when isolated; keeps other filters; history step-back after the pill). Verify with `npm run test`, `npm run type-check`, and `npm run lint`.
 
-## 4. Preview confirmation (user-visible: merge exception 1)
+## 4. Preview feedback round 2
 
-- [ ] 4.1 Open the PR and, on the Vercel preview, confirm at desktop and ~360px widths: the pill reads as more prominent than the "go to deck →" links; the count and pill fit the header row; Back/Forward, the "← Back" control, and a shared `?a=` link behave as specified. Record the confirmed treatment, or any adjusted border/fill alpha, in design.md D5 as a superseding note. Done when the user has confirmed on the preview.
+- [x] 4.1 Move "← Back" from the caption row into the isolated card's deck-list header slot that "View all lists →" uses, in the pill treatment (design D6, superseded note). Verify with the App test asserting Back sits in the isolated card's deck list, plus `npm run test`, `npm run type-check`, and `npm run lint`.
+
+## 5. Preview confirmation (user-visible: merge exception 1)
+
+- [ ] 5.1 Open the PR and, on the Vercel preview, confirm at desktop and ~360px widths: the pill reads as more prominent than the "go to deck →" links; the count and pill fit the header row; Back/Forward, the "← Back" control, and a shared `?a=` link behave as specified. Record the confirmed treatment, or any adjusted border/fill alpha, in design.md D5 as a superseding note. Done when the user has confirmed on the preview.
 
 ## Workflow follow-up
 

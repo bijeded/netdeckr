@@ -46,11 +46,11 @@ The isolated archetype SHALL be persisted in the URL as `?a=<archetype name>` al
 - **THEN** the Archetype filter resets to "All archetypes" and `?a=` is removed from the URL
 
 ### Requirement: Leave the isolated archetype view
-While an archetype is isolated, the caption row SHALL show a localized "← Back" control beside "Reset", in Reset's enabled treatment, and only then. It SHALL clear the isolated archetype and its `?a=` param, keeping any other active filter. When the view was entered through "View all lists →", it SHALL step back through browser history; otherwise it SHALL clear in place without adding a history entry.
+While an archetype is isolated, and only then, its card SHALL show a localized "← Back" control in the recent-decklists header slot grid cards use for "View all lists →", with the same treatment. It SHALL clear the isolated archetype and `?a=`, keeping other filters: stepping back through history when entered through "View all lists →", otherwise clearing in place without a new history entry.
 
 #### Scenario: Back appears only in the isolated view
 - **WHEN** an archetype is isolated
-- **THEN** the caption row shows a "← Back" control (localized) beside "Reset"; when no archetype is isolated, no "← Back" control is shown
+- **THEN** the isolated card's recent-decklists header shows a "← Back" control (localized) where grid cards show "View all lists →"; when no archetype is isolated, no "← Back" control is shown
 
 #### Scenario: Back returns to the grid, keeping other filters
 - **WHEN** an archetype is isolated with an event filter also active and the user activates "← Back"

@@ -1869,14 +1869,16 @@ describe('Isolated archetype in the URL (?a=)', () => {
   })
 
   describe('"← Back" control', () => {
-    it('is shown only in the isolated view', () => {
+    it('is shown only in the isolated view, in the slot "View all lists →" uses', () => {
       const first = render(<App />)
       expect(screen.queryByTestId('leave-archetype')).toBeNull()
       first.unmount()
 
       setUrl('?a=Izzet+Control')
       render(<App />)
-      const back = screen.getByTestId('leave-archetype')
+      // Same slot: the isolated card's deck-list header, not the caption row.
+      const back = within(screen.getByTestId('deck-list')).getByTestId('leave-archetype')
+      expect(back).toHaveClass('view-all-pill')
       expect(back).toHaveTextContent('← Back')
       expect(back).toHaveAccessibleName('Back to all archetypes')
     })
