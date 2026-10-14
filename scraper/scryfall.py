@@ -79,6 +79,37 @@ class Printing:
     color_identity: tuple[str, ...] = ()  # WUBRG color identity letters, () for colorless
 
 
+@dataclass(frozen=True)
+class RecentSetCard:
+    """A card printed in one of the two most recent main sets (see
+    `CardIndex.recent_set_cards`). Set membership, not the display printing: a
+    reprint counts, whichever printing `resolve` returns for the card."""
+
+    card_name: str  # canonical Scryfall name, joins to deck_cards.scryfall_name
+    set_code: str  # uppercased, e.g. "FRA"
+    set_name: str
+    released_at: str  # the set's release date (ISO YYYY-MM-DD)
+
+
+# Set types that make a "main set" for the Top New Cards table: the premier
+# releases. Everything else (commander, masters, draft_innovation such as Modern
+# Horizons, box, ...) is a side product, however recent.
+_MAIN_SET_TYPES = frozenset({"expansion", "core"})
+# How many of the newest main sets the Top New Cards table covers: two, so the
+# table still fills in the first days after a release.
+RECENT_MAIN_SET_COUNT = 2
+
+
+def _is_main_set_row(row: dict) -> bool:
+    """True if the row is a paper printing in an expansion/core set.
+
+    Only the set is judged, never the printing's treatment or finish: any printing
+    in the set — showcase, foil-only, borderless — makes the card part of it."""
+    if row.get("set_type") not in _MAIN_SET_TYPES or row.get("digital"):
+        return False
+    return "paper" in (row.get("games") or [])
+
+
 def _normalize(name: str) -> str:
     """Lowercase and collapse whitespace so lookups are case/space insensitive.
 
@@ -296,9 +327,26 @@ class CardIndex:
     download and no per-card REST request.
     """
 
-    def __init__(self, by_name: dict[str, Printing], banned_by_format: dict[str, set[str]] | None = None):
+    def __init__(
+        self,
+        by_name: dict[str, Printing],
+        banned_by_format: dict[str, set[str]] | None = None,
+        recent_set_cards: dict[str, RecentSetCard] | None = None,
+    ):
         self._by_name = by_name
         self._banned_by_format = banned_by_format or {code: set() for code in SCRYFALL_LEGALITY_KEY}
+        self._recent_set_cards = recent_set_cards or {}
+
+    def recent_set_cards(self) -> dict[str, RecentSetCard]:
+        """Canonical name -> RecentSetCard for every card printed in the two most
+        recent main sets released by the index's `today` (empty when the index was
+        built without one). A card in both sets carries the newer set."""
+        return self._recent_set_cards
+
+    def recent_sets(self) -> list[str]:
+        """The recent main set codes, newest first (for logging)."""
+        by_date = {(c.released_at, c.set_code) for c in self._recent_set_cards.values()}
+        return [code for _, code in sorted(by_date, reverse=True)]
 
     def banned_cards(self, fmt: str) -> set[str]:
         """Canonical Scryfall names banned in a DB format code (empty when none).
@@ -309,13 +357,22 @@ class CardIndex:
         return self._banned_by_format.get(fmt, set())
 
     @classmethod
-    def from_bulk_rows(cls, rows) -> "CardIndex":
+    def from_bulk_rows(cls, rows, today: str | None = None) -> "CardIndex":
+        """Build the index from bulk rows. `today` (ISO date) enables the recent
+        main sets: only sets released on or before it qualify, so a set already in
+        the bulk data during its preview season is not picked early. Without it the
+        index carries no recent-set cards."""
         # Per canonical name, keep the best paper non-foil printing: plain
         # treatment beats any special-treatment one, then the preferred set type,
         # then the most recent, with set code as a stable tiebreak so selection
         # is deterministic regardless of bulk-file ordering.
         best: dict[str, dict] = {}
         banned_by_format: dict[str, set[str]] = {code: set() for code in SCRYFALL_LEGALITY_KEY}
+        # Per main set code: [earliest row release date, set name, card names].
+        # Collected for every main set ever, because which two are newest is only
+        # known after the whole stream; it is a name reference per printing, small
+        # next to the printing index built alongside it.
+        main_sets: dict[str, list] = {}
         for row in rows:
             # Banned status is collected BEFORE the printing filter: legality is a
             # property of the card, so a card whose only paper non-foil printing is
@@ -325,6 +382,15 @@ class CardIndex:
             if row.get("layout") != "reversible_card":
                 for code in _banned_formats(row):
                     banned_by_format[code].add(row["name"])
+                # Membership is collected BEFORE the printing filter too: a card
+                # whose only printing in the set is foil-only or special-treatment is
+                # still printed in it. Reversible rows stay out for the same reason
+                # as above — their doubled name matches no deck card.
+                if today is not None and _is_main_set_row(row) and row.get("released_at"):
+                    code = str(row["set"]).upper()
+                    entry = main_sets.setdefault(code, [row["released_at"], row.get("set_name") or code, set()])
+                    entry[0] = min(entry[0], row["released_at"])
+                    entry[2].add(row["name"])
             if not _is_paper_nonfoil(row):
                 continue
             name = row["name"]
@@ -344,7 +410,7 @@ class CardIndex:
             for name, row in ordered:
                 for key in keys_for(row):
                     by_name.setdefault(key, _printing_for(name, row, key))
-        return cls(by_name, banned_by_format)
+        return cls(by_name, banned_by_format, _recent_set_cards(main_sets, today))
 
     def __len__(self) -> int:
         return len(self._by_name)
@@ -352,6 +418,24 @@ class CardIndex:
     def resolve(self, name: str) -> Printing | None:
         """Return the canonical printing for a scraped card name, or None on a miss."""
         return self._by_name.get(_normalize(name))
+
+
+def _recent_set_cards(main_sets: dict[str, list], today: str | None) -> dict[str, RecentSetCard]:
+    """Pick the newest released main sets and map each of their cards to the newest
+    one it is printed in. A set's release date is its earliest row's, and it must
+    be on or before `today`; ties on date fall to the set code, so the pick never
+    depends on bulk-file order."""
+    if today is None:
+        return {}
+    released = [(date_, code) for code, (date_, _, _) in main_sets.items() if date_ <= today]
+    chosen = sorted(released, reverse=True)[:RECENT_MAIN_SET_COUNT]
+    cards: dict[str, RecentSetCard] = {}
+    # Oldest first, so a card printed in both is overwritten by the newer set.
+    for released_at, code in reversed(chosen):
+        _, set_name, names = main_sets[code]
+        for name in names:
+            cards[name] = RecentSetCard(name, code, set_name, released_at)
+    return cards
 
 
 def _printing_for(name: str, row: dict, key: str) -> Printing:
@@ -396,7 +480,7 @@ def _bulk_rows(path: str) -> Iterator[dict]:
                 raise ValueError(f"{path}: malformed JSON on line {lineno}: {exc}") from exc
 
 
-def load_bulk_index(path: str) -> CardIndex:
+def load_bulk_index(path: str, today: str | None = None) -> CardIndex:
     """Build a CardIndex from a Scryfall bulk file on disk (gzipped JSONL).
 
     An index with no cards is an error, not a valid result: an empty ``CardIndex``
@@ -405,7 +489,7 @@ def load_bulk_index(path: str) -> CardIndex:
     impossible. An empty or record-less file is the shape a truncated download or
     an upstream format change takes.
     """
-    index = CardIndex.from_bulk_rows(_bulk_rows(path))
+    index = CardIndex.from_bulk_rows(_bulk_rows(path), today=today)
     if not index:
         raise RuntimeError(f"Scryfall bulk file yielded no card records: {path}")
     return index
@@ -477,4 +561,4 @@ def sync_bulk(cache_dir, *, today: str, fetch_meta=_default_fetch_meta, download
             with contextlib.suppress(OSError):
                 os.remove(partial)
 
-    return load_bulk_index(cache_path)
+    return load_bulk_index(cache_path, today=today)

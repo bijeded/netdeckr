@@ -253,6 +253,16 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:  # noqa: BLE001 — the banlist must not fail the scrape
             print(f"[error] {fmt}/banlist: {exc}", file=sys.stderr)
 
+    # Recent-sets pass: reconcile the cards printed in the two most recent main sets
+    # (the Top New Cards table) from the same bulk data. Format-independent, so once
+    # per run. Best-effort like the banlist; the chosen pair is logged so a wrong
+    # pick (Scryfall relabelling a set type) shows up in the workflow output.
+    try:
+        count = writer.refresh_recent_set_cards(resolver.recent_set_cards())
+        print(f"recent-sets: {', '.join(resolver.recent_sets())} ({count} cards)")
+    except Exception as exc:  # noqa: BLE001 — must not fail the scrape
+        print(f"[error] recent-sets: {exc}", file=sys.stderr)
+
     # Decklist pass: for each format, gather the two-week window's events and store
     # every NEW deck + its cards, then refresh archetype art and stamp the format's
     # freshness. Incremental — events already stored are skipped, so only the first

@@ -901,3 +901,155 @@ def test_split_card_without_card_faces_still_sees_a_land_half():
     index = CardIndex.from_bulk_rows([row])
     assert index.resolve("Bala Ged Recovery").has_land_face is True
     assert index.resolve("Bala Ged Recovery").type_line == "Sorcery"
+
+
+# -- recent main sets (Top New Cards) --------------------------------------
+
+TODAY = "2026-10-13"
+
+
+def _set_row(name, set_code, *, released_at, set_name=None, set_type="expansion", **extra):
+    """A bulk row for recent-set tests: `_printing_row` plus the set's name."""
+    return _printing_row(
+        name, set_code, "1", released_at=released_at, set_type=set_type,
+        set_name=set_name or set_code.upper(), **extra,
+    )
+
+
+def _recent(rows, today=TODAY):
+    return CardIndex.from_bulk_rows(rows, today=today)
+
+
+def test_two_latest_released_main_sets_are_chosen():
+    rows = [
+        _set_row("Old Card", "old", released_at="2026-04-01"),
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01", set_name="The Hobbit"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25", set_name="Reality Fracture"),
+    ]
+    index = _recent(rows)
+    assert index.recent_sets() == ["FRA", "HOB"]
+    assert set(index.recent_set_cards()) == {"Hobbit Card", "Fracture Card"}
+    fra = index.recent_set_cards()["Fracture Card"]
+    assert (fra.set_code, fra.set_name, fra.released_at) == ("FRA", "Reality Fracture", "2026-09-25")
+
+
+def test_unreleased_set_is_not_chosen_until_release():
+    rows = [
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25"),
+        _set_row("Preview Card", "nxt", released_at="2026-11-20"),
+    ]
+    assert _recent(rows).recent_sets() == ["FRA", "HOB"]
+    assert _recent(rows, today="2026-11-20").recent_sets() == ["NXT", "FRA"]
+
+
+def test_new_release_rolls_the_pair_forward():
+    rows = [
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25"),
+        _set_row("Next Card", "nxt", released_at="2026-11-20"),
+    ]
+    cards = _recent(rows, today="2026-11-21").recent_set_cards()
+    assert set(cards) == {"Fracture Card", "Next Card"}
+
+
+@pytest.mark.parametrize("set_type", ["commander", "masters", "draft_innovation", "box"])
+def test_non_main_products_are_not_chosen(set_type):
+    rows = [
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25"),
+        _set_row("Side Card", "sid", released_at="2026-10-01", set_type=set_type),
+    ]
+    assert _recent(rows).recent_sets() == ["FRA", "HOB"]
+
+
+def test_digital_set_is_not_chosen():
+    rows = [
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25"),
+        _set_row("Arena Card", "ydg", released_at="2026-10-01", digital=True, games=["arena"]),
+    ]
+    assert _recent(rows).recent_sets() == ["FRA", "HOB"]
+
+
+def test_reprint_is_recorded_with_the_recent_set():
+    rows = [
+        _set_row("Lightning Bolt", "m11", released_at="2010-07-16", set_type="core"),
+        _set_row("Lightning Bolt", "fra", released_at="2026-09-25"),
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+    ]
+    assert _recent(rows).recent_set_cards()["Lightning Bolt"].set_code == "FRA"
+
+
+def test_membership_does_not_depend_on_the_display_printing():
+    # The HOB printing is borderless-only, so resolve() picks the older plain one;
+    # the card is still printed in HOB.
+    rows = [
+        _set_row("Ring Card", "old", released_at="2020-01-01"),
+        _set_row("Ring Card", "hob", released_at="2026-07-01", border_color="borderless"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25"),
+    ]
+    index = _recent(rows)
+    assert index.resolve("Ring Card").set_code == "OLD"
+    assert index.recent_set_cards()["Ring Card"].set_code == "HOB"
+
+
+def test_foil_only_printing_still_counts_as_membership():
+    rows = [
+        _set_row("Shiny Card", "fra", released_at="2026-09-25", finishes=["foil"]),
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+    ]
+    assert "Shiny Card" in _recent(rows).recent_set_cards()
+
+
+def test_card_in_both_sets_carries_the_newer_one():
+    rows = [
+        _set_row("Shared Card", "hob", released_at="2026-07-01"),
+        _set_row("Shared Card", "fra", released_at="2026-09-25"),
+    ]
+    for ordered in (rows, list(reversed(rows))):
+        assert _recent(ordered).recent_set_cards()["Shared Card"].set_code == "FRA"
+
+
+def test_multi_face_card_is_recorded_by_its_canonical_name():
+    rows = [
+        _set_row("Fire // Ice", "fra", released_at="2026-09-25"),
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+    ]
+    index = _recent(rows)
+    canonical = index.resolve("Fire / Ice").name
+    assert canonical in index.recent_set_cards()
+
+
+def test_reversible_card_rows_are_not_recorded():
+    rows = [
+        _set_row("Lair // Lair", "fra", released_at="2026-09-25", layout="reversible_card"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25"),
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+    ]
+    assert "Lair // Lair" not in _recent(rows).recent_set_cards()
+
+
+def test_same_day_sets_tie_break_on_set_code():
+    rows = [
+        _set_row("A Card", "aaa", released_at="2026-09-25"),
+        _set_row("B Card", "bbb", released_at="2026-09-25"),
+        _set_row("C Card", "ccc", released_at="2026-09-25"),
+    ]
+    assert _recent(rows).recent_sets() == ["CCC", "BBB"]
+    assert _recent(list(reversed(rows))).recent_sets() == ["CCC", "BBB"]
+
+
+def test_index_without_today_has_no_recent_set_cards():
+    rows = [_set_row("Fracture Card", "fra", released_at="2026-09-25")]
+    assert CardIndex.from_bulk_rows(rows).recent_set_cards() == {}
+
+
+def test_sync_bulk_threads_today_into_the_recent_sets(tmp_path):
+    rows = [
+        _set_row("Hobbit Card", "hob", released_at="2026-07-01"),
+        _set_row("Fracture Card", "fra", released_at="2026-09-25"),
+    ]
+    _write_bulk(tmp_path / f"default_cards-{TODAY}.jsonl.gz", rows)
+    index = sync_bulk(tmp_path, today=TODAY, fetch_meta=MagicMock(), download=MagicMock())
+    assert index.recent_sets() == ["FRA", "HOB"]
