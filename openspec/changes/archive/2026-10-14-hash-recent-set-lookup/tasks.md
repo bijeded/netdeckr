@@ -27,8 +27,8 @@
 
 ## 3. Integration
 
-- [ ] 3.1 Run `npm run lint`, `npm run type-check` and `npm run test`, and verify all pass. Then open the PR on `task/hash-recent-set-lookup` and merge once `ci` is green; the change isn't user-visible and touches no process files.
-- [ ] 3.2 After the user applies the function block in the Supabase SQL editor, re-fetch every format × window through the API. Verify:
+- [x] 3.1 Run `npm run lint`, `npm run type-check` and `npm run test`, and verify all pass. Then open the PR on `task/hash-recent-set-lookup` and merge once `ci` is green; the change isn't user-visible and touches no process files.
+- [x] 3.2 After the user applies the function block in the Supabase SQL editor, re-fetch every format × window through the API. Verify:
   - zero differences against the 2.1 snapshot;
   - every call returns 200;
   - Modern 2 weeks shows Top New Cards on the production site.
