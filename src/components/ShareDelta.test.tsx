@@ -25,6 +25,13 @@ describe('ShareDelta', () => {
     expect(el.textContent).not.toMatch(/[+]/)
   })
 
+  it('takes its labels from another namespace when given a labelKeyPrefix', () => {
+    render(<ShareDelta delta={{ direction: 'down', valuePct: -1.8 }} labelKeyPrefix="trending.trend" />)
+    expect(
+      screen.getByRole('img', { name: 'Play rate down 1.8 points vs the previous period' }),
+    ).toBeInTheDocument()
+  })
+
   it('renders nothing when the delta is suppressed (null)', () => {
     const { container } = render(<ShareDelta delta={null} />)
     expect(container.firstChild).toBeNull()

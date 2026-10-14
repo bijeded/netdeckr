@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
-import { windowStartISO, corpusFetchStartISO, type WindowCode } from '../lib/windows'
+import { windowStartISO, precedingWindowStartISO, corpusFetchStartISO, type WindowCode } from '../lib/windows'
 import { selectDisplayDecks, type DeckRow } from '../lib/deckSelection'
 import { placementSortKey } from '../lib/placement'
 import {
@@ -77,6 +77,21 @@ export interface MetagameTotals {
 }
 
 const EMPTY_TOTALS: MetagameTotals = { events: 0, archetypes: 0, decks: 0 }
+
+/**
+ * Legal deck counts per archetype for the two slices the trending tables compare,
+ * the play-rate denominators. `selected` is exactly the displayed corpus (window,
+ * event and size filters), so its sum is `totals.decks`. `preceding` is the
+ * immediately-preceding equal-length window under the size filter; it is empty
+ * under an event filter, since a selected event has no decks there. The
+ * archetype/tier filter is applied by the caller (see `sliceDeckTotal`).
+ */
+export interface SliceDeckCounts {
+  selected: Record<string, number>
+  preceding: Record<string, number>
+}
+
+const EMPTY_SLICE_COUNTS: SliceDeckCounts = { selected: {}, preceding: {} }
 
 /** What the ban notice needs from a corpus load. */
 export interface BanState {
@@ -195,6 +210,9 @@ async function fetchBanlist(formatCode: FormatCode, startISO: string): Promise<B
  * filter but narrowed by `sizeClass`, so an unreachable event is never offered).
  * `fullDecksByArchetype`
  * is the uncapped, date-desc deck list used by an isolated, auto-expanded card.
+ * `sliceDeckCounts` and `sizeClassEventIds` feed the trending tables' play rate
+ * and trend: the legal deck counts of the selected and preceding windows, and the
+ * size class's event ids across both (null when no size class is selected).
  */
 export function useMetagame(
   formatCode: FormatCode,
@@ -209,6 +227,8 @@ export function useMetagame(
   const [events, setEvents] = useState<EventOption[]>([])
   const [totals, setTotals] = useState<MetagameTotals>(EMPTY_TOTALS)
   const [banState, setBanState] = useState<BanState>(EMPTY_BAN_STATE)
+  const [sliceDeckCounts, setSliceDeckCounts] = useState<SliceDeckCounts>(EMPTY_SLICE_COUNTS)
+  const [sizeClassEventIds, setSizeClassEventIds] = useState<number[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
 
@@ -230,6 +250,8 @@ export function useMetagame(
           setEvents([])
           setTotals(EMPTY_TOTALS)
           setBanState(EMPTY_BAN_STATE)
+          setSliceDeckCounts(EMPTY_SLICE_COUNTS)
+          setSizeClassEventIds(sizeClass === null ? null : [])
           setLoading(false)
           return
         }
@@ -240,6 +262,7 @@ export function useMetagame(
         // days feed only the preceding slice of the week-over-week share delta.
         const twoWeekStart = windowStartISO(BASELINE_WINDOW)
         const selectedStart = windowStartISO(metaWindow)
+        const precedingStart = precedingWindowStartISO(metaWindow)
 
         // Legality is applied HERE, at the boundary, and nowhere else. Because
         // every figure below is a function of this one array — shares, Power
@@ -304,6 +327,15 @@ export function useMetagame(
         // The full 28-day corpus (event-unfiltered) feeding the share delta, which
         // slices it into the selected window and the preceding equal-length window.
         const deltaCorpus: DeckForShareDelta[] = []
+        // Play-rate denominators for the trending tables, per archetype (see
+        // SliceDeckCounts). Selected mirrors `selectedGrouped`; preceding is the
+        // equal-length window before it, size-filtered, and empty under an event
+        // filter.
+        const selectedCounts: Record<string, number> = {}
+        const precedingCounts: Record<string, number> = {}
+        // Every corpus event in the selected size class, across both windows, so
+        // the trending RPCs can narrow either window by size with one id list.
+        const sizeEventIds = new Set<number>()
 
         for (const row of legalRows) {
           const archetypeName = row.archetypes?.name ?? ''
@@ -340,6 +372,15 @@ export function useMetagame(
           // The size filter narrows both the corpus and the Event options, so an
           // event outside the selected size class can never be offered or counted.
           const passesSize = sizeClass === null || sizeClassOf(playerCount) === sizeClass
+          if (sizeClass !== null && passesSize && rowEventId !== null) sizeEventIds.add(rowEventId)
+          if (
+            eventId === null &&
+            passesSize &&
+            eventDate >= precedingStart &&
+            eventDate < selectedStart
+          ) {
+            precedingCounts[archetypeName] = (precedingCounts[archetypeName] ?? 0) + 1
+          }
           // Event options come from the window corpus, independent of the event
           // filter but narrowed by the size filter.
           if (inWindow && passesSize) {
@@ -377,6 +418,7 @@ export function useMetagame(
             }
             ;(selectedGrouped[archetypeName] ??= []).push(deck)
             selectedForBreakdown.push({ archetypeName, colorIdentity, placement, artImageUrl, artCropUrl })
+            selectedCounts[archetypeName] = (selectedCounts[archetypeName] ?? 0) + 1
             pushToMap(selectedPlacements, archetypeName, placement)
             if (row.events?.id != null) selectedEventIds.add(row.events.id)
           }
@@ -450,6 +492,8 @@ export function useMetagame(
         setEvents(eventOptions)
         setTotals(totals)
         setBanState({ bannedCards: banlist.bannedCards, hiddenDecks })
+        setSliceDeckCounts({ selected: selectedCounts, preceding: precedingCounts })
+        setSizeClassEventIds(sizeClass === null ? null : [...sizeEventIds])
         setLoading(false)
       })
 
@@ -465,6 +509,8 @@ export function useMetagame(
     events,
     totals,
     banState,
+    sliceDeckCounts,
+    sizeClassEventIds,
     loading,
     error,
   }

@@ -42,7 +42,7 @@ A pure helper in `trendingCards.ts`, `sliceDeckTotal(countsByArchetype, archetyp
 - the selected window `[now−N, tomorrow)`;
 - the preceding window `[now−2N, now−N)`, half-open, so no day is counted in both.
 
-All six calls run in one `Promise.all`. Top New Cards' preceding call shares the same independent-failure path as its selected call: if either fails, only that table empties. A failed preceding call for the other tables leaves their trends blank (`null`) and keeps the tables, instead of failing all of them.
+All six calls run in one `Promise.all`. A failed preceding call, for any table including Top New Cards, only leaves that table's trends blank (`null`); the table itself still renders. The selected-window calls keep their existing failure handling: a Top New Cards failure empties only that table, and a `top_cards` failure empties all of them. *(Clarified during apply: the first draft read as though a preceding Top New Cards failure would empty the table, which would discard valid current data over a missing comparison.)*
 
 When an event filter is active, the preceding calls are skipped, because their result is known to be empty and the trend is suppressed anyway.
 

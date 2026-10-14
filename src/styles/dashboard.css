@@ -290,6 +290,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Trending table rows: rank · card · avg · copies · decks · trend. Sized by the
+   table's own width (a container query), not the viewport's: in the desktop 2x2
+   grid a table is ~340–470px wide at 1024–1280px viewports depending on the
+   sidebar, as narrow as a phone. Below the threshold Copies is the column that
+   goes — it is the most redundant one (≈ avg × play rate × deck total). Track
+   widths and the threshold are starting values, pending preview confirmation. */
+.top-cards {
+  container-type: inline-size;
+}
+.top-cards-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 40px 56px 48px 64px;
+}
+@container (max-width: 520px) {
+  .top-cards-row {
+    grid-template-columns: 34px minmax(0, 1fr) 40px 48px 64px;
+  }
+  .top-cards-copies {
+    display: none;
+  }
+}
 @media (max-width: 640px) {
   .decklist-grid,
   .decklist-grid-images {

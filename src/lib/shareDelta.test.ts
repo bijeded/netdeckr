@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { shareDeltas, DELTA_EPS, MIN_PREV_DECKS, type DeckForShareDelta } from './shareDelta'
+import { shareDeltas, deltaOf, DELTA_EPS, MIN_PREV_DECKS, type DeckForShareDelta } from './shareDelta'
 
 // A fixed "now" so the day-offset slices are deterministic. 2026-07-20T12:00:00Z.
 const NOW = new Date('2026-07-20T12:00:00Z')
@@ -132,5 +132,26 @@ describe('shareDeltas — suppression guard', () => {
     const preceding = Array.from({ length: MIN_PREV_DECKS }, () => d('A', 10))
     const decks = [d('A', 1), ...preceding]
     expect(shareDeltas(decks, '7days', NOW)).not.toBeNull()
+  })
+})
+
+describe('deltaOf', () => {
+  it('classifies a rise beyond the deadband as up, with the signed pp value', () => {
+    const r = deltaOf(38, 31.8)
+    expect(r.direction).toBe('up')
+    expect(r.valuePct).toBeCloseTo(6.2, 5)
+  })
+
+  it('classifies a drop beyond the deadband as down', () => {
+    const r = deltaOf(38.2, 40)
+    expect(r.direction).toBe('down')
+    expect(r.valuePct).toBeCloseTo(-1.8, 5)
+  })
+
+  it('reads changes up to ±DELTA_EPS (inclusive) as flat', () => {
+    expect(deltaOf(10 + DELTA_EPS, 10).direction).toBe('flat')
+    expect(deltaOf(10 - DELTA_EPS, 10).direction).toBe('flat')
+    expect(deltaOf(10.4, 10).direction).toBe('flat')
+    expect(deltaOf(10 + DELTA_EPS + 0.01, 10).direction).toBe('up')
   })
 })

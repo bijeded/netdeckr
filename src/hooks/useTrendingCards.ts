@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
-import { windowStartISO, type WindowCode } from '../lib/windows'
+import { precedingWindowStartISO, windowStartISO, type WindowCode } from '../lib/windows'
 import {
   hasNewCardsTable,
   rankTrendingCards,
   partitionByCategory,
   type CardCategory,
+  type RankableCardRow,
   type RecentSetCardRow,
   type TopCardRow,
   type TrendingCard,
@@ -37,13 +38,15 @@ const toRows = (data: TopCardQueryRow[] | null): TopCardRow[] =>
     imageUrl: row.image_url,
   }))
 
-/** A raw row from the `recent_set_top_cards` RPC. */
+/**
+ * A raw row from the `recent_set_top_cards` RPC. The RPC also returns `set_code`,
+ * which the tables no longer display, so it is not read.
+ */
 interface RecentSetCardQueryRow {
   card_name: string
   total_copies: number
   deck_count: number
   image_url: string | null
-  set_code: string
 }
 
 /** Optional view filters, mirroring the sidebar. Undefined/null = unfiltered. */
@@ -59,6 +62,36 @@ export interface TrendingFilters {
    * collapsed to null when empty.
    */
   eventIds?: number[] | null
+}
+
+/**
+ * Legal decks in the trending slice for the selected and the preceding window —
+ * the play-rate denominators, computed by the caller from the metagame corpus
+ * (`sliceDeckTotal`). Null while unknown: play rates and trends then stay blank.
+ */
+export interface TrendingSliceTotals {
+  selected: number
+  preceding: number
+}
+
+/** The fetched rows, kept raw so a change of slice totals re-derives without a refetch. */
+interface RawTrending {
+  main: TopCardRow[]
+  side: TopCardRow[]
+  recent: RecentSetCardRow[]
+  /** Preceding-window rows per table; null when skipped (event filter) or failed. */
+  prevMain: TopCardRow[] | null
+  prevSide: TopCardRow[] | null
+  prevRecent: RecentSetCardRow[] | null
+}
+
+const EMPTY_RAW: RawTrending = {
+  main: [],
+  side: [],
+  recent: [],
+  prevMain: null,
+  prevSide: null,
+  prevRecent: null,
 }
 
 interface TrendingState {
@@ -83,15 +116,14 @@ interface TrendingState {
   newCardsError: unknown
 }
 
-const EMPTY: TrendingState = {
-  creatures: [],
-  spells: [],
-  sideboard: [],
-  newCards: [],
-  loading: false,
-  error: null,
-  newCardsError: null,
+interface FetchState {
+  raw: RawTrending
+  loading: boolean
+  error: unknown
+  newCardsError: unknown
 }
+
+const EMPTY_FETCH: FetchState = { raw: EMPTY_RAW, loading: false, error: null, newCardsError: null }
 
 /** Resolve selected archetype names to their per-format ids for the RPC filter. */
 async function resolveArchetypeIds(format: FormatCode, names: string[]): Promise<number[]> {
@@ -152,8 +184,12 @@ async function callRecentSetTopCards(
     totalCopies: row.total_copies,
     deckCount: row.deck_count,
     imageUrl: row.image_url,
-    setCode: row.set_code,
   }))
+}
+
+/** Resolve a preceding-window fetch to its rows, or null on failure (blanks the trend only). */
+function orNull<T>(promise: Promise<T>): Promise<T | null> {
+  return promise.catch(() => null)
 }
 
 /**
@@ -170,11 +206,19 @@ async function callRecentSetTopCards(
  * `eventIds` narrows them to the events of the selected size class. The size
  * bands themselves are never sent — the caller resolves them to ids, so the
  * thresholds stay in one place and the aggregation stays generic.
+ *
+ * Each call is repeated over the immediately-preceding window of equal length,
+ * `[now−2N, now−N)`, for the play-rate trend. Those calls are skipped under an
+ * event filter (that event has no decks there), and a failure of one only blanks
+ * its table's trends. `sliceTotals` are the play-rate denominators; the ranked
+ * tables are derived from the raw rows in a memo, so a change of totals never
+ * refetches.
  */
 export function useTrendingCards(
   format: FormatCode,
   metaWindow: WindowCode,
   filters: TrendingFilters = {},
+  sliceTotals: TrendingSliceTotals | null = null,
 ): TrendingState {
   const eventId = filters.eventId ?? null
   // Stable dependency for the name array: serialize so a new array identity with
@@ -185,17 +229,21 @@ export function useTrendingCards(
   // than a truthiness check: an empty array is a meaningful value here (a size
   // class with no events), not the absence of a filter.
   const eventIdsKey = filters.eventIds != null ? JSON.stringify(filters.eventIds) : null
-  const [state, setState] = useState<TrendingState>({ ...EMPTY, loading: true })
+  const [state, setState] = useState<FetchState>({ ...EMPTY_FETCH, loading: true })
 
   useEffect(() => {
     let active = true
-    setState({ ...EMPTY, loading: true })
+    setState({ ...EMPTY_FETCH, loading: true })
 
     const archetypeNames = namesKey ? (JSON.parse(namesKey) as string[]) : null
     const eventIds = eventIdsKey !== null ? (JSON.parse(eventIdsKey) as number[]) : null
     const now = new Date()
     const start = windowStartISO(metaWindow, now) // now - n
     const end = isoOffset(now, -1) // tomorrow, so today's events are included
+    // The preceding window ends where the selected one starts (exclusive bound).
+    const prevStart = precedingWindowStartISO(metaWindow, now)
+    const withNewCards = hasNewCardsTable(format)
+    const withPreceding = eventId === null
 
     async function run() {
       const archetypeIds =
@@ -208,35 +256,39 @@ export function useTrendingCards(
       // The Top New Cards call settles on its own: its failure becomes
       // `newCardsError` and an empty table rather than rejecting the whole set.
       let newCardsError: unknown = null
-      const [main, side, recent] = await Promise.all([
+      const skipped = Promise.resolve(null)
+      const [main, side, recent, prevMain, prevSide, prevRecent] = await Promise.all([
         callTopCards(format, start, end, 'main', archetypeIds, eventId, eventIds),
         callTopCards(format, start, end, 'side', archetypeIds, eventId, eventIds),
-        hasNewCardsTable(format)
+        withNewCards
           ? callRecentSetTopCards(format, start, end, archetypeIds, eventId, eventIds).catch((e: unknown) => {
               newCardsError = e
               return []
             })
           : Promise.resolve([]),
+        withPreceding
+          ? orNull(callTopCards(format, prevStart, start, 'main', archetypeIds, eventId, eventIds))
+          : skipped,
+        withPreceding
+          ? orNull(callTopCards(format, prevStart, start, 'side', archetypeIds, eventId, eventIds))
+          : skipped,
+        withPreceding && withNewCards
+          ? orNull(callRecentSetTopCards(format, prevStart, start, archetypeIds, eventId, eventIds))
+          : skipped,
       ])
 
-      const { creatures, spells } = partitionByCategory(main)
-      return {
-        creatures: rankTrendingCards(creatures),
-        spells: rankTrendingCards(spells),
-        sideboard: rankTrendingCards(side),
-        newCards: rankTrendingCards(recent),
-        newCardsError,
-      }
+      const raw: RawTrending = { main, side, recent, prevMain, prevSide, prevRecent }
+      return { raw, newCardsError }
     }
 
     run()
-      .then((tables) => {
+      .then(({ raw, newCardsError }) => {
         if (!active) return
-        setState({ ...tables, loading: false, error: null })
+        setState({ raw, newCardsError, loading: false, error: null })
       })
       .catch((error) => {
         if (!active) return
-        setState({ ...EMPTY, error })
+        setState({ ...EMPTY_FETCH, error })
       })
 
     return () => {
@@ -244,5 +296,30 @@ export function useTrendingCards(
     }
   }, [format, metaWindow, namesKey, eventId, eventIdsKey])
 
-  return state
+  const selectedTotal = sliceTotals?.selected ?? 0
+  const precedingTotal = sliceTotals?.preceding ?? 0
+  const tables = useMemo(() => {
+    const { raw } = state
+    const context = (precedingRows: RankableCardRow[] | null) => ({
+      selectedTotal,
+      precedingTotal,
+      precedingRows,
+    })
+    const { creatures, spells } = partitionByCategory(raw.main)
+    // Card names are unique within a board, so the whole preceding mainboard can
+    // serve as the lookup for both of its tables.
+    return {
+      creatures: rankTrendingCards(creatures, context(raw.prevMain)),
+      spells: rankTrendingCards(spells, context(raw.prevMain)),
+      sideboard: rankTrendingCards(raw.side, context(raw.prevSide)),
+      newCards: rankTrendingCards(raw.recent, context(raw.prevRecent)),
+    }
+  }, [state, selectedTotal, precedingTotal])
+
+  return {
+    ...tables,
+    loading: state.loading,
+    error: state.error,
+    newCardsError: state.newCardsError,
+  }
 }

@@ -6,6 +6,7 @@ import {
   isWindowCode,
   normalizeWindow,
   windowStartISO,
+  precedingWindowStartISO,
   CORPUS_FETCH_DAYS,
   corpusFetchStartISO,
   type WindowCode,
@@ -61,5 +62,20 @@ describe('windows', () => {
   it('computes the corpus fetch start as an ISO date CORPUS_FETCH_DAYS before now', () => {
     const now = new Date('2026-07-01T12:00:00Z')
     expect(corpusFetchStartISO(now)).toBe('2026-06-03') // 28 days before
+  })
+})
+
+describe('precedingWindowStartISO', () => {
+  const NOW = new Date('2026-07-20T12:00:00Z')
+
+  it('starts the preceding 7-day slice 14 days back, ending where the selected one starts', () => {
+    expect(precedingWindowStartISO('7days', NOW)).toBe('2026-07-06')
+    expect(windowStartISO('7days', NOW)).toBe('2026-07-13')
+  })
+
+  it('starts the preceding 14-day slice 28 days back, inside the fetched corpus', () => {
+    expect(precedingWindowStartISO('2weeks', NOW)).toBe('2026-06-22')
+    expect(windowStartISO('2weeks', NOW)).toBe('2026-07-06')
+    expect(precedingWindowStartISO('2weeks', NOW) >= corpusFetchStartISO(NOW)).toBe(true)
   })
 })

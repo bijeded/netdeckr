@@ -139,9 +139,15 @@
     "col": {
       "rank": "#",
       "card": "Card",
-      "set": "Set",
       "avg": "Avg",
-      "count": "Copies"
+      "count": "Copies",
+      "decks": "Decks",
+      "trend": "Trend"
+    },
+    "trend": {
+      "up": "Play rate up {{value}} points vs the previous period",
+      "down": "Play rate down {{value}} points vs the previous period",
+      "flat": "Play rate steady vs the previous period"
     },
     "empty": "No trending cards yet",
     "sideboardEmpty": "No sideboard cards yet",

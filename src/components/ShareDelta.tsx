@@ -6,26 +6,33 @@ import type { ShareDelta as ShareDeltaValue } from '../lib/shareDelta'
 // ChangeIndicator): a mono ▲/▼/– chip PLUS the signed percentage-point value of
 // an archetype's period-over-period metagame-share change. Green up / red down /
 // amber flat, matching the tier badge and trend arrow. Lives in the card's stat
-// footer (opposite the share %), not overlaid on art. Renders nothing when the
-// delta is suppressed (null) — the field's preceding slice was too thin.
+// footer (opposite the share %), not overlaid on art — and, with card-specific
+// labels, in the trending tables' Trend column (a card's play-rate change).
+// Renders nothing when the delta is suppressed (null) — the preceding slice was
+// too thin.
 const STYLES: Record<
   ShareDeltaValue['direction'],
   { color: string; bg: string; border: string; glyph: string; key: string }
 > = {
-  up: { color: 'var(--up)', bg: 'var(--up-tint)', border: 'var(--up-border)', glyph: '▲', key: 'shareDelta.up' },
-  down: { color: 'var(--down)', bg: 'var(--down-tint)', border: 'var(--down-border)', glyph: '▼', key: 'shareDelta.down' },
+  up: { color: 'var(--up)', bg: 'var(--up-tint)', border: 'var(--up-border)', glyph: '▲', key: 'up' },
+  down: { color: 'var(--down)', bg: 'var(--down-tint)', border: 'var(--down-border)', glyph: '▼', key: 'down' },
   // '–' is an en-dash (U+2013), matching the design glyph set — not a hyphen.
-  flat: { color: 'var(--flat)', bg: 'var(--flat-tint)', border: 'var(--flat-border)', glyph: '–', key: 'shareDelta.flat' },
+  flat: { color: 'var(--flat)', bg: 'var(--flat-tint)', border: 'var(--flat-border)', glyph: '–', key: 'flat' },
 }
 
 interface ShareDeltaProps {
   /** The period-over-period share delta; null suppresses the indicator entirely. */
   delta: ShareDeltaValue | null
+  /**
+   * i18n namespace of the up/down/flat accessible labels: the archetype share
+   * delta by default, `trending.trend` for a card's play-rate change.
+   */
+  labelKeyPrefix?: string
   style?: CSSProperties
 }
 
 /** Mono ▲/▼/– chip + signed pp value marking an archetype's week-over-week share change. */
-export function ShareDelta({ delta, style }: ShareDeltaProps) {
+export function ShareDelta({ delta, labelKeyPrefix = 'shareDelta', style }: ShareDeltaProps) {
   const { t } = useTranslation()
   if (!delta) return null
 
@@ -34,7 +41,8 @@ export function ShareDelta({ delta, style }: ShareDeltaProps) {
   // Flat shows a neutral 0.0 (the change is within the deadband); up/down carry
   // an explicit sign. The aria-label interpolates the magnitude for up/down.
   const text = delta.direction === 'up' ? `+${magnitude}` : delta.direction === 'down' ? `-${magnitude}` : '0.0'
-  const label = delta.direction === 'flat' ? t(c.key) : t(c.key, { value: magnitude })
+  const key = `${labelKeyPrefix}.${c.key}`
+  const label = delta.direction === 'flat' ? t(key) : t(key, { value: magnitude })
 
   return (
     <span

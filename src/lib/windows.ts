@@ -25,6 +25,18 @@ export function windowStartISO(window: WindowCode, now: Date = new Date()): stri
   return start.toISOString().slice(0, 10)
 }
 
+/**
+ * ISO date (YYYY-MM-DD) marking the start of the window immediately preceding the
+ * selected one, of equal length: `2 × WINDOW_DAYS` before `now`. The preceding
+ * slice is `[precedingWindowStartISO, windowStartISO)` — half-open, so no day falls
+ * in both. Shared by every period-over-period comparison (archetype share delta,
+ * card play-rate trend) so they cannot disagree on boundaries.
+ */
+export function precedingWindowStartISO(window: WindowCode, now: Date = new Date()): string {
+  const start = new Date(now.getTime() - 2 * WINDOW_DAYS[window] * 24 * 60 * 60 * 1000)
+  return start.toISOString().slice(0, 10)
+}
+
 // The hook fetches two 2-week windows' worth of decks (28 days), so the
 // immediately-preceding, equal-length slice is available client-side for the
 // week-over-week share delta — without any stored history. Stays within the

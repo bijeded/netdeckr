@@ -3,7 +3,8 @@ import { renderHook, waitFor } from '@testing-library/react'
 
 // supabase.rpc('top_cards', params) -> thenable {data,error}, called once per
 // board, plus one supabase.rpc('recent_set_top_cards', params) for Top New Cards
-// (outside Pre-Modern). supabase.from('archetypes')... resolves names -> ids.
+// (outside Pre-Modern) — each repeated over the preceding window for the trend
+// (skipped under an event filter). supabase.from('archetypes')... resolves names -> ids.
 const { rpc, from, archResult } = vi.hoisted(() => {
   const rpc = vi.fn()
   const archResult = { data: null as unknown, error: null as unknown }
@@ -17,6 +18,7 @@ const { rpc, from, archResult } = vi.hoisted(() => {
 vi.mock('../lib/supabase', () => ({ supabase: { rpc, from } }))
 
 import { useTrendingCards } from './useTrendingCards'
+import { precedingWindowStartISO, windowStartISO } from '../lib/windows'
 
 /** A raw RPC row (now carries a creature/spell category). */
 function r(
@@ -30,8 +32,8 @@ function r(
 }
 
 /** A raw recent_set_top_cards row. */
-function n(card_name: string, total_copies: number, deck_count = 1, set_code = 'FRA') {
-  return { card_name, total_copies, deck_count, image_url: null, set_code }
+function n(card_name: string, total_copies: number, deck_count = 1) {
+  return { card_name, total_copies, deck_count, image_url: null, set_code: 'FRA' }
 }
 
 /** Route each rpc call to canned data by function, then board. */
@@ -59,8 +61,8 @@ describe('useTrendingCards', () => {
     const { result } = renderHook(() => useTrendingCards('ST', '7days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    // one call per board plus the Top New Cards call — no preceding-window call
-    expect(rpc).toHaveBeenCalledTimes(3)
+    // one call per board plus the Top New Cards call, each for both windows
+    expect(rpc).toHaveBeenCalledTimes(6)
     expect(result.current.creatures.map((c) => c.cardName)).toEqual(['Goblin', 'Bear'])
     expect(result.current.creatures[0]).toMatchObject({ totalCopies: 60, avgCopies: 2 })
     expect(result.current.spells.map((c) => c.cardName)).toEqual(['Bolt'])
@@ -71,7 +73,7 @@ describe('useTrendingCards', () => {
   it('passes the selected format and both boards to the RPC', async () => {
     routeRpc({ main: [r('A', 1)], side: [] })
     renderHook(() => useTrendingCards('MO', '2weeks'))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(6))
     const boards = callsTo('top_cards').map((c) => c[1].p_board)
     expect(boards).toEqual(expect.arrayContaining(['main', 'side']))
     expect(rpc.mock.calls.every((c) => c[1].p_format === 'MO')).toBe(true)
@@ -87,7 +89,7 @@ describe('useTrendingCards', () => {
   it('sends no event-id restriction when no size class is selected', async () => {
     routeRpc({ main: [r('A', 10, 9)], side: [] })
     renderHook(() => useTrendingCards('ST', '7days'))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(6))
     expect(rpc.mock.calls.every((c) => c[1].p_event_ids == null)).toBe(true)
   })
 
@@ -129,19 +131,19 @@ describe('useTrendingCards', () => {
       useTrendingCards('ST', '7days', { eventIds: ids }),
       { initialProps: { ids: [1, 2] } },
     )
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(6))
 
     // A fresh array with identical contents must not re-run the effect — App
     // rebuilds this list from `events` on every render.
     rerender({ ids: [1, 2] })
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(6))
   })
 
   it('resolves selected archetype names to ids and passes them to the RPC', async () => {
     archResult.data = [{ id: 7, name: 'Izzet Prowess' }, { id: 9, name: 'Mono Red' }]
     routeRpc({ main: [r('A', 5, 4)], side: [] })
     renderHook(() => useTrendingCards('ST', '7days', { archetypeNames: ['Izzet Prowess', 'Mono Red'] }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(6))
 
     expect(from).toHaveBeenCalledWith('archetypes')
     expect(rpc.mock.calls.every((c) => {
@@ -153,7 +155,7 @@ describe('useTrendingCards', () => {
   it('does not resolve archetypes when no archetype filter is set', async () => {
     routeRpc({ main: [r('A', 1)], side: [] })
     renderHook(() => useTrendingCards('ST', '7days'))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(6))
     expect(from).not.toHaveBeenCalled()
     expect(rpc.mock.calls.every((c) => c[1].p_archetype_ids == null)).toBe(true)
   })
@@ -186,18 +188,15 @@ describe('useTrendingCards', () => {
     expect(result.current.sideboard.map((c) => c.cardName)).toEqual(['S1'])
   })
 
-  it('ranks the recent-set cards into Top New Cards with their set codes', async () => {
-    routeRpc({ recent: [n('Ring', 8, 4, 'HOB'), n('Bolt', 12, 5), n('Dual', 8, 6, 'HOB')] })
+  it('ranks the recent-set cards into Top New Cards, without set codes', async () => {
+    routeRpc({ recent: [n('Ring', 8, 4), n('Bolt', 12, 5), n('Dual', 8, 6)] })
     const { result } = renderHook(() => useTrendingCards('ST', '7days'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // copies desc, then deck count desc
-    expect(result.current.newCards.map((c) => [c.cardName, c.setCode])).toEqual([
-      ['Bolt', 'FRA'],
-      ['Dual', 'HOB'],
-      ['Ring', 'HOB'],
-    ])
-    expect(result.current.newCards[0]).toMatchObject({ totalCopies: 12 })
+    expect(result.current.newCards.map((c) => c.cardName)).toEqual(['Bolt', 'Dual', 'Ring'])
+    expect(result.current.newCards[0]).toMatchObject({ totalCopies: 12, avgCopies: 2 })
+    expect(result.current.newCards[0]).not.toHaveProperty('setCode')
   })
 
   it('caps Top New Cards at 10', async () => {
@@ -229,8 +228,104 @@ describe('useTrendingCards', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(callsTo('recent_set_top_cards')).toHaveLength(0)
-    expect(callsTo('top_cards')).toHaveLength(2)
+    expect(callsTo('top_cards')).toHaveLength(4)
     expect(result.current.newCards).toEqual([])
     expect(result.current.creatures.length + result.current.spells.length).toBe(1)
+  })
+
+  describe('play rate and trend', () => {
+    /** Route by window: rows for the selected window vs the preceding one. */
+    function routeWindows(prevStart: string, sel: { main?: unknown[]; side?: unknown[]; recent?: unknown[] }, prev: { main?: unknown[]; side?: unknown[]; recent?: unknown[] } | 'fail') {
+      rpc.mockImplementation((fn: string, params: Record<string, unknown>) => {
+        const isPrev = params.p_start === prevStart
+        if (isPrev && prev === 'fail') return Promise.resolve({ data: null, error: { message: 'prev boom' } })
+        const map = isPrev ? (prev as typeof sel) : sel
+        if (fn === 'recent_set_top_cards') return Promise.resolve({ data: map.recent ?? [], error: null })
+        return Promise.resolve({ data: params.p_board === 'side' ? (map.side ?? []) : (map.main ?? []), error: null })
+      })
+    }
+
+    it('fetches each table again over the preceding equal-length window', async () => {
+      routeRpc({})
+      const { result } = renderHook(() => useTrendingCards('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      const prevStart = precedingWindowStartISO('2weeks')
+      const selStart = windowStartISO('2weeks')
+      const prevCalls = rpc.mock.calls.filter((c) => c[1].p_start === prevStart)
+      expect(prevCalls).toHaveLength(3)
+      // Half-open [now−2N, now−N): it ends exactly where the selected window starts.
+      expect(prevCalls.every((c) => c[1].p_end === selStart)).toBe(true)
+      expect(prevCalls.map((c) => c[1].p_board ?? 'recent').sort()).toEqual(['main', 'recent', 'side'])
+      expect(rpc.mock.calls.filter((c) => c[1].p_start === selStart)).toHaveLength(3)
+    })
+
+    it('skips the preceding calls under an event filter, leaving the trend blank', async () => {
+      routeRpc({ main: [r('A', 8, 4)] })
+      const { result } = renderHook(() =>
+        useTrendingCards('ST', '7days', { eventId: 9 }, { selected: 8, preceding: 0 }),
+      )
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(rpc).toHaveBeenCalledTimes(3)
+      expect(result.current.spells[0]).toMatchObject({ playRatePct: 50, trend: null })
+    })
+
+    it('derives play rate and trend from the slice totals', async () => {
+      const prevStart = precedingWindowStartISO('7days')
+      routeWindows(
+        prevStart,
+        { main: [r('Bolt', 40, 19)], side: [r('Duress', 12, 6)], recent: [n('New', 20, 8)] },
+        { main: [r('Bolt', 30, 10)], side: [], recent: [] },
+      )
+      const { result } = renderHook(() =>
+        useTrendingCards('ST', '7days', {}, { selected: 50, preceding: 40 }),
+      )
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      // 19/50 = 38% now, 10/40 = 25% before -> +13pp
+      expect(result.current.spells[0].playRatePct).toBeCloseTo(38, 5)
+      expect(result.current.spells[0].trend).toMatchObject({ direction: 'up' })
+      expect(result.current.spells[0].trend!.valuePct).toBeCloseTo(13, 5)
+      // Absent before -> a rise of the full current rate
+      expect(result.current.sideboard[0].trend!.valuePct).toBeCloseTo(12, 5)
+      expect(result.current.newCards[0].playRatePct).toBeCloseTo(16, 5)
+    })
+
+    it('blanks only the trends when a preceding call fails', async () => {
+      routeWindows(precedingWindowStartISO('7days'), { main: [r('Bolt', 40, 19)], recent: [n('New', 20, 8)] }, 'fail')
+      const { result } = renderHook(() =>
+        useTrendingCards('ST', '7days', {}, { selected: 50, preceding: 40 }),
+      )
+      await waitFor(() => expect(result.current.loading).toBe(false))
+
+      expect(result.current.error).toBeNull()
+      expect(result.current.newCardsError).toBeNull()
+      expect(result.current.spells[0]).toMatchObject({ cardName: 'Bolt', trend: null })
+      expect(result.current.spells[0].playRatePct).toBeCloseTo(38, 5)
+      expect(result.current.newCards[0]).toMatchObject({ cardName: 'New', trend: null })
+    })
+
+    it('leaves play rates blank until the slice totals are known', async () => {
+      routeRpc({ main: [r('Bolt', 40, 19)] })
+      const { result } = renderHook(() => useTrendingCards('ST', '7days'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.spells[0]).toMatchObject({ playRatePct: null, trend: null })
+    })
+
+    it('re-derives on new slice totals without refetching', async () => {
+      routeRpc({ main: [r('Bolt', 40, 10)] })
+      const { result, rerender } = renderHook(
+        ({ totals }: { totals: { selected: number; preceding: number } }) =>
+          useTrendingCards('ST', '7days', {}, totals),
+        { initialProps: { totals: { selected: 50, preceding: 50 } } },
+      )
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.spells[0].playRatePct).toBeCloseTo(20, 5)
+
+      rerender({ totals: { selected: 20, preceding: 50 } })
+      expect(result.current.spells[0].playRatePct).toBeCloseTo(50, 5)
+      expect(rpc).toHaveBeenCalledTimes(6)
+    })
   })
 })

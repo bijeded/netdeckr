@@ -2,14 +2,17 @@ import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CardArtPreview } from './CardArtPreview'
 import { EmptyState } from './EmptyState'
-import type { TrendingCard } from '../lib/trendingCards'
+import { ShareDelta } from './ShareDelta'
+import { formatPlayRate, type TrendingCard } from '../lib/trendingCards'
 
-// A trending-cards table used for all four surfaces: Trending Creatures,
-// Trending Spells (both with `showAvg`), Top Sideboard Cards (without), and Top
-// New Cards (with `showSet`). Rows are rank · card · [set] · [avg Nx] · copies.
-// Lands are excluded upstream (in the top_cards RPC; recent_set_top_cards drops
-// only basics); the mainboard/sideboard split and the creature/spell partition
-// happen in the hook. Ported from the design's trending grid.
+// The trending-cards table, one layout for all four surfaces (Top Creatures, Top
+// Spells, Top Sideboard Cards, Top New Cards). Rows are rank · card · avg Nx ·
+// copies · decks % · trend. Lands are excluded upstream (in the top_cards RPC;
+// recent_set_top_cards drops only basics); the mainboard/sideboard split, the
+// creature/spell partition, play rate and trend happen in the hook and
+// trendingCards.ts. The grid tracks live in dashboard.css (`.top-cards-row`) so a
+// container query can drop Copies when the table itself is narrow — its width
+// follows the 2x2 grid and the sidebar, not the viewport.
 
 const containerStyle: CSSProperties = {
   border: '1px solid var(--border-soft)',
@@ -34,21 +37,15 @@ const numCellStyle: CSSProperties = {
   fontWeight: 'var(--fw-medium)',
 }
 
-// The set-code chip sits on the table surface, not on card art, so it needs no
-// dark backdrop (cf. chipBase.ts): muted mono text on a hairline outline.
-const setChipStyle: CSSProperties = {
-  display: 'inline-flex',
-  justifySelf: 'end',
-  padding: '3px 6px',
-  fontFamily: 'var(--font-mono)',
-  fontSize: 'var(--fs-2xs)',
-  fontWeight: 'var(--fw-medium)',
-  letterSpacing: 'var(--track-wide)',
-  lineHeight: 1,
-  color: 'var(--text-muted)',
-  border: '1px solid var(--border-soft)',
-  borderRadius: 'var(--r-sm)',
+const rowStyle: CSSProperties = {
+  alignItems: 'center',
+  gap: 8,
+  padding: '11px 20px',
+  borderBottom: '1px solid rgba(255,255,255,.035)',
 }
+
+const numHeaderStyle: CSSProperties = { ...headerCellStyle, textAlign: 'right' }
+const numValueStyle: CSSProperties = { ...numCellStyle, color: 'var(--text-muted)' }
 
 /** A card name with its dashed underline + hover/touch art preview. */
 export function TrendingCardName({ card }: { card: TrendingCard }) {
@@ -63,28 +60,15 @@ interface TopCardsTableProps {
   /** Localized table title (e.g. "Trending Creatures"). */
   title: string
   cards: TrendingCard[]
-  /** Show the average-copies-per-deck column (mainboard tables only). */
-  showAvg?: boolean
-  /** Show each card's set-code chip (Top New Cards only). */
-  showSet?: boolean
   /** Localized empty-state message. */
   emptyMessage: string
 }
 
-export function TopCardsTable({ title, cards, showAvg = false, showSet = false, emptyMessage }: TopCardsTableProps) {
+export function TopCardsTable({ title, cards, emptyMessage }: TopCardsTableProps) {
   const { t } = useTranslation()
 
-  const rowStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: ['34px', '1fr', showSet && '52px', showAvg && '64px', '72px'].filter(Boolean).join(' '),
-    alignItems: 'center',
-    gap: 8,
-    padding: '11px 20px',
-    borderBottom: '1px solid rgba(255,255,255,.035)',
-  }
-
   return (
-    <section style={containerStyle} aria-label={title}>
+    <section className="top-cards" style={containerStyle} aria-label={title}>
       <div
         style={{
           display: 'flex',
@@ -122,25 +106,30 @@ export function TopCardsTable({ title, cards, showAvg = false, showSet = false, 
         <EmptyState message={emptyMessage} />
       ) : (
         <>
-          <div style={{ ...rowStyle, borderBottom: '1px solid var(--border-hair)' }}>
+          <div className="top-cards-row" style={{ ...rowStyle, borderBottom: '1px solid var(--border-hair)' }}>
             <span style={headerCellStyle}>{t('trending.col.rank')}</span>
             <span style={headerCellStyle}>{t('trending.col.card')}</span>
-            {showSet && <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.set')}</span>}
-            {showAvg && <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.avg')}</span>}
-            <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.count')}</span>
+            <span style={numHeaderStyle}>{t('trending.col.avg')}</span>
+            <span className="top-cards-copies" style={numHeaderStyle}>{t('trending.col.count')}</span>
+            <span style={numHeaderStyle}>{t('trending.col.decks')}</span>
+            <span style={numHeaderStyle}>{t('trending.col.trend')}</span>
           </div>
 
           {cards.map((card, i) => (
-            <div key={`${i}-${card.cardName}`} style={rowStyle}>
+            <div key={`${i}-${card.cardName}`} className="top-cards-row" style={rowStyle}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--text-faint)' }}>
                 {String(i + 1).padStart(2, '0')}
               </span>
               <span style={{ fontSize: 'var(--fs-base)', fontWeight: 'var(--fw-medium)' }}>
                 <TrendingCardName card={card} />
               </span>
-              {showSet && <span style={setChipStyle}>{card.setCode}</span>}
-              {showAvg && <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>{card.avgCopies}x</span>}
-              <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>{card.totalCopies}</span>
+              <span style={numValueStyle}>{card.avgCopies}x</span>
+              <span className="top-cards-copies" style={numValueStyle}>{card.totalCopies}</span>
+              <span style={numValueStyle}>{formatPlayRate(card.playRatePct)}</span>
+              {/* An empty cell (not a missing one) when the trend is suppressed, so the grid holds. */}
+              <span style={{ justifySelf: 'end' }}>
+                <ShareDelta delta={card.trend} labelKeyPrefix="trending.trend" />
+              </span>
             </div>
           ))}
         </>

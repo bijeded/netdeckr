@@ -4,7 +4,7 @@
 // same fetched deck corpus (within the 30-day retention), so no history table is
 // needed. Lives here (not in the hook or JSX) so it stays unit-testable.
 
-import { WINDOW_DAYS, type WindowCode } from './windows'
+import { precedingWindowStartISO, windowStartISO, type WindowCode } from './windows'
 
 /** Percentage-point deadband: a change smaller than this reads as flat (–). */
 export const DELTA_EPS = 0.5
@@ -30,9 +30,17 @@ export interface DeckForShareDelta {
   eventDate: string | null
 }
 
-/** ISO date (YYYY-MM-DD) `days` before `now`. */
-function isoDaysAgo(now: Date, days: number): string {
-  return new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+/**
+ * The signed delta between two percentages (0–100 scale), classified by the
+ * shared ±`DELTA_EPS` deadband (inclusive: exactly ±DELTA_EPS reads flat). Used by
+ * the archetype share delta and the trending tables' play-rate trend, so both
+ * read "flat" at the same threshold.
+ */
+export function deltaOf(currentPct: number, previousPct: number): ShareDelta {
+  const valuePct = currentPct - previousPct
+  const direction: ShareDelta['direction'] =
+    valuePct > DELTA_EPS ? 'up' : valuePct < -DELTA_EPS ? 'down' : 'flat'
+  return { direction, valuePct }
 }
 
 /** Count decks per archetype and the total, over the given slice. */
@@ -64,9 +72,8 @@ export function shareDeltas(
   window: WindowCode,
   now: Date = new Date(),
 ): Map<string, ShareDelta> | null {
-  const n = WINDOW_DAYS[window]
-  const selectedStart = isoDaysAgo(now, n)
-  const precedingStart = isoDaysAgo(now, 2 * n)
+  const selectedStart = windowStartISO(window, now)
+  const precedingStart = precedingWindowStartISO(window, now)
 
   const selected: DeckForShareDelta[] = []
   const preceding: DeckForShareDelta[] = []
@@ -86,10 +93,7 @@ export function shareDeltas(
   for (const name of names) {
     const currShare = curr.total > 0 ? ((curr.counts.get(name) ?? 0) / curr.total) * 100 : 0
     const prevShare = prev.total > 0 ? ((prev.counts.get(name) ?? 0) / prev.total) * 100 : 0
-    const valuePct = currShare - prevShare
-    const direction: ShareDelta['direction'] =
-      valuePct > DELTA_EPS ? 'up' : valuePct < -DELTA_EPS ? 'down' : 'flat'
-    deltas.set(name, { direction, valuePct })
+    deltas.set(name, deltaOf(currShare, prevShare))
   }
   return deltas
 }
