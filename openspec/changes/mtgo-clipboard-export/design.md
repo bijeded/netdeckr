@@ -57,7 +57,7 @@ Matches MTGO's own files and MTGGoldfish's MTGO download; MTGO runs on Windows. 
 
 New key `modal.export.mtgo` — "Export to MTGO" / "Exportar a MTGO" (MTGO is a product name, unlocalized). `modal.export.download` and `modal.export.downloaded` are removed; `copied` and `error` are already client-neutral and are shared. The locale parity test keeps ES/EN in step.
 
-Visual: the label is the only on-screen change. That it fits the button at mobile width in both locales is **pending visual confirmation** on the Vercel preview (it is shorter than the current "Download Decklist" / "Descargar lista", which suggests no wrapping, but this is not measured).
+Visual: the label is the only on-screen change. That it fits the button at mobile width in both locales was **pending visual confirmation** on the Vercel preview (it is shorter than the previous "Download Decklist" / "Descargar lista", which suggested no wrapping, but this was not measured). **Confirmed on the PR #208 preview (2026-10-13):** "Export to MTGO" / "Exportar a MTGO" fits the button at mobile and desktop width in EN and ES, and the list copied from a Boros Energy deck (double-faced Ajani, split Wear/Tear) matches the MTGGoldfish MTGO-ready shape when pasted into a text editor.
 
 ## Risks / Trade-offs
 

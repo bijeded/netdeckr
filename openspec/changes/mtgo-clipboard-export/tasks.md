@@ -11,7 +11,7 @@
 
 ## 3. Preview and release
 
-- [ ] 3.1 Open the PR and confirm on the Vercel preview: the MTGO label fits the button at mobile and desktop width in both locales (design Decision 5, pending visual confirmation), and the copied text from a Modern deck containing a double-faced and a split card, pasted into a text editor, matches the MTGGoldfish reference shape. Record the confirmed label fit in design.md.
+- [x] 3.1 Open the PR and confirm on the Vercel preview: the MTGO label fits the button at mobile and desktop width in both locales (design Decision 5, pending visual confirmation), and the copied text from a Modern deck containing a double-faced and a split card, pasted into a text editor, matches the MTGGoldfish reference shape. Record the confirmed label fit in design.md.
 
 ## Workflow follow-up
 
