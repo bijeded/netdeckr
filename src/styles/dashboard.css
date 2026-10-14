@@ -604,3 +604,14 @@
   background: linear-gradient(140deg, rgba(177, 75, 255, 0.28), rgba(122, 43, 255, 0.2));
   border-color: rgba(177, 75, 255, 0.6);
 }
+
+/* "View all lists →" in an expanded card's deck-list header wears the window
+   pill's treatment: the deck rows' "go to deck →" links share its text colour,
+   so the pill's shape and fill are what set it apart. The height floor keeps it
+   a comfortable tap target on touch. */
+.view-all-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  white-space: nowrap;
+}

@@ -488,7 +488,9 @@ describe('App dashboard', () => {
     expect(screen.getByTestId('deck-list')).toBeInTheDocument()
     expect(screen.getByText('Norbspro')).toBeInTheDocument()
 
-    act(() => fireEvent.click(screen.getByRole('button', { name: /Izzet Control/ })))
+    // `expanded` picks the card header over the "View all lists" control, whose
+    // accessible name also carries the archetype.
+    act(() => fireEvent.click(screen.getByRole('button', { name: /Izzet Control/, expanded: true })))
     expect(screen.queryByTestId('deck-list')).toBeNull()
   })
 
@@ -1698,5 +1700,182 @@ describe('Trending play-rate denominators', () => {
     render(<App />)
     expect(useTrendingCards.mock.calls.at(-1)?.[3]).toBeNull()
     expect(screen.queryByRole('region', { name: 'Top Creatures' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Isolated archetype in the URL (?a=)', () => {
+  const deck = (id: number, archetypeName: string) => ({
+    id,
+    sourceDeckId: `d${id}`,
+    player: `Player ${id}`,
+    placement: '1',
+    eventName: 'RCQ',
+    eventDate: '2026-07-05',
+    archetypeName,
+    colorIdentity: 'UR',
+  })
+  const LOADED = {
+    breakdown: [
+      { rank: 1, name: 'Izzet Control', colorIdentity: 'UR', sharePct: 24, tier: 'T1', trend: null, wins: 0 },
+      { rank: 2, name: '4/5C Control', colorIdentity: 'WUBRG', sharePct: 12, tier: 'T1', trend: null, wins: 0 },
+    ],
+    decksByArchetype: { 'Izzet Control': [deck(1, 'Izzet Control')], '4/5C Control': [deck(2, '4/5C Control')] },
+    fullDecksByArchetype: { 'Izzet Control': [deck(1, 'Izzet Control')], '4/5C Control': [deck(2, '4/5C Control')] },
+    events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128, deckCount: 2 }],
+    totals: { events: 1, archetypes: 2, decks: 2 },
+    loading: false,
+    error: null,
+  }
+  const archetypeParam = () => new URLSearchParams(window.location.search).get('a')
+  const archetypeSelect = () => screen.getByRole('combobox', { name: 'Archetype' })
+  const grid = () => screen.getByTestId('archetype-grid')
+
+  beforeEach(() => {
+    useMetagame.mockReturnValue(LOADED)
+  })
+
+  it('opens the isolated view from a shared link once the data loads', () => {
+    setUrl('?f=ST&a=4%2F5C+Control')
+    useMetagame.mockReturnValue({ ...LOADED, breakdown: [], decksByArchetype: {}, fullDecksByArchetype: {}, loading: true })
+    const { rerender } = render(<App />)
+    // The empty breakdown while loading must not reset the linked archetype.
+    expect(archetypeParam()).toBe('4/5C Control')
+
+    useMetagame.mockReturnValue(LOADED)
+    act(() => rerender(<App />))
+    expect(archetypeSelect()).toHaveValue('4/5C Control')
+    expect(within(grid()).getByText('4/5C Control')).toBeInTheDocument()
+    expect(within(grid()).queryByText('Izzet Control')).toBeNull()
+    expect(screen.getByTestId('deck-list')).toBeInTheDocument()
+    expect(archetypeParam()).toBe('4/5C Control')
+  })
+
+  it('keeps the linked archetype when the load fails', () => {
+    setUrl('?a=Izzet+Control')
+    useMetagame.mockReturnValue({ ...LOADED, breakdown: [], error: new Error('boom') })
+    render(<App />)
+    expect(archetypeParam()).toBe('Izzet Control')
+  })
+
+  it('silently drops an unknown archetype from the link', () => {
+    setUrl('?f=ST&a=Nope')
+    render(<App />)
+    expect(archetypeSelect()).toHaveValue('')
+    expect(within(grid()).getByText('Izzet Control')).toBeInTheDocument()
+    expect(archetypeParam()).toBeNull()
+    expect(new URLSearchParams(window.location.search).get('f')).toBe('ST')
+  })
+
+  it('writes a sidebar selection to the URL without adding a history entry', () => {
+    render(<App />)
+    const before = window.history.length
+    act(() => fireEvent.change(archetypeSelect(), { target: { value: 'Izzet Control' } }))
+    expect(archetypeParam()).toBe('Izzet Control')
+    expect(window.history.length).toBe(before)
+  })
+
+  it('removes the param when the format changes', () => {
+    setUrl('?f=ST&a=Izzet+Control')
+    const { rerender } = render(<App />)
+    expect(archetypeSelect()).toHaveValue('Izzet Control')
+
+    useFormatSelection.mockReturnValue({ format: 'MO', setFormat })
+    act(() => rerender(<App />))
+    expect(archetypeSelect()).toHaveValue('')
+    expect(archetypeParam()).toBeNull()
+  })
+
+  it('removes the param on Clear filters', () => {
+    setUrl('?a=Izzet+Control')
+    render(<App />)
+    act(() => fireEvent.click(within(screen.getByTestId('sidebar')).getByRole('button', { name: 'Clear filters' })))
+    expect(archetypeSelect()).toHaveValue('')
+    expect(archetypeParam()).toBeNull()
+  })
+
+  it('removes the param on the main-window Reset', () => {
+    setUrl('?a=Izzet+Control')
+    render(<App />)
+    act(() => fireEvent.click(screen.getByTestId('reset-filters')))
+    expect(archetypeSelect()).toHaveValue('')
+    expect(archetypeParam()).toBeNull()
+  })
+
+  it('removes the param when a window change drops the archetype', () => {
+    setUrl('?a=Izzet+Control')
+    const { rerender } = render(<App />)
+    useMetagame.mockReturnValue({
+      ...LOADED,
+      breakdown: LOADED.breakdown.filter((a) => a.name !== 'Izzet Control'),
+    })
+    act(() => rerender(<App />))
+    expect(archetypeSelect()).toHaveValue('')
+    expect(archetypeParam()).toBeNull()
+  })
+
+  describe('"View all lists →" control', () => {
+    const expand = (name: string) =>
+      act(() => fireEvent.click(within(grid()).getByRole('button', { name: new RegExp(name), expanded: false })))
+
+    it('appears on an expanded card in the grid', () => {
+      render(<App />)
+      expect(screen.queryByTestId('view-all-lists')).toBeNull()
+      expand('Izzet Control')
+      const control = screen.getByTestId('view-all-lists')
+      expect(control).toHaveTextContent('View all lists →')
+      expect(control).toHaveAccessibleName('View all Izzet Control lists')
+    })
+
+    it('is absent on an isolated card', () => {
+      setUrl('?a=Izzet+Control')
+      render(<App />)
+      expect(screen.getByTestId('deck-list')).toBeInTheDocument()
+      expect(screen.queryByTestId('view-all-lists')).toBeNull()
+    })
+
+    it('opens the isolated view, pushes ?a=, and scrolls the main column to the top', () => {
+      const scrollTo = vi.fn()
+      render(<App />)
+      screen.getByRole('main').scrollTo = scrollTo
+      expand('4/5C Control')
+      const before = window.history.length
+
+      act(() => fireEvent.click(screen.getByTestId('view-all-lists')))
+
+      expect(archetypeSelect()).toHaveValue('4/5C Control')
+      expect(within(grid()).queryByText('Izzet Control')).toBeNull()
+      // The caption names the isolated archetype (it also appears on the card).
+      expect(within(screen.getByRole('main')).getAllByText('4/5C Control').length).toBeGreaterThanOrEqual(2)
+      expect(archetypeParam()).toBe('4/5C Control')
+      expect(window.history.length).toBe(before + 1)
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }))
+      expect(screen.queryByTestId('view-all-lists')).toBeNull()
+    })
+
+    it('returns to the grid on browser Back', async () => {
+      render(<App />)
+      expand('Izzet Control')
+      act(() => fireEvent.click(screen.getByTestId('view-all-lists')))
+      expect(archetypeSelect()).toHaveValue('Izzet Control')
+
+      await act(async () => {
+        window.history.back()
+        await new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+      })
+      expect(archetypeParam()).toBeNull()
+      expect(archetypeSelect()).toHaveValue('')
+      expect(within(grid()).getByText('4/5C Control')).toBeInTheDocument()
+    })
+  })
+
+  it('keeps the archetype across a reload, but not the event filter', () => {
+    const first = render(<App />)
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } }))
+    act(() => fireEvent.change(archetypeSelect(), { target: { value: 'Izzet Control' } }))
+    first.unmount()
+
+    render(<App />)
+    expect(archetypeSelect()).toHaveValue('Izzet Control')
+    expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('')
   })
 })

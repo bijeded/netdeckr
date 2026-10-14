@@ -99,6 +99,8 @@
     "heading": "Listas recientes",
     "count": "{{count}} listas",
     "viewDeck": "ver deck",
+    "viewAll": "Ver todas las listas",
+    "viewAllLabel": "Ver todas las listas de {{archetype}}",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
   },
   "modal": {

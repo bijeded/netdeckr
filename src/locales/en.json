@@ -99,6 +99,8 @@
     "heading": "Recent decklists",
     "count": "{{count}} lists",
     "viewDeck": "go to deck",
+    "viewAll": "View all lists",
+    "viewAllLabel": "View all {{archetype}} lists",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
   },
   "modal": {

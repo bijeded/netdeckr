@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
@@ -35,6 +35,7 @@ import { useTrendingCards } from './hooks/useTrendingCards'
 import { TopCardsTable } from './components/TopCardsTable'
 import { hasNewCardsTable, sliceDeckTotal } from './lib/trendingCards'
 import { useLegalPage } from './hooks/useLegalPage'
+import { useArchetypeSelection } from './hooks/useArchetypeSelection'
 import { Footer } from './components/Footer'
 import { LegalPage } from './components/LegalPage'
 import { howItWorksEn } from './content/legal/howItWorks.en'
@@ -61,10 +62,12 @@ function App() {
         : privacyEn
   const legalTitle = page === null ? '' : t(page === 'how-it-works' ? 'footer.howItWorks' : 'footer.privacy')
 
-  // Filters (in-memory only — not persisted in the URL). null = "All".
+  // Filters. null = "All". Event, size, and tier are in-memory only; the isolated
+  // archetype is the one URL-backed filter (`?a=`), so an archetype view can be
+  // reloaded and shared.
   const [eventId, setEventId] = useState<number | null>(null)
   const [sizeClass, setSizeClass] = useState<EventSizeClass | null>(null)
-  const [archetypeName, setArchetypeName] = useState<string | null>(null)
+  const { archetype: archetypeName, setArchetype: setArchetypeName } = useArchetypeSelection()
   const [tier, setTier] = useState<Tier | null>(null)
 
   const {
@@ -91,12 +94,16 @@ function App() {
     setSelectedDeck(null)
   }, [format, metaWindow])
 
-  // Filters are format-specific; reset to defaults when the format changes.
+  // Filters are format-specific; reset to defaults when the format changes. Only
+  // on an actual change — not on mount, which would discard an `?a=` deep link.
+  const previousFormat = useRef(format)
   useEffect(() => {
+    if (previousFormat.current === format) return
+    previousFormat.current = format
     setEventId(null)
     setArchetypeName(null)
     setTier(null)
-  }, [format])
+  }, [format, setArchetypeName])
 
   // Auto-reset a filter whose selection is no longer valid after a format/window/
   // other-filter change (silent — no stale selection). The Tier filter's options
@@ -105,11 +112,15 @@ function App() {
   useEffect(() => {
     if (eventId !== null && !events.some((e) => e.id === eventId)) setEventId(null)
   }, [events, eventId])
+  // The archetype check waits for a settled load: while loading (or after a failed
+  // load) the breakdown is empty, which says nothing about whether an archetype
+  // read from the URL exists.
   useEffect(() => {
+    if (loading || error) return
     if (archetypeName !== null && !breakdown.some((a) => a.name === archetypeName)) {
       setArchetypeName(null)
     }
-  }, [breakdown, archetypeName])
+  }, [breakdown, archetypeName, loading, error, setArchetypeName])
 
   // The archetype and tier filters cannot disagree: isolating an archetype outside
   // the selected tier would be contradictory. Resolution favors the choice the user
@@ -134,8 +145,10 @@ function App() {
   }
 
   const tierOf = (name: string) => breakdown.find((a) => a.name === name)?.tier ?? null
-  const selectArchetype = (name: string | null) => {
-    setArchetypeName(name)
+  // `push` adds a history entry, for entry points that navigate *into* an
+  // archetype (Back returns to the grid); filter-style changes replace it.
+  const selectArchetype = (name: string | null, options: { push?: boolean } = {}) => {
+    setArchetypeName(name, options)
     if (name !== null && tier !== null && tierOf(name) !== null && tierOf(name) !== tier) setTier(null)
   }
   const selectTier = (next: Tier | null) => {
@@ -291,6 +304,17 @@ function App() {
     setSizeClass(null)
     setArchetypeName(null)
     setTier(null)
+  }
+
+  // "View all lists →" on an expanded card: the same isolation the Archetype filter
+  // performs, but as a navigation into the archetype (Back returns to the grid).
+  // The card can sit far down the grid, so bring the isolated view's top into
+  // sight — `.app-main` is the scroll container, not the window.
+  const mainRef = useRef<HTMLElement>(null)
+  const openArchetype = (name: string) => {
+    selectArchetype(name, { push: true })
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    mainRef.current?.scrollTo?.({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
   }
 
   // Header StatCard strip: the hook's totals reflect the format/window/event
@@ -489,7 +513,7 @@ function App() {
               <ArchetypeSelector
                 value={archetypeName}
                 archetypes={breakdown.map((a) => a.name)}
-                onChange={selectArchetype}
+                onChange={(name) => selectArchetype(name)}
               />
               <TierSelector value={tier} onChange={selectTier} />
               <ClearFiltersButton disabled={!filtersActive} onClear={clearFilters} />
@@ -497,7 +521,7 @@ function App() {
           </aside>
         )}
 
-        <main className="app-main">
+        <main className="app-main" ref={mainRef}>
           <div className="app-content">
             {page !== null ? (
               <LegalPage
@@ -681,6 +705,8 @@ function App() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: 'var(--sp-2)',
                               marginBottom: 11,
                             }}
                           >
@@ -696,15 +722,36 @@ function App() {
                             >
                               {t('decks.heading')}
                             </span>
-                            <span
+                            <div
                               style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 'var(--fs-2xs)',
-                                color: 'var(--text-faint)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                justifyContent: 'flex-end',
+                                gap: 'var(--sp-3)',
                               }}
                             >
-                              {t('decks.count', { count: decks.length })}
-                            </span>
+                              <span
+                                style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: 'var(--fs-2xs)',
+                                  color: 'var(--text-faint)',
+                                }}
+                              >
+                                {t('decks.count', { count: decks.length })}
+                              </span>
+                              {!isolated && (
+                                <button
+                                  type="button"
+                                  data-testid="view-all-lists"
+                                  className="window-pill view-all-pill"
+                                  aria-label={t('decks.viewAllLabel', { archetype: archetype.name })}
+                                  onClick={() => openArchetype(archetype.name)}
+                                >
+                                  {t('decks.viewAll')} →
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div
                             style={{
