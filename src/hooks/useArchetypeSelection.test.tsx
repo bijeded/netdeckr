@@ -71,6 +71,46 @@ describe('useArchetypeSelection', () => {
     expect(param()).toBe('UW Control')
   })
 
+  it('leaving a pushed entry steps back through history', async () => {
+    const { result } = renderHook(() => useArchetypeSelection())
+    act(() => result.current.setArchetype('UW Control', { push: true }))
+    const lengthAfterPush = window.history.length
+
+    await act(async () => {
+      const popped = new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+      result.current.leaveArchetype()
+      await popped
+    })
+    expect(result.current.archetype).toBeNull()
+    expect(param()).toBeNull()
+    // Went back rather than adding or rewriting an entry.
+    expect(window.history.length).toBe(lengthAfterPush)
+  })
+
+  it('a pushed entry stays recognizable after an in-place change', async () => {
+    const { result } = renderHook(() => useArchetypeSelection())
+    act(() => result.current.setArchetype('UW Control', { push: true }))
+    act(() => result.current.setArchetype('Dimir Aggro'))
+
+    await act(async () => {
+      const popped = new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+      result.current.leaveArchetype()
+      await popped
+    })
+    expect(result.current.archetype).toBeNull()
+  })
+
+  it('leaving an entry it did not push clears the param in place', () => {
+    setUrl('?f=ST&a=UW+Control')
+    const { result } = renderHook(() => useArchetypeSelection())
+    const before = window.history.length
+    act(() => result.current.leaveArchetype())
+    expect(result.current.archetype).toBeNull()
+    expect(param()).toBeNull()
+    expect(new URLSearchParams(window.location.search).get('f')).toBe('ST')
+    expect(window.history.length).toBe(before)
+  })
+
   it('syncs the archetype on back/forward navigation', () => {
     const { result } = renderHook(() => useArchetypeSelection())
     act(() => {

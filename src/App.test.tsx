@@ -1868,6 +1868,54 @@ describe('Isolated archetype in the URL (?a=)', () => {
     })
   })
 
+  describe('"← Back" control', () => {
+    it('is shown only in the isolated view', () => {
+      const first = render(<App />)
+      expect(screen.queryByTestId('leave-archetype')).toBeNull()
+      first.unmount()
+
+      setUrl('?a=Izzet+Control')
+      render(<App />)
+      const back = screen.getByTestId('leave-archetype')
+      expect(back).toHaveTextContent('← Back')
+      expect(back).toHaveAccessibleName('Back to all archetypes')
+    })
+
+    it('leaves a linked archetype in place, keeping the other filters', () => {
+      setUrl('?a=Izzet+Control')
+      render(<App />)
+      act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } }))
+      const before = window.history.length
+
+      act(() => fireEvent.click(screen.getByTestId('leave-archetype')))
+
+      expect(archetypeSelect()).toHaveValue('')
+      expect(archetypeParam()).toBeNull()
+      expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('10')
+      expect(within(grid()).getByText('4/5C Control')).toBeInTheDocument()
+      expect(window.history.length).toBe(before)
+      expect(screen.queryByTestId('leave-archetype')).toBeNull()
+    })
+
+    it('steps back through history after entering via "View all lists →"', async () => {
+      render(<App />)
+      act(() =>
+        fireEvent.click(within(grid()).getByRole('button', { name: /Izzet Control/, expanded: false })),
+      )
+      act(() => fireEvent.click(screen.getByTestId('view-all-lists')))
+      const lengthAfterPush = window.history.length
+
+      await act(async () => {
+        const popped = new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+        fireEvent.click(screen.getByTestId('leave-archetype'))
+        await popped
+      })
+      expect(archetypeSelect()).toHaveValue('')
+      expect(archetypeParam()).toBeNull()
+      expect(window.history.length).toBe(lengthAfterPush)
+    })
+  })
+
   it('keeps the archetype across a reload, but not the event filter', () => {
     const first = render(<App />)
     act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } }))

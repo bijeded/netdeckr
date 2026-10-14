@@ -53,7 +53,16 @@ The deck rows' "go to deck →" text already uses `--neon-text-soft`, so color a
 - **Calculated:** a solid accent fill with white text fails at the light end. White on `--neon-500` is **3.95:1**, below 4.5:1, so a solid gradient pill is ruled out at this text size unless it uses only `--neon-600` (5.81:1).
 - **Calculated:** the pill uses no share-delta colors (`#2fe6a0` / `#ff5470` / `#ffcb45`).
 - **Pending visual confirmation:** whether the window-pill treatment reads as clearly more prominent than the "go to deck →" links inside a panel that is itself neon-tinted. If it doesn't, the candidate fallback is a stronger border or fill alpha, settled on the Vercel preview and recorded here once confirmed.
-- **Pending visual confirmation:** whether the "N lists" count and the pill fit on one header row at ~360px, or the pill should replace the count on narrow widths. The tap target height is a rule, not a guess: at least 32px tall on touch.
+- ~~**Pending visual confirmation:** whether the "N lists" count and the pill fit on one header row at ~360px, or the pill should replace the count on narrow widths.~~ **Superseded after preview review:** the first build let the count and pill wrap together under the heading. On a phone that left them in a left-aligned row ("6 lists [View all lists →]"), which the user rejected. Now the heading and count stay paired on row one, and at ≤640px the pill takes its own full-width row beneath them, above the deck rows (`.deck-list-header`; the pill is last in DOM, so it wraps without reordering). The desktop single-row layout is unchanged. The new mobile treatment is pending confirmation on the preview.
+- The tap target height is a rule, not a guess: at least 32px tall on touch.
+
+### D6. "← Back" in the isolated view (added after preview review)
+The user asked for a Back control in the archetype view that "works like the Reset button".
+
+- **Placement and look:** it sits in the caption row's right-hand group, before Reset, and uses Reset's enabled `.reset-filters` treatment. Both are ways out of a filtered view. It renders only while an archetype is isolated, so it never sits disabled.
+- **Effect: it clears the archetype only, not every filter.** "Back" means returning to the grid you came from. If that grid had an event or tier filter, it comes back with it. With no other filter active, the result is identical to Reset. *Alternative:* the same call as Reset (`clearFilters`). Rejected because the two buttons would then be redundant side by side. Flip it if the preview says otherwise.
+- **History:** `setArchetype(..., { push: true })` tags its entry with history state `{ archetypeEntry: true }`, and replaces now keep the current entry's state rather than overwriting it with `{}`. `leaveArchetype()` calls `history.back()` on a tagged entry, so the browser's Back never lands on a duplicate grid. On any other entry (shared link, sidebar) it clears `?a=` in place.
+- *Known gap:* `useFormatSelection`/`useWindowSelection` still `replaceState({})`. A window toggle inside a pill-entered view therefore drops the tag, and Back then clears in place. That leaves one duplicate grid entry behind, which is harmless.
 
 ## Risks / Trade-offs
 

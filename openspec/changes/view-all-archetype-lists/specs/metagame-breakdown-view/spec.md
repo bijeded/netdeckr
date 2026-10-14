@@ -45,6 +45,25 @@ The isolated archetype SHALL be persisted in the URL as `?a=<archetype name>` al
 - **WHEN** an archetype is isolated and the user switches to a time window in which it has no decks
 - **THEN** the Archetype filter resets to "All archetypes" and `?a=` is removed from the URL
 
+### Requirement: Leave the isolated archetype view
+While an archetype is isolated, the caption row SHALL show a localized "← Back" control beside "Reset", in Reset's enabled treatment, and only then. It SHALL clear the isolated archetype and its `?a=` param, keeping any other active filter. When the view was entered through "View all lists →", it SHALL step back through browser history; otherwise it SHALL clear in place without adding a history entry.
+
+#### Scenario: Back appears only in the isolated view
+- **WHEN** an archetype is isolated
+- **THEN** the caption row shows a "← Back" control (localized) beside "Reset"; when no archetype is isolated, no "← Back" control is shown
+
+#### Scenario: Back returns to the grid, keeping other filters
+- **WHEN** an archetype is isolated with an event filter also active and the user activates "← Back"
+- **THEN** the grid returns with the event filter still applied, the Archetype filter shows "All archetypes", and `?a=` is removed from the URL
+
+#### Scenario: Back after "View all lists →" undoes that navigation
+- **WHEN** the user entered the isolated view through "View all lists →" and activates "← Back"
+- **THEN** the dashboard returns to the grid by stepping back through browser history, so the browser's own Back button does not land on a duplicate grid entry
+
+#### Scenario: Back from a shared link clears in place
+- **WHEN** the isolated view was opened from a shared `?a=` link or the sidebar Archetype filter and the user activates "← Back"
+- **THEN** `?a=` is removed without adding a browser history entry
+
 ## MODIFIED Requirements
 
 ### Requirement: Clearing filters

@@ -56,4 +56,4 @@ An expanded archetype card that is not already isolated SHALL show a localized "
 
 #### Scenario: Control is reachable on mobile
 - **WHEN** the viewport is narrow and an archetype card is expanded
-- **THEN** the "View all lists →" control is visible in the recent-decklists header without horizontal scrolling and remains a comfortable tap target
+- **THEN** the recent-decklists heading and list count stay together on one row, and the "View all lists →" control sits on its own full-width row beneath them, above the deck rows, without horizontal scrolling and as a comfortable tap target

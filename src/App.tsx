@@ -67,7 +67,11 @@ function App() {
   // reloaded and shared.
   const [eventId, setEventId] = useState<number | null>(null)
   const [sizeClass, setSizeClass] = useState<EventSizeClass | null>(null)
-  const { archetype: archetypeName, setArchetype: setArchetypeName } = useArchetypeSelection()
+  const {
+    archetype: archetypeName,
+    setArchetype: setArchetypeName,
+    leaveArchetype,
+  } = useArchetypeSelection()
   const [tier, setTier] = useState<Tier | null>(null)
 
   const {
@@ -615,17 +619,32 @@ function App() {
                   </div>
                 )}
               </div>
-              {/* Always rendered, disabled when idle: appearing and disappearing
-                  would resize this row and shove the grid on every filter change. */}
-              <button
-                type="button"
-                data-testid="reset-filters"
-                className="reset-filters"
-                disabled={!filtersActive}
-                onClick={clearFilters}
-              >
-                {t('filters.reset')}
-              </button>
+              <div className="caption-actions">
+                {/* The isolated archetype's way back to the grid: leaves only the
+                    archetype, keeping any other filter the grid was showing. */}
+                {archetypeFiltered && (
+                  <button
+                    type="button"
+                    data-testid="leave-archetype"
+                    className="reset-filters"
+                    aria-label={t('filters.backLabel')}
+                    onClick={leaveArchetype}
+                  >
+                    ← {t('filters.back')}
+                  </button>
+                )}
+                {/* Always rendered, disabled when idle: appearing and disappearing
+                    would resize this row and shove the grid on every filter change. */}
+                <button
+                  type="button"
+                  data-testid="reset-filters"
+                  className="reset-filters"
+                  disabled={!filtersActive}
+                  onClick={clearFilters}
+                >
+                  {t('filters.reset')}
+                </button>
+              </div>
             </div>
 
             {/* Main */}
@@ -700,16 +719,7 @@ function App() {
                             padding: 14,
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              flexWrap: 'wrap',
-                              gap: 'var(--sp-2)',
-                              marginBottom: 11,
-                            }}
-                          >
+                          <div className="deck-list-header">
                             <span
                               style={{
                                 fontFamily: 'var(--font-display)',
@@ -722,36 +732,27 @@ function App() {
                             >
                               {t('decks.heading')}
                             </span>
-                            <div
+                            <span
+                              className="deck-list-count"
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                flexWrap: 'wrap',
-                                justifyContent: 'flex-end',
-                                gap: 'var(--sp-3)',
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 'var(--fs-2xs)',
+                                color: 'var(--text-faint)',
                               }}
                             >
-                              <span
-                                style={{
-                                  fontFamily: 'var(--font-mono)',
-                                  fontSize: 'var(--fs-2xs)',
-                                  color: 'var(--text-faint)',
-                                }}
+                              {t('decks.count', { count: decks.length })}
+                            </span>
+                            {!isolated && (
+                              <button
+                                type="button"
+                                data-testid="view-all-lists"
+                                className="window-pill view-all-pill"
+                                aria-label={t('decks.viewAllLabel', { archetype: archetype.name })}
+                                onClick={() => openArchetype(archetype.name)}
                               >
-                                {t('decks.count', { count: decks.length })}
-                              </span>
-                              {!isolated && (
-                                <button
-                                  type="button"
-                                  data-testid="view-all-lists"
-                                  className="window-pill view-all-pill"
-                                  aria-label={t('decks.viewAllLabel', { archetype: archetype.name })}
-                                  onClick={() => openArchetype(archetype.name)}
-                                >
-                                  {t('decks.viewAll')} →
-                                </button>
-                              )}
-                            </div>
+                                {t('decks.viewAll')} →
+                              </button>
+                            )}
                           </div>
                           <div
                             style={{

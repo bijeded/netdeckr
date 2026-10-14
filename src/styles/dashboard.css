@@ -473,6 +473,15 @@
   justify-content: space-between;
   gap: var(--sp-4);
 }
+/* Right side of the caption row: Reset, preceded by "← Back" in an isolated
+   archetype view. Back wears Reset's enabled treatment — both are ways out of a
+   filtered view. */
+.caption-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
 /* Enabled, it is the way out of a filtered view and has to read as an action, so
    it takes the accent treatment (tint, accent rim, accent text) rather than the
    quiet outline of the sidebar's Clear filters. The accent is the subdued green,
@@ -612,6 +621,26 @@
 .view-all-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 32px;
   white-space: nowrap;
+}
+
+/* Expanded card's deck-list header: heading left, count + "View all lists →"
+   pushed right on one row. On phones the pill takes its own full-width row
+   under the heading/count pair, rather than wrapping mid-row beside the count. */
+.deck-list-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  margin-bottom: 11px;
+}
+.deck-list-count {
+  margin-left: auto;
+}
+@media (max-width: 640px) {
+  .deck-list-header .view-all-pill {
+    flex: 1 0 100%;
+  }
 }
