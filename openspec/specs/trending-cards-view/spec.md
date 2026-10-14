@@ -1,7 +1,7 @@
 # trending-cards-view
 
 ## Purpose
-The dashboard's trending-cards surface: three tables derived at read time from the scraped decks via the `top_cards` aggregation — **Top Creatures** and **Top Spells** (the mainboard split by card type) and a **Top Sideboard Cards** table. Each ranks its slice by total copies; the mainboard tables also show an average-copies-per-deck value. Lands are excluded so the tables show spells and creatures; the tables are time-frame aware, respect the sidebar filters, and localize their chrome (ES/EN) while keeping card names in English.
+The dashboard's trending-cards surface: three tables derived at read time from the scraped decks via the `top_cards` aggregation — **Top Creatures** and **Top Spells** (the mainboard split by card type) and a **Top Sideboard Cards** table. Each ranks its slice by total copies; the mainboard tables also show an average-copies-per-deck value. Lands are excluded so those three show spells and creatures. A fourth table, **Top New Cards**, ranks the cards printed in the two most recent main sets (both boards, nonbasic lands included, hidden in Pre-Modern) via the `recent_set_top_cards` aggregation. The tables are time-frame aware, respect the sidebar filters, and localize their chrome (ES/EN) while keeping card names in English.
 
 ## Requirements
 
@@ -117,17 +117,21 @@ Each card row in the trending and sideboard tables SHALL preview the card's full
 - **WHEN** a card has no resolved Scryfall art
 - **THEN** no preview is shown and the row renders normally
 
-### Requirement: Responsive trending layout
+### Requirement: Responsive trending grid
 
-On desktop widths the three trending tables (Trending Creatures, Trending Spells, Top Sideboard Cards) SHALL sit side by side, each taking roughly one-third of the width. Below ~900px the three SHALL stack vertically in the order Creatures → Spells → Sideboard. The layout MUST stay legible at small widths (per the responsive convention).
+On desktop widths the trending tables SHALL sit in a two-column grid: Top Creatures and Top Spells in the first row, Top Sideboard Cards and Top New Cards in the second, each roughly half the width. When Top New Cards is hidden (Pre-Modern), Top Sideboard Cards SHALL keep its position in the second row. Below ~900px the tables SHALL stack vertically in the order Creatures → Spells → Sideboard → New Cards. The layout MUST stay legible at small widths (per the responsive convention).
 
-#### Scenario: Desktop three-up
-- **WHEN** the dashboard is viewed at a desktop width
-- **THEN** Trending Creatures, Trending Spells, and Top Sideboard Cards render side by side, each ~1/3 wide
+#### Scenario: Desktop 2x2
+- **WHEN** the dashboard is viewed at a desktop width in a format other than Pre-Modern
+- **THEN** Top Creatures and Top Spells render side by side in the first row, and Top Sideboard Cards and Top New Cards side by side in the second, each ~1/2 wide
+
+#### Scenario: Desktop without Top New Cards
+- **WHEN** the dashboard is viewed at a desktop width in Pre-Modern
+- **THEN** Top Creatures and Top Spells fill the first row and Top Sideboard Cards sits in the second row's first column
 
 #### Scenario: Mobile stacked
 - **WHEN** the dashboard is viewed at a narrow width (below ~900px)
-- **THEN** the three tables stack vertically in the order Creatures, Spells, Sideboard, and stay legible
+- **THEN** the tables stack vertically in the order Creatures, Spells, Sideboard, New Cards, and stay legible
 
 ### Requirement: Trending tables count only legal decks
 
@@ -156,3 +160,63 @@ A banned card SHALL therefore never appear in a trending table, since every deck
 
 - **WHEN** the selected format's banlist matches nothing in the window
 - **THEN** the tables show exactly what they would have shown without the exclusion
+
+### Requirement: Top New Cards table
+
+The dashboard SHALL display a "Top New Cards" / "Top Cartas Nuevas" table of the top 10 cards printed in either recent main set, ranked by total copies over mainboard and sideboard combined, with no subtitle. Each row SHALL show a zero-padded rank, the card name, a set-code chip, and the total copy count (mono), plus a header row; it SHALL NOT show an average-copies-per-deck column or a copy-share percentage.
+
+#### Scenario: Ranked by combined copies
+- **WHEN** the active slice's decks play cards printed in `FRA` or `HOB`, in either board
+- **THEN** the table lists the top 10 of them by total copies across both boards, each showing rank, name, set-code chip, and copy count
+
+#### Scenario: Reprints and nonbasic lands appear
+- **WHEN** a heavily played reprint in `FRA` and a nonbasic land from `HOB` are in the slice
+- **THEN** both are eligible for the table, while basic lands never appear
+
+#### Scenario: Set-code chip
+- **WHEN** a row's card is recorded with set code `HOB`
+- **THEN** its chip reads `HOB` in the mono typeface, in both locales
+
+#### Scenario: Localized title
+- **WHEN** the UI language is English then Spanish
+- **THEN** the title reads "Top New Cards" then "Top Cartas Nuevas", with no subtitle, while card names and set codes stay unchanged
+
+### Requirement: Top New Cards follows the trending slice
+
+The Top New Cards table SHALL recompute for the selected time frame and SHALL respect the same archetype, tier, event, and event-size filters and the same legal-decks-only rule as the other trending tables. It SHALL show a localized empty state when the slice has no eligible card, and its card names SHALL use the same art preview as the other trending tables.
+
+#### Scenario: Time frame and filters
+- **WHEN** the user switches the time frame or applies an archetype, tier, event, or event-size filter
+- **THEN** the table's ranking and copy counts recompute over the same slice as the other trending tables
+
+#### Scenario: Banned decks excluded
+- **WHEN** a deck in the window holds a card banned in the format
+- **THEN** none of its cards contributes to the table
+
+#### Scenario: Empty slice
+- **WHEN** no deck in the slice plays a card printed in either recent main set
+- **THEN** the table shows a localized empty state
+
+#### Scenario: Art preview
+- **WHEN** the user hovers or touches a row's card name whose art is resolved
+- **THEN** the card's art previews via the existing `CardArtPreview` behavior
+
+### Requirement: Top New Cards fails independently
+
+A failure to load the Top New Cards data SHALL affect only that table: it SHALL show its localized empty state, and Top Creatures, Top Spells, and Top Sideboard Cards SHALL render their data as if the failure had not happened.
+
+#### Scenario: Top New Cards data fails to load
+- **WHEN** the Top New Cards data cannot be loaded but the other trending data loads
+- **THEN** Top New Cards shows its empty state and the other three tables show their rankings
+
+### Requirement: Top New Cards hidden in Pre-Modern
+
+The Top New Cards table SHALL NOT be rendered when the selected format is Pre-Modern, whose card pool receives no new sets; the other three trending tables SHALL render as usual there.
+
+#### Scenario: Pre-Modern selected
+- **WHEN** the selected format is Pre-Modern
+- **THEN** the Top New Cards table is absent and Top Creatures, Top Spells, and Top Sideboard Cards still render
+
+#### Scenario: Other formats
+- **WHEN** the selected format is Standard, Pioneer, Modern, or Pauper
+- **THEN** the Top New Cards table is rendered

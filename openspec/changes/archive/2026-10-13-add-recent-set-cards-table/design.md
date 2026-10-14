@@ -35,7 +35,7 @@ Joining on the canonical name follows `banned_cards`: plain equality, no normali
 
 ### D2. Derive the sets and membership in the existing bulk pass
 
-`from_bulk_rows` gains a `today` input. For each row of a qualifying set (`set_type` in `{expansion, core}`, not `digital`, `"paper"` in `games`, `released_at <= today`), it records `name` under that set. Membership ignores `_is_paper_nonfoil`'s treatment and finish rules, because any printing in the set counts. `reversible_card` rows are skipped, as the banlist pass already does, since their doubled name matches no deck card. At the end the pass keeps the two sets with the latest `released_at` (set-code tiebreak) and builds name→(newer set) for the cards in them.
+`from_bulk_rows` gains a `today` input. For each row of a qualifying set (`set_type` in `{expansion, core}`, not `digital`, `"paper"` in `games`), it records `name` under that set, along with the set's earliest row `released_at`. Membership ignores `_is_paper_nonfoil`'s treatment and finish rules, because any printing in the set counts. `reversible_card` rows are skipped, as the banlist pass already does, since their doubled name matches no deck card. At the end the pass drops every set whose release date (its earliest row's) is after `today`, keeps the two remaining sets with the latest release date (set-code tiebreak), and builds name→(newer set) for the cards in them. The release-date check is per set, not per row, so one oddly dated row can't split a set's membership.
 
 Accumulating names for every qualifying set before picking two costs roughly one string reference per expansion/core printing ever made. That is small next to the printing index the same pass already builds. A running top-two prune is possible but not worth the complexity.
 
@@ -43,7 +43,7 @@ Accumulating names for every qualifying set before picking two costs roughly one
 
 ### D3. Reconcile the table, don't delete-then-insert
 
-The writer reconciles the table the way `refresh_banlist` does: read the stored rows, delete names no longer wanted, upsert added or changed ones. Delete-then-insert through PostgREST is two non-atomic requests, and a dashboard read landing between them would render an empty "Top New Cards". A reconcile also leaves an unchanged day write-free, which satisfies the idempotence scenario.
+The writer reconciles the table the way `refresh_banlist` does, in this order: read the stored rows (paged past PostgREST's 1000-row cap), upsert added or changed rows, then delete rows whose `set_code` is outside the new pair with one request (the release rollover), then delete any remaining stray names one by one. Upserting before deleting means a read mid-reconcile never sees a thinner table. Delete-then-insert through PostgREST is two non-atomic requests, and a dashboard read landing between them would render an empty "Top New Cards". A reconcile also leaves an unchanged day write-free, which satisfies the idempotence scenario.
 
 The reconcile is format-independent and runs once per pipeline invocation, next to the banlist refresh. It is best-effort, like the banlist: an exception is logged and the scrape continues. The scraper already fails the run before this step if no index is available (`scryfall-card-mapping`), so a failed sync never reaches the write, and the previous rows survive.
 
