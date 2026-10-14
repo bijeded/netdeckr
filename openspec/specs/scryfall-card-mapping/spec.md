@@ -54,10 +54,11 @@ The system SHALL build an index from the bulk data that maps a card name to its 
 A printing whose `layout` is `reversible_card` SHALL NOT be an eligible candidate for any card. Such printings carry no top-level `type_line` or `cmc`, and are indexed under a doubled name (`"<name> // <name>"`) that would otherwise never be ranked against the plain card's printings — making selection depend on bulk-file ordering and allowing a printing with null metadata to be chosen. Ineligibility SHALL be absolute rather than a ranking demotion, so a `reversible_card` printing is rejected even when it is the only paper printing of that card.
 
 When a card has several eligible non-foil paper printings, the system SHALL choose the printing that most closely resembles a plain, standard printing, ranking candidates by the following priorities in order:
-1. **Plain treatment first.** A plain printing SHALL be preferred over any special-treatment printing. A printing is special-treatment if it is a promo, carries `boosterfun` in its promo types, is `full_art`, is `textless`, has `border_color` equal to `borderless`, or carries a `showcase`, `extendedart`, or `inverted` frame effect. Plain treatment SHALL take precedence over both set type and recency (a plain printing in an older set beats a special-treatment printing in a newer set). Border colors other than `borderless` (e.g. black, white, silver, gold) SHALL NOT by themselves make a printing special-treatment. A Universes Beyond crossover marker SHALL NOT by itself make a printing special-treatment: on a wholly-Universes-Beyond set every printing carries it, so it cannot distinguish the plain printing from its alternate-treatment variants; those variants are distinguished by `boosterfun` and the other markers above.
-2. **Preferred set types next.** Among printings tied on treatment, the system SHALL prefer a printing from an `expansion` or `core` set over a neutral set type, and SHALL demote `commander`, `draft_innovation`, and `box` set types below neutral ones. The `masters` set type SHALL be neutral: reprint and draft-product sets SHALL NOT outrank a real expansion or core printing on recency alone.
-3. **Most recent next.** Among printings tied on treatment and set-type tier, the system SHALL prefer the most recent set release date.
-4. **Stable tiebreak.** Set code SHALL be used as a final deterministic tiebreak so selection is independent of bulk-file ordering.
+1. **Released first.** A printing whose set release date is on or before the run's current (UTC) date SHALL be preferred over any printing whose release date is after it, so a set still in its preview season never supplies the printing of a card that has a released printing. This SHALL take precedence over treatment, set type, and recency. An unreleased printing SHALL remain eligible (demoted, not rejected), so a card printed only in an unreleased set still resolves. A printing released on the current date counts as released, and so does a printing with no release date.
+2. **Plain treatment first.** Among printings tied on release status, a plain printing SHALL be preferred over any special-treatment printing. A printing is special-treatment if it is a promo, carries `boosterfun` in its promo types, is `full_art`, is `textless`, has `border_color` equal to `borderless`, or carries a `showcase`, `extendedart`, or `inverted` frame effect. Plain treatment SHALL take precedence over both set type and recency (a plain printing in an older set beats a special-treatment printing in a newer set). Border colors other than `borderless` (e.g. black, white, silver, gold) SHALL NOT by themselves make a printing special-treatment. A Universes Beyond crossover marker SHALL NOT by itself make a printing special-treatment: on a wholly-Universes-Beyond set every printing carries it, so it cannot distinguish the plain printing from its alternate-treatment variants; those variants are distinguished by `boosterfun` and the other markers above.
+3. **Preferred set types next.** Among printings tied on release status and treatment, the system SHALL prefer a printing from an `expansion` or `core` set over a neutral set type, and SHALL demote `commander`, `draft_innovation`, and `box` set types below neutral ones. The `masters` set type SHALL be neutral: reprint and draft-product sets SHALL NOT outrank a real expansion or core printing on recency alone.
+4. **Most recent next.** Among printings tied on release status, treatment, and set-type tier, the system SHALL prefer the most recent set release date.
+5. **Stable tiebreak.** Set code SHALL be used as a final deterministic tiebreak so selection is independent of bulk-file ordering.
 
 Resolution SHALL match the scraped card name to a Scryfall card name, tolerating the split/double-faced card naming MTGTop8 emits (including its single-slash separator, e.g. resolving `Fire / Ice` or a front-face-only name to the full `Fire // Ice` card). When a scraped name has no confident match, resolution SHALL return no printing (a miss) rather than an incorrect one.
 
@@ -157,6 +158,22 @@ A lower-priority claim SHALL NOT displace a higher-priority one regardless of th
 #### Scenario: Unknown card is a miss
 - **WHEN** a scraped card name matches no Scryfall card
 - **THEN** resolution returns no printing and the caller leaves the Scryfall columns null
+
+#### Scenario: An unreleased reprint does not replace the released printing
+- **WHEN** a card has a plain released `expansion` printing and a plain reprint in an `expansion` whose release date is after the current date
+- **THEN** resolution returns the released printing's set code, collector number, image URLs, and release date, not the upcoming set's
+
+#### Scenario: Release status outranks treatment
+- **WHEN** a card's only released printing is special-treatment and its only plain printing is in a set released after the current date
+- **THEN** resolution returns the released special-treatment printing
+
+#### Scenario: A card printed only in an unreleased set still resolves
+- **WHEN** every eligible printing of a card is in a set whose release date is after the current date
+- **THEN** resolution returns the best of those printings by the remaining priorities rather than a miss
+
+#### Scenario: A set counts as released on its release date
+- **WHEN** a card has a plain older printing and a plain reprint in an `expansion` released on the current date
+- **THEN** resolution returns the reprint, by the most-recent rule
 
 ### Requirement: Deck cards are enriched with Scryfall identity
 The system SHALL populate `deck_cards.scryfall_name`, `deck_cards.set_code`, `deck_cards.collector_number`, `deck_cards.image_url`, `deck_cards.small_image_url`, `deck_cards.type_line`, `deck_cards.rarity`, `deck_cards.cmc`, and `deck_cards.released_at` (the resolved printing's set release date) when writing deck cards, both for newly scraped decks and, as a one-time backfill, for rows not yet enriched with the new fields. The `small_image_url` field SHALL hold the same resolved printing's thumbnail-size hotlinked Scryfall image, sized for grid display rather than full-card reading, and SHALL be derived from the same printing as `image_url` so the two never disagree about which printing a row depicts. The `type_line`, `rarity`, `cmc`, and `released_at` fields SHALL come from the same resolved printing used for the identity columns. A resolution miss SHALL leave those columns null; the scraped `card_name` is always retained.
