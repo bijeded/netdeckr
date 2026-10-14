@@ -1053,3 +1053,79 @@ def test_sync_bulk_threads_today_into_the_recent_sets(tmp_path):
     _write_bulk(tmp_path / f"default_cards-{TODAY}.jsonl.gz", rows)
     index = sync_bulk(tmp_path, today=TODAY, fetch_meta=MagicMock(), download=MagicMock())
     assert index.recent_sets() == ["FRA", "HOB"]
+
+
+# -- release status (preview season) ---------------------------------------
+
+def _resolve_both_orders(rows, name, today=TODAY):
+    """Resolve `name` from `rows` in both bulk orders; the pick must not differ."""
+    picks = {
+        CardIndex.from_bulk_rows(ordered, today=today).resolve(name)
+        for ordered in (rows, list(reversed(rows)))
+    }
+    assert len(picks) == 1
+    return picks.pop()
+
+
+def test_unreleased_reprint_does_not_replace_the_released_printing():
+    rows = [
+        _printing_row("Lightning Bolt", "m11", "149", released_at="2010-07-16"),
+        _printing_row("Lightning Bolt", "nxt", "120", released_at="2026-11-20"),
+    ]
+    printing = _resolve_both_orders(rows, "Lightning Bolt")
+    assert (printing.set_code, printing.collector_number) == ("M11", "149")
+    assert printing.image_url == "https://cards.scryfall.io/normal/m11-149.jpg"
+    assert printing.art_crop_url == "https://cards.scryfall.io/art_crop/m11-149.jpg"
+    assert printing.released_at == "2010-07-16"
+
+
+def test_release_status_outranks_treatment():
+    rows = [
+        _printing_row("Opt", "old", "300", released_at="2024-01-01", border_color="borderless"),
+        _printing_row("Opt", "nxt", "60", released_at="2026-11-20"),
+    ]
+    assert _resolve_both_orders(rows, "Opt").set_code == "OLD"
+
+
+def test_card_printed_only_in_an_unreleased_set_still_resolves():
+    rows = [
+        _printing_row("Preview Card", "nxt", "300", released_at="2026-11-20", border_color="borderless"),
+        _printing_row("Preview Card", "nxt", "12", released_at="2026-11-20"),
+    ]
+    printing = _resolve_both_orders(rows, "Preview Card")
+    assert (printing.set_code, printing.collector_number) == ("NXT", "12")
+
+
+def test_set_counts_as_released_on_its_release_date():
+    rows = [
+        _printing_row("Lightning Bolt", "m11", "149", released_at="2010-07-16"),
+        _printing_row("Lightning Bolt", "nxt", "120", released_at="2026-11-20"),
+    ]
+    assert _resolve_both_orders(rows, "Lightning Bolt", today="2026-11-19").set_code == "M11"
+    assert _resolve_both_orders(rows, "Lightning Bolt", today="2026-11-20").set_code == "NXT"
+
+
+def test_printing_without_a_release_date_counts_as_released():
+    rows = [
+        _printing_row("Opt", "und", "60", released_at=None),
+        _printing_row("Opt", "nxt", "61", released_at="2026-11-20"),
+    ]
+    assert _resolve_both_orders(rows, "Opt").set_code == "UND"
+
+
+def test_index_without_today_ranks_by_recency_alone():
+    rows = [
+        _printing_row("Lightning Bolt", "m11", "149", released_at="2010-07-16"),
+        _printing_row("Lightning Bolt", "nxt", "120", released_at="2026-11-20"),
+    ]
+    assert CardIndex.from_bulk_rows(rows).resolve("Lightning Bolt").set_code == "NXT"
+
+
+def test_sync_bulk_threads_today_into_printing_selection(tmp_path):
+    rows = [
+        _printing_row("Lightning Bolt", "m11", "149", released_at="2010-07-16"),
+        _printing_row("Lightning Bolt", "nxt", "120", released_at="2026-11-20"),
+    ]
+    _write_bulk(tmp_path / f"default_cards-{TODAY}.jsonl.gz", rows)
+    index = sync_bulk(tmp_path, today=TODAY, fetch_meta=MagicMock(), download=MagicMock())
+    assert index.resolve("Lightning Bolt").set_code == "M11"
