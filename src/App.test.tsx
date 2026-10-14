@@ -45,6 +45,7 @@ beforeEach(() => {
     newCards: [{ cardName: 'New Card', imageUrl: null, totalCopies: 30, avgCopies: 2, setCode: 'FRA' }],
     loading: false,
     error: null,
+    newCardsError: null,
   })
 })
 

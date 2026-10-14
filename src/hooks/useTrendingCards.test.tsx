@@ -169,6 +169,23 @@ describe('useTrendingCards', () => {
     expect(result.current.newCards).toEqual([])
   })
 
+  it('confines a Top New Cards failure to that table', async () => {
+    rpc.mockImplementation((fn: string, params: Record<string, unknown>) => {
+      if (fn === 'recent_set_top_cards') return Promise.resolve({ data: null, error: { message: 'no such function' } })
+      const data = params.p_board === 'side' ? [r('S1', 3)] : [r('Goblin', 8, 2, 'creature'), r('Bolt', 6, 2)]
+      return Promise.resolve({ data, error: null })
+    })
+    const { result } = renderHook(() => useTrendingCards('ST', '7days'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.error).toBeNull()
+    expect(result.current.newCardsError).toEqual({ message: 'no such function' })
+    expect(result.current.newCards).toEqual([])
+    expect(result.current.creatures.map((c) => c.cardName)).toEqual(['Goblin'])
+    expect(result.current.spells.map((c) => c.cardName)).toEqual(['Bolt'])
+    expect(result.current.sideboard.map((c) => c.cardName)).toEqual(['S1'])
+  })
+
   it('ranks the recent-set cards into Top New Cards with their set codes', async () => {
     routeRpc({ recent: [n('Ring', 8, 4, 'HOB'), n('Bolt', 12, 5), n('Dual', 8, 6, 'HOB')] })
     const { result } = renderHook(() => useTrendingCards('ST', '7days'))

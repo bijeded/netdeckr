@@ -75,9 +75,23 @@ interface TrendingState {
   newCards: TrendingCard[]
   loading: boolean
   error: unknown
+  /**
+   * A failure of the Top New Cards call alone. Kept apart from `error` so it
+   * empties only that table: the other three come from a different RPC and
+   * still render.
+   */
+  newCardsError: unknown
 }
 
-const EMPTY: TrendingState = { creatures: [], spells: [], sideboard: [], newCards: [], loading: false, error: null }
+const EMPTY: TrendingState = {
+  creatures: [],
+  spells: [],
+  sideboard: [],
+  newCards: [],
+  loading: false,
+  error: null,
+  newCardsError: null,
+}
 
 /** Resolve selected archetype names to their per-format ids for the RPC filter. */
 async function resolveArchetypeIds(format: FormatCode, names: string[]): Promise<number[]> {
@@ -191,11 +205,17 @@ export function useTrendingCards(
             ? []
             : await resolveArchetypeIds(format, archetypeNames)
 
+      // The Top New Cards call settles on its own: its failure becomes
+      // `newCardsError` and an empty table rather than rejecting the whole set.
+      let newCardsError: unknown = null
       const [main, side, recent] = await Promise.all([
         callTopCards(format, start, end, 'main', archetypeIds, eventId, eventIds),
         callTopCards(format, start, end, 'side', archetypeIds, eventId, eventIds),
         hasNewCardsTable(format)
-          ? callRecentSetTopCards(format, start, end, archetypeIds, eventId, eventIds)
+          ? callRecentSetTopCards(format, start, end, archetypeIds, eventId, eventIds).catch((e: unknown) => {
+              newCardsError = e
+              return []
+            })
           : Promise.resolve([]),
       ])
 
@@ -205,6 +225,7 @@ export function useTrendingCards(
         spells: rankTrendingCards(spells),
         sideboard: rankTrendingCards(side),
         newCards: rankTrendingCards(recent),
+        newCardsError,
       }
     }
 

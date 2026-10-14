@@ -66,6 +66,8 @@ Both new objects get `security invoker`, an anon read policy on the table, and `
 
 `useTrendingCards` adds a third parallel call (skipped, returning `[]`, when `format === 'PREM'`) and exposes `newCards`. `TrendingCard` gains an optional `setCode`. Ranking reuses `rankTrendingCards`: same order (copies, then decks, then name), same top 10.
 
+Added after the first preview, at the user's request: the third call settles on its own. A rejection becomes a separate `newCardsError` and an empty `newCards` instead of rejecting the shared `Promise.all`. That rejection used to put the hook in its error state, emptying all four tables. The trigger was the window between deploying the frontend and applying the schema (or any RPC outage), when a missing `recent_set_top_cards` would have blanked the three tables that don't depend on it. Superseded: the original single shared failure path.
+
 `TopCardsTable` gains a `showSet` prop that adds a chip column. Column order is rank · card · set · copies. The avg column stays off for this table, as for Sideboard. Placement before copies is **pending visual confirmation**.
 
 The dashboard renders the fourth table only when the format is not Pre-Modern. `.trending-layout` becomes `repeat(2, 1fr)`. DOM order is Creatures, Spells, Sideboard, New Cards, so the 2x2 grid, the Pre-Modern position (Sideboard in row 2, col 1), and the stacked mobile order all follow from source order with no `grid-area` rules.

@@ -17,6 +17,8 @@
 
 - [x] 4.1 Add `showSet` to `TopCardsTable` (rank · card · set chip · copies, header row included), render the fourth table in `src/App.tsx` after Sideboard only when the format is not Pre-Modern, switch `.trending-layout` to two columns (stacking below 900px unchanged), add `trending.newCardsTitle` / `trending.newCardsEmpty` to `en.json` and `es.json`, and update the trending sentence in `src/content/legal/howItWorks.en.ts` / `.es.ts` to mention the new table. Extend `TopCardsTable.test.tsx` and `App.test.tsx` for: localized title, set-code chip text, no avg column, empty state, art preview on the name, table absent in Pre-Modern and present in the other four formats, DOM order Creatures → Spells → Sideboard → New Cards. Verify `npm run lint`, `npm run type-check`, `npm run test` pass and `src/locales/parity.test.ts` stays green
 
+- [x] 4.2 Confine a Top New Cards RPC failure to that table (added after review): the hook catches the third call into `newCardsError` and an empty `newCards`, leaving `error` and the other three tables intact. Verify with a `useTrendingCards.test.tsx` case where only `recent_set_top_cards` fails, and `npm run test` / `npm run type-check` pass
+
 ## 5. Visual confirmation
 
 - [ ] 5.1 Open the PR's Vercel preview and settle the items design.md marks pending: set-chip styling (reuse `CHIP_BASE` shape or not; neutral vs. neon tint), chip column placement, and empty-state wording; confirm the chip text clears 4.5:1 against its own background from the token ratios, and record the settled values in design.md

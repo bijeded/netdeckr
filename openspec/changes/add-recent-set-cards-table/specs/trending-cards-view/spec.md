@@ -42,6 +42,14 @@ The Top New Cards table SHALL recompute for the selected time frame and SHALL re
 - **WHEN** the user hovers or touches a row's card name whose art is resolved
 - **THEN** the card's art previews via the existing `CardArtPreview` behavior
 
+### Requirement: Top New Cards fails independently
+
+A failure to load the Top New Cards data SHALL affect only that table: it SHALL show its localized empty state, and Top Creatures, Top Spells, and Top Sideboard Cards SHALL render their data as if the failure had not happened.
+
+#### Scenario: Top New Cards data fails to load
+- **WHEN** the Top New Cards data cannot be loaded but the other trending data loads
+- **THEN** Top New Cards shows its empty state and the other three tables show their rankings
+
 ### Requirement: Top New Cards hidden in Pre-Modern
 
 The Top New Cards table SHALL NOT be rendered when the selected format is Pre-Modern, whose card pool receives no new sets; the other three trending tables SHALL render as usual there.
