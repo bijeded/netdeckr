@@ -21,7 +21,7 @@
 
 ## 5. How It Works copy
 
-- [ ] 5.1 Rewrite the trending bullets in `src/content/legal/howItWorks.en.ts` and `.es.ts` per design D6: the four tables ranked by Copies, plus one bullet each for Avg, Copies, Decks and Trend, with no set-code sentence. Verify: `parity.test.ts` passes, and a content test asserts all four terms appear in both locales and "set code"/"código de set" does not.
+- [x] 5.1 Rewrite the trending bullets in `src/content/legal/howItWorks.en.ts` and `.es.ts` per design D6: the four tables ranked by Copies, plus one bullet each for Avg, Copies, Decks and Trend, with no set-code sentence. Verify: `parity.test.ts` passes, and a content test asserts all four terms appear in both locales and "set code"/"código de set" does not.
 
 ## 6. Preview confirmation
 
