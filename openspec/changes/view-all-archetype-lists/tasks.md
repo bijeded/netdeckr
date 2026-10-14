@@ -25,7 +25,7 @@
 
 ## 6. Preview confirmation (user-visible: merge exception 1)
 
-- [ ] 6.1 Open the PR and, on the Vercel preview, confirm at desktop and ~360px widths: the pill reads as more prominent than the "go to deck →" links; the count and pill fit the header row; Back/Forward, the "← Back" control, and a shared `?a=` link behave as specified. Record the confirmed treatment, or any adjusted border/fill alpha, in design.md D5 as a superseding note. Done when the user has confirmed on the preview.
+- [x] 6.1 Open the PR and, on the Vercel preview, confirm at desktop and ~360px widths: the pill reads as more prominent than the "go to deck →" links; the count and pill fit the header row; Back/Forward, the "← Back" control, and a shared `?a=` link behave as specified. Record the confirmed treatment, or any adjusted border/fill alpha, in design.md D5 as a superseding note. Done when the user has confirmed on the preview.
 
 ## Workflow follow-up
 
