@@ -136,14 +136,17 @@
     "creaturesTitle": "Top Creatures",
     "spellsTitle": "Top Spells",
     "sideboardTitle": "Top Sideboard Cards",
+    "newCardsTitle": "Top New Cards",
     "col": {
       "rank": "#",
       "card": "Card",
+      "set": "Set",
       "avg": "Avg",
       "count": "Copies"
     },
     "empty": "No trending cards yet",
-    "sideboardEmpty": "No sideboard cards yet"
+    "sideboardEmpty": "No sideboard cards yet",
+    "newCardsEmpty": "No new-set cards played yet"
   },
   "footer": {
     "nav": "Legal pages",

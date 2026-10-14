@@ -136,14 +136,17 @@
     "creaturesTitle": "Top Criaturas",
     "spellsTitle": "Top Hechizos",
     "sideboardTitle": "Top Cartas de Sideboard",
+    "newCardsTitle": "Top Cartas Nuevas",
     "col": {
       "rank": "#",
       "card": "Carta",
+      "set": "Set",
       "avg": "Prom.",
       "count": "Copias"
     },
     "empty": "Aún no hay cartas en tendencia",
-    "sideboardEmpty": "Aún no hay cartas de sideboard"
+    "sideboardEmpty": "Aún no hay cartas de sideboard",
+    "newCardsEmpty": "Aún no se juegan cartas de los sets nuevos"
   },
   "footer": {
     "nav": "Páginas legales",

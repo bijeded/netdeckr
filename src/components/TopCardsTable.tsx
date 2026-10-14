@@ -4,10 +4,11 @@ import { CardArtPreview } from './CardArtPreview'
 import { EmptyState } from './EmptyState'
 import type { TrendingCard } from '../lib/trendingCards'
 
-// A trending-cards table used for all three surfaces: Trending Creatures,
-// Trending Spells (both with `showAvg`), and Top Sideboard Cards (without).
-// Rows are rank · card · [avg Nx] · copies. Lands are excluded upstream (in the
-// top_cards RPC); the mainboard/sideboard split and the creature/spell partition
+// A trending-cards table used for all four surfaces: Trending Creatures,
+// Trending Spells (both with `showAvg`), Top Sideboard Cards (without), and Top
+// New Cards (with `showSet`). Rows are rank · card · [set] · [avg Nx] · copies.
+// Lands are excluded upstream (in the top_cards RPC; recent_set_top_cards drops
+// only basics); the mainboard/sideboard split and the creature/spell partition
 // happen in the hook. Ported from the design's trending grid.
 
 const containerStyle: CSSProperties = {
@@ -33,6 +34,22 @@ const numCellStyle: CSSProperties = {
   fontWeight: 'var(--fw-medium)',
 }
 
+// The set-code chip sits on the table surface, not on card art, so it needs no
+// dark backdrop (cf. chipBase.ts): muted mono text on a hairline outline.
+const setChipStyle: CSSProperties = {
+  display: 'inline-flex',
+  justifySelf: 'end',
+  padding: '3px 6px',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 'var(--fs-2xs)',
+  fontWeight: 'var(--fw-medium)',
+  letterSpacing: 'var(--track-wide)',
+  lineHeight: 1,
+  color: 'var(--text-muted)',
+  border: '1px solid var(--border-soft)',
+  borderRadius: 'var(--r-sm)',
+}
+
 /** A card name with its dashed underline + hover/touch art preview. */
 export function TrendingCardName({ card }: { card: TrendingCard }) {
   return (
@@ -48,16 +65,18 @@ interface TopCardsTableProps {
   cards: TrendingCard[]
   /** Show the average-copies-per-deck column (mainboard tables only). */
   showAvg?: boolean
+  /** Show each card's set-code chip (Top New Cards only). */
+  showSet?: boolean
   /** Localized empty-state message. */
   emptyMessage: string
 }
 
-export function TopCardsTable({ title, cards, showAvg = false, emptyMessage }: TopCardsTableProps) {
+export function TopCardsTable({ title, cards, showAvg = false, showSet = false, emptyMessage }: TopCardsTableProps) {
   const { t } = useTranslation()
 
   const rowStyle: CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: showAvg ? '34px 1fr 64px 72px' : '34px 1fr 72px',
+    gridTemplateColumns: ['34px', '1fr', showSet && '52px', showAvg && '64px', '72px'].filter(Boolean).join(' '),
     alignItems: 'center',
     gap: 8,
     padding: '11px 20px',
@@ -106,6 +125,7 @@ export function TopCardsTable({ title, cards, showAvg = false, emptyMessage }: T
           <div style={{ ...rowStyle, borderBottom: '1px solid var(--border-hair)' }}>
             <span style={headerCellStyle}>{t('trending.col.rank')}</span>
             <span style={headerCellStyle}>{t('trending.col.card')}</span>
+            {showSet && <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.set')}</span>}
             {showAvg && <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.avg')}</span>}
             <span style={{ ...headerCellStyle, textAlign: 'right' }}>{t('trending.col.count')}</span>
           </div>
@@ -118,6 +138,7 @@ export function TopCardsTable({ title, cards, showAvg = false, emptyMessage }: T
               <span style={{ fontSize: 'var(--fs-base)', fontWeight: 'var(--fw-medium)' }}>
                 <TrendingCardName card={card} />
               </span>
+              {showSet && <span style={setChipStyle}>{card.setCode}</span>}
               {showAvg && <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>{card.avgCopies}x</span>}
               <span style={{ ...numCellStyle, color: 'var(--text-muted)' }}>{card.totalCopies}</span>
             </div>

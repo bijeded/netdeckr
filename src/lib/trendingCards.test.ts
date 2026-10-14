@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  hasNewCardsTable,
   rankTrendingCards,
   partitionByCategory,
   TRENDING_TOP_N,
@@ -85,5 +86,27 @@ describe('partitionByCategory — split mainboard rows by card type', () => {
 
   it('returns empty groups for an empty input', () => {
     expect(partitionByCategory([])).toEqual({ creatures: [], spells: [] })
+  })
+})
+
+describe('Top New Cards ranking', () => {
+  it('carries each row\'s set code through ranking', () => {
+    const ranked = rankTrendingCards([
+      { cardName: 'Ring', totalCopies: 4, deckCount: 2, imageUrl: null, setCode: 'HOB' },
+      { cardName: 'Bolt', totalCopies: 9, deckCount: 3, imageUrl: null, setCode: 'FRA' },
+    ])
+    expect(ranked.map((c) => [c.cardName, c.setCode])).toEqual([
+      ['Bolt', 'FRA'],
+      ['Ring', 'HOB'],
+    ])
+  })
+
+  it('adds no set code to rows that have none', () => {
+    expect(rankTrendingCards([row('A', 1)])[0]).not.toHaveProperty('setCode')
+  })
+
+  it('is shown in every format except Pre-Modern', () => {
+    expect((['ST', 'PI', 'MO', 'PAU'] as const).every(hasNewCardsTable)).toBe(true)
+    expect(hasNewCardsTable('PREM')).toBe(false)
   })
 })

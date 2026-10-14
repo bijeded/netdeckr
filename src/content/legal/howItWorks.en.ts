@@ -36,6 +36,7 @@ export const howItWorksEn: Section[] = [
       "Tier (T1, T2, T3, or Rogue) — how well an archetype actually performs, based on how deep its decks tend to finish in tournaments, weighted so results from bigger events count for more. This is about performance, not popularity, so a heavily-played but underperforming archetype can rank below a smaller one that keeps winning.",
       "The arrow next to the tier — whether that archetype's recent performance is trending up, down, or holding steady compared to the previous stretch.",
       'Top Creatures, Top Spells, and Top Sideboard Cards — the individual cards played the most across the decks in view, ranked by total copies, with an average number of copies per deck for the two mainboard tables.',
+      'Top New Cards — the most-played cards printed in the two most recent main sets, reprints and nonbasic lands included, counting mainboard and sideboard copies together. Each card shows the code of the set it comes from. Not shown in Pre-Modern, which receives no new sets.',
     ],
   },
   { type: 'heading', text: 'What we know about you' },
