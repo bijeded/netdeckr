@@ -39,6 +39,8 @@
     "tierLabel": "Tier {{n}}",
     "clear": "Limpiar filtros",
     "reset": "Restablecer",
+    "back": "Volver",
+    "backLabel": "Volver a todos los arquetipos",
     "deckCount_one": "{{count}} mazo",
     "deckCount_other": "{{count}} mazos",
     "archetypeCount_one": "{{count}} arquetipo",
@@ -99,6 +101,8 @@
     "heading": "Listas recientes",
     "count": "{{count}} listas",
     "viewDeck": "ver deck",
+    "viewAll": "Ver todas las listas",
+    "viewAllLabel": "Ver todas las listas de {{archetype}}",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
   },
   "modal": {

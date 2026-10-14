@@ -39,6 +39,8 @@
     "tierLabel": "Tier {{n}}",
     "clear": "Clear filters",
     "reset": "Reset",
+    "back": "Back",
+    "backLabel": "Back to all archetypes",
     "deckCount_one": "{{count}} deck",
     "deckCount_other": "{{count}} decks",
     "archetypeCount_one": "{{count}} archetype",
@@ -99,6 +101,8 @@
     "heading": "Recent decklists",
     "count": "{{count}} lists",
     "viewDeck": "go to deck",
+    "viewAll": "View all lists",
+    "viewAllLabel": "View all {{archetype}} lists",
     "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
   },
   "modal": {
