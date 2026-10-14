@@ -606,33 +606,45 @@
 }
 
 /* "View all lists →" (and, on the isolated card, "← Back" in the same slot) in
-   an expanded card's deck-list header wears the window
-   pill's treatment: the deck rows' "go to deck →" links share its text colour,
-   so the pill's shape and fill are what set it apart. The height floor keeps it
-   a comfortable tap target on touch. */
+   an expanded card's deck-list header wears the window pill's treatment: the deck
+   rows' "go to deck →" links share its text colour, so the pill's shape and fill
+   are what set it apart. On desktop it is a compact pill sized to the header
+   row's micro labels; the touch-height floor applies only to coarse pointers. */
 .view-all-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
+  padding: 3px 10px;
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
+@media (pointer: coarse) {
+  .view-all-pill {
+    min-height: 32px;
+  }
+}
 
-/* Expanded card's deck-list header: heading left, count + "View all lists →"
-   pushed right on one row. On phones the pill takes its own full-width row
-   under the heading/count pair, rather than wrapping mid-row beside the count. */
+/* Expanded card's deck-list header: heading left, count + pill pushed right on
+   one row, with the deck grid's own gap below it. On phones the pill takes its
+   own full-width row under the heading/count pair, rather than wrapping mid-row
+   beside the count, with room above and below so it does not crowd either. */
 .deck-list-header {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-3);
-  margin-bottom: 11px;
+  gap: var(--sp-2) var(--sp-4);
+  margin-bottom: var(--sp-5);
 }
 .deck-list-count {
   margin-left: auto;
 }
 @media (max-width: 640px) {
+  .deck-list-header {
+    row-gap: var(--sp-4);
+  }
   .deck-list-header .view-all-pill {
     flex: 1 0 100%;
+    padding: 7px 12px;
+    font-size: var(--fs-sm);
   }
 }

@@ -19,9 +19,13 @@
 
 - [x] 4.1 Move "← Back" from the caption row into the isolated card's deck-list header slot that "View all lists →" uses, in the pill treatment (design D6, superseded note). Verify with the App test asserting Back sits in the isolated card's deck list, plus `npm run test`, `npm run type-check`, and `npm run lint`.
 
-## 5. Preview confirmation (user-visible: merge exception 1)
+## 5. Preview feedback round 3
 
-- [ ] 5.1 Open the PR and, on the Vercel preview, confirm at desktop and ~360px widths: the pill reads as more prominent than the "go to deck →" links; the count and pill fit the header row; Back/Forward, the "← Back" control, and a shared `?a=` link behave as specified. Record the confirmed treatment, or any adjusted border/fill alpha, in design.md D5 as a superseding note. Done when the user has confirmed on the preview.
+- [x] 5.1 Tune the pill's spacing and size (design D5, round 3): compact pill on desktop, a touch-height floor only for coarse pointers, `--sp-5` below the header row, and `--sp-4` above the full-width mobile pill. Verify `npm run test` and `npm run lint` pass; the look is confirmed on the preview (6.1).
+
+## 6. Preview confirmation (user-visible: merge exception 1)
+
+- [ ] 6.1 Open the PR and, on the Vercel preview, confirm at desktop and ~360px widths: the pill reads as more prominent than the "go to deck →" links; the count and pill fit the header row; Back/Forward, the "← Back" control, and a shared `?a=` link behave as specified. Record the confirmed treatment, or any adjusted border/fill alpha, in design.md D5 as a superseding note. Done when the user has confirmed on the preview.
 
 ## Workflow follow-up
 
