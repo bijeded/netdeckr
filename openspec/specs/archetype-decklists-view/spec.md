@@ -1,7 +1,7 @@
 # archetype-decklists-view
 
 ## Purpose
-The frontend behavior for exploring an archetype's real recent decklists: expanding an archetype card in the metagame breakdown into its recent decks, viewing a full decklist (mainboard/sideboard) in a modal, and exporting that decklist to MTG Arena — all localized in Spanish and English.
+The frontend behavior for exploring an archetype's real recent decklists: expanding an archetype card in the metagame breakdown into its recent decks, viewing a full decklist (mainboard/sideboard) in a modal, and exporting that decklist to MTG Arena or MTGO — all localized in Spanish and English.
 ## Requirements
 ### Requirement: Expand an archetype to its recent decklists
 The system SHALL allow the user to expand an archetype in the metagame breakdown to reveal a list of that archetype's decklists for the currently selected format and time window. When the archetype has decks that finished 1st, 2nd, or Top 4 (placings 1, 2, and 3–4), the expanded list SHALL show up to its 4 most recent such top-finishing decks (by event date, most recent first). When the archetype has no such top-finishing decks, the expanded list SHALL instead show its latest 4 decklists by event date (most recent first) as a fallback. Each deck row SHALL display the deck's placing/result, the player name, the event name and date, and the archetype's color-identity pips. Only archetypes that have at least one stored decklist for the current `(format, window)` SHALL present an expand affordance.
