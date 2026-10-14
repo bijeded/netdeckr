@@ -68,7 +68,7 @@ Both new objects get `security invoker`, an anon read policy on the table, and `
 
 Added after the first preview, at the user's request: the third call settles on its own. A rejection becomes a separate `newCardsError` and an empty `newCards` instead of rejecting the shared `Promise.all`. That rejection used to put the hook in its error state, emptying all four tables. The trigger was the window between deploying the frontend and applying the schema (or any RPC outage), when a missing `recent_set_top_cards` would have blanked the three tables that don't depend on it. Superseded: the original single shared failure path.
 
-`TopCardsTable` gains a `showSet` prop that adds a chip column. Column order is rank · card · set · copies. The avg column stays off for this table, as for Sideboard. Placement before copies is **pending visual confirmation**.
+`TopCardsTable` gains a `showSet` prop that adds a chip column. Column order is rank · card · set · copies. The avg column stays off for this table, as for Sideboard. Placement before copies is confirmed on the Vercel preview (PR #202).
 
 The dashboard renders the fourth table only when the format is not Pre-Modern. `.trending-layout` becomes `repeat(2, 1fr)`. DOM order is Creatures, Spells, Sideboard, New Cards, so the 2x2 grid, the Pre-Modern position (Sideboard in row 2, col 1), and the stacked mobile order all follow from source order with no `grid-area` rules.
 
@@ -78,12 +78,12 @@ Width (calculated): at the 1240px content max with a 22px gap, each table is ~60
 
 A mono chip showing the set code. It sits on the table surface, not on card art, so the over-art contrast rule doesn't apply. `CHIP_BASE`'s dark backdrop and blur exist for over-art chips and aren't required here. Whether to reuse its shape for consistency, and the chip's color (neutral `--text-muted` on a hairline border vs. a neon tint), are **pending visual confirmation**. Whichever is chosen, its text must clear 4.5:1 against the chip's own background. Check this with the token ratios once the colors are picked.
 
-As implemented, pending preview: `--text-muted` (#8b8d9e) mono text with a `--border-soft` hairline and no fill, in a 52px column placed before Copies. Calculated contrast: 5.68:1 against `--surface-card` (#11121b) and 5.99:1 against `--bg-app`. Both clear 4.5:1.
+Settled on the Vercel preview (PR #202): `--text-muted` (#8b8d9e) mono text with a `--border-soft` hairline and no fill, so `CHIP_BASE` is not reused and there is no neon tint, in a 52px column placed before Copies. Calculated contrast: 5.68:1 against `--surface-card` (#11121b) and 5.99:1 against `--bg-app`. Both clear 4.5:1.
 
 ### D7. Copy
 
 - Title: `trending.newCardsTitle` = "Top New Cards" / "Top Cartas Nuevas" (calculated: matches the existing "Top …" pattern; ES follows "Top Criaturas").
-- Empty state: a new `trending.newCardsEmpty` key. Wording is **pending** review on the preview.
+- Empty state: a new `trending.newCardsEmpty` key. Wording confirmed on the preview: "No new-set cards played yet" / "Aún no se juegan cartas de los sets nuevos".
 - Set codes and card names are not localized.
 
 ## Risks / Trade-offs
@@ -105,4 +105,4 @@ Rollback: revert the frontend. The table and RPC can stay (unused and harmless) 
 
 ## Open Questions
 
-- Empty-state wording and chip styling, settled on the preview (D6, D7).
+None. Chip styling and placement, the empty-state wording, and the 2x2 layout (desktop, Pre-Modern, phone width) were confirmed on the Vercel preview of PR #202.

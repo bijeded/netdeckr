@@ -21,8 +21,8 @@
 
 ## 5. Visual confirmation
 
-- [ ] 5.1 Open the PR's Vercel preview and settle the items design.md marks pending: set-chip styling (reuse `CHIP_BASE` shape or not; neutral vs. neon tint), chip column placement, and empty-state wording; confirm the chip text clears 4.5:1 against its own background from the token ratios, and record the settled values in design.md
-- [ ] 5.2 On the preview, confirm the 2x2 grid at desktop width (incl. Pre-Modern with Sideboard alone in row 2) and the stacked order at phone width, and that the wider existing three tables still read correctly
+- [x] 5.1 Open the PR's Vercel preview and settle the items design.md marks pending: set-chip styling (reuse `CHIP_BASE` shape or not; neutral vs. neon tint), chip column placement, and empty-state wording; confirm the chip text clears 4.5:1 against its own background from the token ratios, and record the settled values in design.md
+- [x] 5.2 On the preview, confirm the 2x2 grid at desktop width (incl. Pre-Modern with Sideboard alone in row 2) and the stacked order at phone width, and that the wider existing three tables still read correctly
 
 ## Workflow follow-up
 
