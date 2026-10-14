@@ -162,8 +162,9 @@ create index if not exists events_format_date_idx on public.events (format_code,
 
 -- Lookups by canonical name (change fix-trending-rpc-timeouts): the whole-deck
 -- legality check in `top_cards`, `recent_set_top_cards` and `illegal_deck_ids`
--- (deck_cards.scryfall_name -> banned_cards), and the recent-set join in
--- `recent_set_top_cards` (-> recent_set_cards). It lets those functions build a
+-- (deck_cards.scryfall_name -> banned_cards). (The recent-set test in
+-- `recent_set_top_cards` no longer uses it: since change hash-recent-set-lookup
+-- it hashes `recent_set_cards` once instead.) It lets those functions build a
 -- format's banned-deck set from its few dozen banned names (one index probe
 -- each) instead of reading deck_cards by deck — see the legality filter in
 -- `top_cards`, which is written so the planner uses it. `deck_id` rides along so
@@ -456,10 +457,24 @@ grant execute on function
 --   * only BASIC lands are excluded (`Basic Land — Forest`, `Basic Snow Land —
 --     Forest`, `Basic Land — Wastes`), so a set's nonbasic lands can rank; a null
 --     type_line is kept, as in `top_cards`;
---   * an inner join to `recent_set_cards` on the canonical name, so only cards
---     printed in the recent sets appear, and an unresolved card never does.
+--   * only cards whose canonical name is in `recent_set_cards` count, so only
+--     cards printed in the recent sets appear, and an unresolved card (null
+--     scryfall_name, so `null in (...)` is null) never does.
 -- Grouped by the display name like `top_cards`; set_code is constant per card.
 -- SECURITY INVOKER so the caller's RLS applies (read-only for anon).
+--
+-- The recent-set test is a membership check in the inner select list, not a
+-- join (change hash-recent-set-lookup). As an inner join, the generic plan
+-- reached `recent_set_cards` with one primary-key probe per slice row — 34.6k
+-- probes and 70k of 78k buffers for Modern 2 weeks, nearly all finding nothing.
+-- Postgres rewrites a top-level `IN` in WHERE into a semi-join (the same probe
+-- per row), but never a sublink in a select list, so there it stays a hashed
+-- SubPlan: `recent_set_cards` is read once (~500 names) and each row costs one
+-- hash probe. The outer `where s.is_recent` then filters on it. Measured with
+-- the generic plan: Modern 2 weeks 151 -> 71 ms, Pauper 2 weeks 119 -> 56 ms,
+-- identical rows. Do not "simplify" it back to a join or a WHERE-level `IN`.
+-- set_code cannot ride the hash probe, so it is looked up once per OUTPUT card
+-- over every canonical name that card matched (= max(r.set_code) of the join).
 -- ---------------------------------------------------------------------------
 create or replace function public.recent_set_top_cards(
   p_format         text,
@@ -481,32 +496,39 @@ stable
 security invoker
 set search_path = public
 as $$
-  select dc.card_name,
-         sum(dc.quantity)::bigint            as total_copies,
-         count(distinct dc.deck_id)::bigint  as deck_count,
-         max(dc.image_url)                   as image_url,
-         max(r.set_code)                     as set_code
-  from public.deck_cards dc
-  join public.recent_set_cards r on r.card_name = dc.scryfall_name
-  join public.decks  d on d.id = dc.deck_id
-  join public.events e on e.id = d.event_id
-  where e.format_code = p_format
-    and e.event_date >= p_start
-    and e.event_date <  p_end
-    and (dc.type_line is null or dc.type_line not ilike '%basic%land%')
-    and (p_archetype_ids is null or d.archetype_id = any (p_archetype_ids))
-    and (p_event_id is null or d.event_id = p_event_id)
-    -- Empty array = no events in the selected size class = no rows (see top_cards).
-    and (p_event_ids is null or d.event_id = any (p_event_ids))
-    -- Whole-deck legality, written as in top_cards (see there for why NOT IN).
-    and d.id not in (
-      select banned_line.deck_id
-      from public.banned_cards b
-      join public.deck_cards banned_line
-        on banned_line.scryfall_name = b.card_name
-      where b.format_code = p_format
-    )
-  group by dc.card_name
+  select s.card_name,
+         sum(s.quantity)::bigint            as total_copies,
+         count(distinct s.deck_id)::bigint  as deck_count,
+         max(s.image_url)                   as image_url,
+         (select max(r.set_code)
+            from public.recent_set_cards r
+           where r.card_name = any (array_agg(distinct s.scryfall_name))) as set_code
+  from (
+    select dc.card_name, dc.scryfall_name, dc.deck_id, dc.quantity, dc.image_url,
+           -- Hashed SubPlan, not a join: see the header comment.
+           dc.scryfall_name in (select rs.card_name from public.recent_set_cards rs) as is_recent
+    from public.deck_cards dc
+    join public.decks  d on d.id = dc.deck_id
+    join public.events e on e.id = d.event_id
+    where e.format_code = p_format
+      and e.event_date >= p_start
+      and e.event_date <  p_end
+      and (dc.type_line is null or dc.type_line not ilike '%basic%land%')
+      and (p_archetype_ids is null or d.archetype_id = any (p_archetype_ids))
+      and (p_event_id is null or d.event_id = p_event_id)
+      -- Empty array = no events in the selected size class = no rows (see top_cards).
+      and (p_event_ids is null or d.event_id = any (p_event_ids))
+      -- Whole-deck legality, written as in top_cards (see there for why NOT IN).
+      and d.id not in (
+        select banned_line.deck_id
+        from public.banned_cards b
+        join public.deck_cards banned_line
+          on banned_line.scryfall_name = b.card_name
+        where b.format_code = p_format
+      )
+  ) s
+  where s.is_recent
+  group by s.card_name
 $$;
 
 grant execute on function
