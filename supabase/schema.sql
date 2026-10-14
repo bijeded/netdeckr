@@ -160,6 +160,19 @@ create index if not exists decks_archetype_idx on public.decks (archetype_id);
 create index if not exists deck_cards_deck_idx on public.deck_cards (deck_id);
 create index if not exists events_format_date_idx on public.events (format_code, event_date desc);
 
+-- Lookups by canonical name (change fix-trending-rpc-timeouts): the whole-deck
+-- legality check in `top_cards`, `recent_set_top_cards` and `illegal_deck_ids`
+-- (deck_cards.scryfall_name -> banned_cards), and the recent-set join in
+-- `recent_set_top_cards` (-> recent_set_cards). It lets those functions build a
+-- format's banned-deck set from its few dozen banned names (one index probe
+-- each) instead of reading deck_cards by deck — see the legality filter in
+-- `top_cards`, which is written so the planner uses it. `deck_id` rides along so
+-- the probe is index-only and yields the deck id directly.
+-- Not `concurrently`: this script runs as one transaction in the SQL editor.
+-- Build it outside a scraper run — it briefly blocks writes to deck_cards.
+create index if not exists deck_cards_scryfall_name_idx
+  on public.deck_cards (scryfall_name, deck_id);
+
 -- Card-art columns for existing deployments (the create-table definitions above
 -- already include them for a fresh apply; these add them to a database created
 -- before card art). All nullable and hotlinked from Scryfall's CDN — no re-host.
@@ -401,13 +414,24 @@ as $$
     -- Whole-deck legality: drop every card of a deck holding a card banned in
     -- this format, in either board. Matching `scryfall_name` (not the raw scraped
     -- `card_name`) means an unresolved name can never make a deck illegal.
-    and not exists (
-      select 1
-      from public.deck_cards banned_line
-      join public.banned_cards b
-        on b.card_name = banned_line.scryfall_name
-       and b.format_code = p_format
-      where banned_line.deck_id = dc.deck_id
+    --
+    -- Written as `NOT IN`, not a correlated `not exists`, on purpose (change
+    -- fix-trending-rpc-timeouts). This is a SQL function, so its parameters are
+    -- planned generically: without the format value the planner guessed ~88 card
+    -- rows for a Modern 2-week slice (actual 15,608) and chose a nested-loop anti
+    -- join that re-read every card row's deck and checked each card against the
+    -- banlist — 510k lookups, 1.7s, past the anon role's 3s timeout under the
+    -- dashboard's concurrent calls. Postgres never turns `NOT IN` into a join, so
+    -- the subquery runs ONCE as a hashed SubPlan: one probe of
+    -- deck_cards_scryfall_name_idx per banned name, then a hash lookup per deck
+    -- (~290ms for the same slice). Safe from NOT IN's null trap because
+    -- deck_cards.deck_id is NOT NULL. Do not "simplify" it back to `not exists`.
+    and d.id not in (
+      select banned_line.deck_id
+      from public.banned_cards b
+      join public.deck_cards banned_line
+        on banned_line.scryfall_name = b.card_name
+      where b.format_code = p_format
     )
   group by dc.card_name
 $$;
@@ -474,13 +498,13 @@ as $$
     and (p_event_id is null or d.event_id = p_event_id)
     -- Empty array = no events in the selected size class = no rows (see top_cards).
     and (p_event_ids is null or d.event_id = any (p_event_ids))
-    and not exists (
-      select 1
-      from public.deck_cards banned_line
-      join public.banned_cards b
-        on b.card_name = banned_line.scryfall_name
-       and b.format_code = p_format
-      where banned_line.deck_id = dc.deck_id
+    -- Whole-deck legality, written as in top_cards (see there for why NOT IN).
+    and d.id not in (
+      select banned_line.deck_id
+      from public.banned_cards b
+      join public.deck_cards banned_line
+        on banned_line.scryfall_name = b.card_name
+      where b.format_code = p_format
     )
   group by dc.card_name
 $$;
@@ -525,14 +549,18 @@ as $$
   join public.events e on e.id = d.event_id
   where e.format_code = p_format
     and e.event_date >= p_start
-    and exists (
-      select 1
-      from public.deck_cards dc
-      join public.banned_cards b
-        on b.card_name = dc.scryfall_name
-       and b.format_code = p_format
-      where dc.deck_id = d.id
-    )
+    -- `= any(array(...))`, not `exists`/`in` (change fix-trending-rpc-timeouts):
+    -- a correlated or pulled-up semi-join can be planned per deck under this
+    -- function's generic parameters, re-reading each deck's cards. The array is
+    -- an InitPlan, built ONCE from the format's banned names via
+    -- deck_cards_scryfall_name_idx (see the legality filter in top_cards).
+    and d.id = any (array(
+      select banned_line.deck_id
+      from public.banned_cards b
+      join public.deck_cards banned_line
+        on banned_line.scryfall_name = b.card_name
+      where b.format_code = p_format
+    ))
 $$;
 
 grant execute on function public.illegal_deck_ids(text, date) to anon, authenticated;

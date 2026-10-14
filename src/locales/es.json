@@ -151,7 +151,8 @@
     },
     "empty": "Aún no hay cartas en tendencia",
     "sideboardEmpty": "Aún no hay cartas de sideboard",
-    "newCardsEmpty": "Aún no se juegan cartas de los sets nuevos"
+    "newCardsEmpty": "Aún no se juegan cartas de los sets nuevos",
+    "loadError": "No se pudieron cargar estas cartas. Prueba a recargar la página."
   },
   "footer": {
     "nav": "Páginas legales",

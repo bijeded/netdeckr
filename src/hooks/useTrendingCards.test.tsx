@@ -17,6 +17,9 @@ const { rpc, from, archResult } = vi.hoisted(() => {
 
 vi.mock('../lib/supabase', () => ({ supabase: { rpc, from } }))
 
+const { captureError } = vi.hoisted(() => ({ captureError: vi.fn() }))
+vi.mock('../lib/sentry', () => ({ captureError }))
+
 import { useTrendingCards } from './useTrendingCards'
 import { precedingWindowStartISO, windowStartISO } from '../lib/windows'
 
@@ -171,6 +174,50 @@ describe('useTrendingCards', () => {
     expect(result.current.newCards).toEqual([])
   })
 
+  it('reports a failed main/side load once', async () => {
+    const boom = { code: '57014', message: 'canceling statement due to statement timeout' }
+    rpc.mockImplementation((fn: string, params: Record<string, unknown>) =>
+      fn === 'top_cards' && params.p_start === windowStartISO('7days')
+        ? Promise.resolve({ data: null, error: boom })
+        : Promise.resolve({ data: [], error: null }),
+    )
+    const { result } = renderHook(() => useTrendingCards('MO', '7days'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.error).toEqual(boom)
+    expect(captureError).toHaveBeenCalledTimes(1)
+    expect(captureError).toHaveBeenCalledWith(boom, {
+      tags: { feature: 'trending', rpc: 'top_cards', slice: 'selected', format: 'MO', window: '7days' },
+    })
+  })
+
+  it('reports nothing on a successful load', async () => {
+    routeRpc({ main: [r('A', 1)], side: [r('S', 1)], recent: [n('N', 1)] })
+    const { result } = renderHook(() => useTrendingCards('MO', '2weeks'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(captureError).not.toHaveBeenCalled()
+  })
+
+  it('reports a failed preceding-window call without changing the tables', async () => {
+    const prevStart = precedingWindowStartISO('7days')
+    rpc.mockImplementation((fn: string, params: Record<string, unknown>) =>
+      fn === 'recent_set_top_cards' && params.p_start === prevStart
+        ? Promise.resolve({ data: null, error: { message: 'prev boom' } })
+        : Promise.resolve({ data: params.p_board === 'side' ? [] : [r('Bolt', 4)], error: null }),
+    )
+    const { result } = renderHook(() => useTrendingCards('PAU', '7days'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.error).toBeNull()
+    expect(result.current.newCardsError).toBeNull()
+    expect(result.current.spells.map((c) => c.cardName)).toEqual(['Bolt'])
+    expect(captureError).toHaveBeenCalledTimes(1)
+    expect(captureError).toHaveBeenCalledWith(
+      { message: 'prev boom' },
+      { tags: { feature: 'trending', rpc: 'recent_set_top_cards', slice: 'preceding', format: 'PAU', window: '7days' } },
+    )
+  })
+
   it('confines a Top New Cards failure to that table', async () => {
     rpc.mockImplementation((fn: string, params: Record<string, unknown>) => {
       if (fn === 'recent_set_top_cards') return Promise.resolve({ data: null, error: { message: 'no such function' } })
@@ -186,6 +233,10 @@ describe('useTrendingCards', () => {
     expect(result.current.creatures.map((c) => c.cardName)).toEqual(['Goblin'])
     expect(result.current.spells.map((c) => c.cardName)).toEqual(['Bolt'])
     expect(result.current.sideboard.map((c) => c.cardName)).toEqual(['S1'])
+    // Selected and preceding Top New Cards calls both fail here: one report each.
+    const newCardsReports = captureError.mock.calls.filter((c) => c[1].tags.rpc === 'recent_set_top_cards')
+    expect(newCardsReports.map((c) => c[1].tags.slice).sort()).toEqual(['preceding', 'selected'])
+    expect(captureError).toHaveBeenCalledTimes(2)
   })
 
   it('ranks the recent-set cards into Top New Cards, without set codes', async () => {

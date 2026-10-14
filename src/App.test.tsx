@@ -1638,6 +1638,51 @@ describe('Top New Cards table', () => {
   })
 })
 
+describe('Trending load errors', () => {
+  const ERROR = 'Could not load these cards. Try reloading the page.'
+  const TABLES = ['Top Creatures', 'Top Spells', 'Top Sideboard Cards', 'Top New Cards']
+  const failed = { creatures: [], spells: [], sideboard: [], newCards: [], loading: false, newCardsError: null }
+
+  it('shows the error, not the empty text, in every table when the load fails', () => {
+    useTrendingCards.mockReturnValue({ ...failed, error: { code: '57014', message: 'timeout' } })
+    render(<App />)
+    for (const name of TABLES) {
+      expect(within(screen.getByRole('region', { name })).getByText(ERROR)).toBeInTheDocument()
+    }
+    expect(screen.queryByText('No trending cards yet')).not.toBeInTheDocument()
+    expect(screen.queryByText('No sideboard cards yet')).not.toBeInTheDocument()
+    expect(screen.queryByText('No new-set cards played yet')).not.toBeInTheDocument()
+  })
+
+  it('confines a Top New Cards failure to that table', () => {
+    useTrendingCards.mockReturnValue({ ...useTrendingCards(), newCards: [], newCardsError: { message: 'timeout' } })
+    render(<App />)
+    expect(within(screen.getByRole('region', { name: 'Top New Cards' })).getByText(ERROR)).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Top Creatures' })).getByText('Creature Card')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Top Spells' })).getByText('Spell Card')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Top Sideboard Cards' })).getByText('Sideboard Card')).toBeInTheDocument()
+    expect(screen.getAllByText(ERROR)).toHaveLength(1)
+  })
+
+  it('keeps the empty texts when a load succeeds with no cards', () => {
+    useTrendingCards.mockReturnValue({ ...failed, error: null })
+    render(<App />)
+    expect(screen.getAllByText('No trending cards yet')).toHaveLength(2)
+    expect(screen.getByText('No sideboard cards yet')).toBeInTheDocument()
+    expect(screen.getByText('No new-set cards played yet')).toBeInTheDocument()
+    expect(screen.queryByText(ERROR)).not.toBeInTheDocument()
+  })
+
+  it('localizes the error in Spanish', async () => {
+    useTrendingCards.mockReturnValue({ ...failed, error: { message: 'timeout' } })
+    render(<App />)
+    await act(() => i18n.changeLanguage('es'))
+    expect(
+      screen.getAllByText('No se pudieron cargar estas cartas. Prueba a recargar la página.'),
+    ).toHaveLength(4)
+  })
+})
+
 describe('Trending play-rate denominators', () => {
   it('passes the slice deck totals of both windows to the trending hook', () => {
     useMetagame.mockReturnValue({
