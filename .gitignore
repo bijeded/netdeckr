@@ -12,6 +12,7 @@ scraper/.cache/
 .vercel
 coverage/
 .playwright-mcp/
+.rtk/
 # Database backups / dumps — never commit (may contain data + auth schema).
 # Note: supabase/schema.sql is intentionally tracked and not matched here.
 netdeckr-backup-*.sql
