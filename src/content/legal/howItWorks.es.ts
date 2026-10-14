@@ -36,6 +36,7 @@ export const howItWorksEs: Section[] = [
       'Tier (T1, T2, T3 u Otros) — qué tan bien le va realmente a un arquetipo, según qué tan lejos suelen llegar sus mazos en los torneos, dando más peso a los resultados logrados en eventos más grandes. Esto mide rendimiento, no popularidad, así que un arquetipo muy jugado pero con bajo rendimiento puede quedar por debajo de uno más pequeño que sigue ganando.',
       'La flecha junto al tier — si el rendimiento reciente de ese arquetipo va en subida, en baja, o se mantiene estable respecto al periodo anterior.',
       'Top Criaturas, Top Hechizos y Top Cartas de Sideboard — las cartas individuales más jugadas entre los mazos en pantalla, ordenadas por copias totales, con un promedio de copias por mazo en las dos tablas de mainboard.',
+      'Top Cartas Nuevas — las cartas más jugadas que están impresas en los dos sets principales más recientes, incluyendo reimpresiones y tierras no básicas, sumando las copias de mainboard y sideboard. Cada carta muestra el código del set del que viene. No aparece en Pre-Modern, que no recibe sets nuevos.',
     ],
   },
   { type: 'heading', text: 'Qué sabemos sobre ti' },

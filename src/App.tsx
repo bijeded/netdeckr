@@ -33,6 +33,7 @@ import { Spinner } from './components/Spinner'
 import { EmptyState } from './components/EmptyState'
 import { useTrendingCards } from './hooks/useTrendingCards'
 import { TopCardsTable } from './components/TopCardsTable'
+import { hasNewCardsTable } from './lib/trendingCards'
 import { useLegalPage } from './hooks/useLegalPage'
 import { Footer } from './components/Footer'
 import { LegalPage } from './components/LegalPage'
@@ -213,6 +214,7 @@ function App() {
     creatures,
     spells,
     sideboard,
+    newCards,
     loading: trendingLoading,
   } = useTrendingCards(format, metaWindow, {
     archetypeNames: trendingArchetypeNames,
@@ -704,9 +706,11 @@ function App() {
               )}
             </div>
 
-            {/* Trending cards: three tables 1/3 each on desktop (Creatures, Spells,
-                Sideboard), stacked below ~900px. Independent of the grid's data;
-                only its own load. */}
+            {/* Trending cards: a 2x2 grid on desktop (Creatures, Spells /
+                Sideboard, New Cards), stacked below ~900px in that order. Source
+                order drives both, so in Pre-Modern (no New Cards) Sideboard just
+                sits alone in row 2. Independent of the grid's data; only its own
+                load. */}
             {!trendingLoading && (
               <div className="trending-layout">
                 <TopCardsTable
@@ -726,6 +730,14 @@ function App() {
                   cards={sideboard}
                   emptyMessage={t('trending.sideboardEmpty')}
                 />
+                {hasNewCardsTable(format) && (
+                  <TopCardsTable
+                    title={t('trending.newCardsTitle')}
+                    cards={newCards}
+                    showSet
+                    emptyMessage={t('trending.newCardsEmpty')}
+                  />
+                )}
               </div>
             )}
               </>

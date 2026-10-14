@@ -241,11 +241,19 @@ def test_scrape_proceeds_when_resolver_available(monkeypatch):
 class _FakeResolver:
     """A card resolver that also reports per-format bans, like the real CardIndex."""
 
-    def __init__(self, banned=None):
+    def __init__(self, banned=None, recent=None):
         self._banned = banned or {}
+        self._recent = recent or {}
 
     def banned_cards(self, fmt):
         return self._banned.get(fmt, set())
+
+    def recent_set_cards(self):
+        return self._recent
+
+    def recent_sets(self):
+        newest_first = sorted({(c.released_at, c.set_code) for c in self._recent.values()}, reverse=True)
+        return [code for _, code in newest_first]
 
 
 def test_scrape_refreshes_every_formats_banlist(monkeypatch):
@@ -288,3 +296,43 @@ def test_banlist_failure_does_not_fail_the_scrape(monkeypatch):
 
     assert rc == 0
     assert sync_decklists.called  # the scrape went ahead regardless
+
+
+# -- recent-sets pass ------------------------------------------------------
+
+def _scrape_with(monkeypatch, resolver, writer):
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "svc")
+    monkeypatch.setattr(run, "build_card_resolver", lambda: resolver)
+    writer.existing_event_ids.return_value = set()
+    writer.refresh_banlist.return_value = 0
+    monkeypatch.setattr(run, "SupabaseWriter", MagicMock(return_value=writer))
+    sync_decklists = MagicMock(return_value=1)
+    monkeypatch.setattr(run, "sync_decklists", sync_decklists)
+    return run.main(["run.py", "ST"]), sync_decklists
+
+
+def test_scrape_reconciles_recent_set_cards_once_and_logs_the_pair(monkeypatch, capsys):
+    from scryfall import RecentSetCard
+
+    recent = {
+        "Bolt": RecentSetCard("Bolt", "FRA", "Reality Fracture", "2026-09-25"),
+        "Ring": RecentSetCard("Ring", "HOB", "The Hobbit", "2026-07-01"),
+    }
+    writer = MagicMock()
+    writer.refresh_recent_set_cards.return_value = 2
+    rc, _ = _scrape_with(monkeypatch, _FakeResolver(recent=recent), writer)
+
+    assert rc == 0
+    writer.refresh_recent_set_cards.assert_called_once_with(recent)
+    assert "recent-sets: FRA, HOB (2 cards)" in capsys.readouterr().out
+
+
+def test_recent_sets_failure_is_logged_and_does_not_fail_the_scrape(monkeypatch, capsys):
+    writer = MagicMock()
+    writer.refresh_recent_set_cards.side_effect = RuntimeError("table missing")
+    rc, sync_decklists = _scrape_with(monkeypatch, _FakeResolver(), writer)
+
+    assert rc == 0
+    assert sync_decklists.called
+    assert "[error] recent-sets: table missing" in capsys.readouterr().err

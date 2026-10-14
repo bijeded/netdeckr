@@ -135,6 +135,77 @@ class SupabaseWriter:
 
         return len(wanted)
 
+    def refresh_recent_set_cards(self, cards: dict, *, page_size: int = 1000) -> int:
+        """Reconcile `recent_set_cards` to `cards` (canonical name -> RecentSetCard).
+
+        A reconcile, not delete-then-insert: those are two non-atomic PostgREST
+        requests, and a dashboard read landing between them would see an empty Top
+        New Cards table. Added or changed rows are upserted first, then rows outside
+        the new set pair go in one `set_code` delete (the release rollover), then any
+        remaining stray names one by one (a card Scryfall dropped from a set — rare).
+        Unchanged rows are not touched, so a repeat run over the same data writes
+        nothing.
+
+        An empty `cards` is refused rather than applied: it is what a reshaped bulk
+        file (a renamed set type, say) would produce, and wiping the table would
+        blank the dashboard for a bad upstream day. The stored rows stay instead,
+        and the caller logs the error.
+        """
+        if not cards:
+            raise ValueError("no recent-set cards derived; keeping the stored rows")
+
+        stored: dict[str, dict] = {}
+        offset = 0
+        while True:
+            resp = self._session.get(
+                f"{self._rest}/recent_set_cards"
+                f"?select=card_name,set_code,set_name,released_at"
+                f"&order=card_name.asc&limit={page_size}&offset={offset}",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            stored.update({row["card_name"]: row for row in rows})
+            if len(rows) < page_size:
+                break
+            offset += page_size
+
+        wanted = {
+            name: {
+                "card_name": card.card_name,
+                "set_code": card.set_code,
+                "set_name": card.set_name,
+                "released_at": card.released_at,
+            }
+            for name, card in cards.items()
+        }
+        changed = [row for name, row in sorted(wanted.items()) if stored.get(name) != row]
+        for start in range(0, len(changed), 500):
+            upsert = self._session.post(
+                f"{self._rest}/recent_set_cards?on_conflict=card_name",
+                headers={**self._headers, "Prefer": "resolution=merge-duplicates"},
+                json=changed[start : start + 500],
+            )
+            upsert.raise_for_status()
+
+        codes = sorted({row["set_code"] for row in wanted.values()})
+        out_of_pair = [name for name, row in stored.items() if row["set_code"] not in codes]
+        if out_of_pair:
+            # Set codes are alphanumeric, so the in-list needs no quoting.
+            delete = self._session.delete(
+                f"{self._rest}/recent_set_cards?set_code=not.in.({','.join(codes)})",
+                headers=self._headers,
+            )
+            delete.raise_for_status()
+        for name in sorted(set(stored) - set(wanted) - set(out_of_pair)):
+            # Percent-encoded, not double-quoted — see backfill_scryfall.
+            delete = self._session.delete(
+                f"{self._rest}/recent_set_cards?card_name=eq.{quote(name, safe='')}",
+                headers=self._headers,
+            )
+            delete.raise_for_status()
+        return len(wanted)
+
     def _banned_rows(self, fmt: str) -> dict[str, dict]:
         """A format's stored banned rows as `card_name -> row`.
 

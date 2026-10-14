@@ -278,13 +278,13 @@
 /* Trending row: three tables (Creatures, Spells, Sideboard) 1/3 each on desktop. */
 .trending-layout {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--sp-5);
   margin-top: var(--sp-8);
   align-items: start;
 }
-/* Stack the three trending tables (Creatures -> Spells -> Sideboard) below the
-   point where three columns get cramped. */
+/* 2x2 on desktop (Creatures, Spells / Sideboard, New Cards); stack them in that
+   order below the point where two columns get cramped. */
 @media (max-width: 900px) {
   .trending-layout {
     grid-template-columns: 1fr;

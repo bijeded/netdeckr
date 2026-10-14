@@ -3,9 +3,11 @@ import { supabase } from '../lib/supabase'
 import type { FormatCode } from '../lib/formats'
 import { windowStartISO, type WindowCode } from '../lib/windows'
 import {
+  hasNewCardsTable,
   rankTrendingCards,
   partitionByCategory,
   type CardCategory,
+  type RecentSetCardRow,
   type TopCardRow,
   type TrendingCard,
 } from '../lib/trendingCards'
@@ -35,6 +37,15 @@ const toRows = (data: TopCardQueryRow[] | null): TopCardRow[] =>
     imageUrl: row.image_url,
   }))
 
+/** A raw row from the `recent_set_top_cards` RPC. */
+interface RecentSetCardQueryRow {
+  card_name: string
+  total_copies: number
+  deck_count: number
+  image_url: string | null
+  set_code: string
+}
+
 /** Optional view filters, mirroring the sidebar. Undefined/null = unfiltered. */
 export interface TrendingFilters {
   /** Restrict to these archetypes (an archetype or tier selection). null/omitted = all. */
@@ -57,11 +68,30 @@ interface TrendingState {
   spells: TrendingCard[]
   /** Top sideboard cards, ranked by total copies. */
   sideboard: TrendingCard[]
+  /**
+   * Top cards printed in the two most recent main sets, both boards combined,
+   * ranked by total copies. Always empty in Pre-Modern (no call is made).
+   */
+  newCards: TrendingCard[]
   loading: boolean
   error: unknown
+  /**
+   * A failure of the Top New Cards call alone. Kept apart from `error` so it
+   * empties only that table: the other three come from a different RPC and
+   * still render.
+   */
+  newCardsError: unknown
 }
 
-const EMPTY: TrendingState = { creatures: [], spells: [], sideboard: [], loading: false, error: null }
+const EMPTY: TrendingState = {
+  creatures: [],
+  spells: [],
+  sideboard: [],
+  newCards: [],
+  loading: false,
+  error: null,
+  newCardsError: null,
+}
 
 /** Resolve selected archetype names to their per-format ids for the RPC filter. */
 async function resolveArchetypeIds(format: FormatCode, names: string[]): Promise<number[]> {
@@ -99,13 +129,41 @@ async function callTopCards(
   return toRows(data as TopCardQueryRow[] | null)
 }
 
+/** One call to the recent_set_top_cards RPC (same slice params, no board). */
+async function callRecentSetTopCards(
+  format: FormatCode,
+  start: string,
+  end: string,
+  archetypeIds: number[] | null,
+  eventId: number | null,
+  eventIds: number[] | null,
+): Promise<RecentSetCardRow[]> {
+  const { data, error } = await supabase.rpc('recent_set_top_cards', {
+    p_format: format,
+    p_start: start,
+    p_end: end,
+    p_archetype_ids: archetypeIds,
+    p_event_id: eventId,
+    p_event_ids: eventIds,
+  })
+  if (error) throw error
+  return ((data as RecentSetCardQueryRow[] | null) ?? []).map((row) => ({
+    cardName: row.card_name,
+    totalCopies: row.total_copies,
+    deckCount: row.deck_count,
+    imageUrl: row.image_url,
+    setCode: row.set_code,
+  }))
+}
+
 /**
  * The trending-cards tables for a format + time frame: Trending Creatures and
  * Trending Spells (the mainboard split by card category) plus the Top Sideboard
  * Cards list, each ranked by total copies (with an average-copies-per-deck
  * value). Derives from the `top_cards` RPC — one call per board, the mainboard
  * rows partitioned by category — so the browser never pulls raw deck_cards;
- * lands are excluded server-side.
+ * lands are excluded server-side. Top New Cards is a third call, to
+ * `recent_set_top_cards`, with the same slice (skipped in Pre-Modern).
  *
  * Filters mirror the sidebar: `archetypeNames` (an archetype or tier selection)
  * narrows both calls via resolved ids; `eventId` narrows them to a single event;
@@ -147,9 +205,18 @@ export function useTrendingCards(
             ? []
             : await resolveArchetypeIds(format, archetypeNames)
 
-      const [main, side] = await Promise.all([
+      // The Top New Cards call settles on its own: its failure becomes
+      // `newCardsError` and an empty table rather than rejecting the whole set.
+      let newCardsError: unknown = null
+      const [main, side, recent] = await Promise.all([
         callTopCards(format, start, end, 'main', archetypeIds, eventId, eventIds),
         callTopCards(format, start, end, 'side', archetypeIds, eventId, eventIds),
+        hasNewCardsTable(format)
+          ? callRecentSetTopCards(format, start, end, archetypeIds, eventId, eventIds).catch((e: unknown) => {
+              newCardsError = e
+              return []
+            })
+          : Promise.resolve([]),
       ])
 
       const { creatures, spells } = partitionByCategory(main)
@@ -157,13 +224,15 @@ export function useTrendingCards(
         creatures: rankTrendingCards(creatures),
         spells: rankTrendingCards(spells),
         sideboard: rankTrendingCards(side),
+        newCards: rankTrendingCards(recent),
+        newCardsError,
       }
     }
 
     run()
-      .then(({ creatures, spells, sideboard }) => {
+      .then((tables) => {
         if (!active) return
-        setState({ creatures, spells, sideboard, loading: false, error: null })
+        setState({ ...tables, loading: false, error: null })
       })
       .catch((error) => {
         if (!active) return

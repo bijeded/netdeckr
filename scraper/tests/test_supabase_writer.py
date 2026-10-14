@@ -167,3 +167,112 @@ def test_banlist_is_read_scoped_to_the_format():
     get_url = session.get.call_args[0][0]
     assert "/rest/v1/banned_cards" in get_url
     assert "format_code=eq.PAU" in get_url
+
+
+# -- recent-set cards reconcile --------------------------------------------
+
+from scryfall import RecentSetCard  # noqa: E402
+
+
+def _card(name, code, set_name=None, released_at=None):
+    dates = {"FRA": "2026-09-25", "HOB": "2026-07-01", "NXT": "2026-11-20"}
+    return RecentSetCard(name, code, set_name or code, released_at or dates[code])
+
+
+def _stored(card):
+    return {
+        "card_name": card.card_name,
+        "set_code": card.set_code,
+        "set_name": card.set_name,
+        "released_at": card.released_at,
+    }
+
+
+def _recent_session(stored_rows):
+    session = MagicMock()
+    session.get.return_value = _response(stored_rows)
+    session.post.return_value = _response([])
+    session.delete.return_value = _response(status=204)
+    return session
+
+
+def _cards(*cards):
+    return {c.card_name: c for c in cards}
+
+
+def test_first_population_upserts_every_card():
+    session = _recent_session([])
+    cards = _cards(_card("Bolt", "FRA"), _card("Ring", "HOB"))
+    count = _writer(session).refresh_recent_set_cards(cards)
+
+    assert count == 2
+    url = session.post.call_args[0][0]
+    assert "/rest/v1/recent_set_cards?on_conflict=card_name" in url
+    assert "merge-duplicates" in session.post.call_args[1]["headers"]["Prefer"]
+    assert {r["card_name"] for r in session.post.call_args[1]["json"]} == {"Bolt", "Ring"}
+    assert not session.delete.called
+
+
+def test_repeat_run_over_unchanged_cards_writes_nothing():
+    cards = _cards(_card("Bolt", "FRA"), _card("Ring", "HOB"))
+    session = _recent_session([_stored(c) for c in cards.values()])
+    _writer(session).refresh_recent_set_cards(cards)
+
+    assert not session.post.called
+    assert not session.delete.called
+
+
+def test_rollover_upserts_the_new_set_then_drops_the_old_one():
+    old = [_card("Bolt", "FRA"), _card("Ring", "HOB")]
+    session = _recent_session([_stored(c) for c in old])
+    calls = MagicMock()
+    calls.attach_mock(session.post, "post")
+    calls.attach_mock(session.delete, "delete")
+
+    _writer(session).refresh_recent_set_cards(_cards(_card("Bolt", "FRA"), _card("Next", "NXT")))
+
+    assert [r["card_name"] for r in session.post.call_args[1]["json"]] == ["Next"]
+    delete_url = session.delete.call_args[0][0]
+    assert "set_code=not.in.(FRA,NXT)" in delete_url
+    # Upsert before delete, so a read mid-reconcile never sees a thinner table.
+    assert [c[0] for c in calls.mock_calls if c[0] in ("post", "delete")] == ["post", "delete"]
+
+
+def test_card_moving_to_the_newer_set_is_updated():
+    session = _recent_session([_stored(_card("Shared", "HOB"))])
+    _writer(session).refresh_recent_set_cards(_cards(_card("Shared", "FRA"), _card("Ring", "HOB")))
+
+    upserted = {r["card_name"]: r["set_code"] for r in session.post.call_args[1]["json"]}
+    assert upserted == {"Shared": "FRA", "Ring": "HOB"}
+    assert not session.delete.called
+
+
+def test_stray_name_in_a_kept_set_is_deleted_by_name():
+    stored = [_stored(_card("Bolt", "FRA")), _stored(_card("Ral, Crackling Wit", "FRA"))]
+    session = _recent_session(stored)
+    _writer(session).refresh_recent_set_cards(_cards(_card("Bolt", "FRA")))
+
+    delete_url = session.delete.call_args[0][0]
+    assert "card_name=eq.Ral%2C%20Crackling%20Wit" in delete_url
+    assert session.delete.call_count == 1
+
+
+def test_empty_cards_are_refused_and_nothing_is_written():
+    session = _recent_session([_stored(_card("Bolt", "FRA"))])
+    with pytest.raises(ValueError):
+        _writer(session).refresh_recent_set_cards({})
+    assert not session.post.called
+    assert not session.delete.called
+
+
+def test_stored_rows_are_read_past_the_page_cap():
+    page = [_stored(_card(f"Card {i:04}", "FRA")) for i in range(3)]
+    session = _recent_session([])
+    session.get.side_effect = [_response(page[:2]), _response(page[2:])]
+    cards = _cards(*(_card(f"Card {i:04}", "FRA") for i in range(3)))
+
+    _writer(session).refresh_recent_set_cards(cards, page_size=2)
+
+    assert session.get.call_count == 2
+    assert "offset=2" in session.get.call_args_list[1][0][0]
+    assert not session.post.called

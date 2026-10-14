@@ -131,6 +131,29 @@ create table if not exists public.banned_cards (
 create index if not exists banned_cards_format_name_idx
   on public.banned_cards (format_code, card_name);
 
+-- ---------------------------------------------------------------------------
+-- Cards printed in the two most recent main sets (change add-recent-set-cards-table).
+-- A main set is an `expansion` or `core` paper set already released on the run
+-- date. Rebuilt (reconciled) each pipeline run from the Scryfall bulk data, so it
+-- always describes the current pair; see supabase_writer.refresh_recent_set_cards.
+--
+-- This is set MEMBERSHIP, deliberately not `deck_cards.set_code`: that column is
+-- the display/export printing chosen at scrape time and never re-resolved, so a
+-- reprint scraped before the set's release keeps its older code. Any printing in
+-- the set counts here, reprints included.
+--
+-- `card_name` holds the **canonical Scryfall name**, so it joins to
+-- `deck_cards.scryfall_name` as a plain equality (as banned_cards does); an
+-- unresolved deck card can never match. A card printed in both sets carries the
+-- newer set's code, name, and release date.
+-- ---------------------------------------------------------------------------
+create table if not exists public.recent_set_cards (
+  card_name    text primary key,   -- canonical Scryfall name
+  set_code     text not null,      -- uppercased set code, e.g. 'FRA'
+  set_name     text not null,
+  released_at  date not null
+);
+
 -- Common access paths: an event's decks, and an archetype's decks by recency.
 create index if not exists decks_event_idx on public.decks (event_id);
 create index if not exists decks_archetype_idx on public.decks (archetype_id);
@@ -237,6 +260,7 @@ alter table public.events                  enable row level security;
 alter table public.decks                   enable row level security;
 alter table public.deck_cards              enable row level security;
 alter table public.banned_cards            enable row level security;
+alter table public.recent_set_cards        enable row level security;
 
 drop policy if exists formats_read                 on public.formats;
 drop policy if exists archetypes_read              on public.archetypes;
@@ -244,6 +268,7 @@ drop policy if exists events_read                  on public.events;
 drop policy if exists decks_read                   on public.decks;
 drop policy if exists deck_cards_read              on public.deck_cards;
 drop policy if exists banned_cards_read            on public.banned_cards;
+drop policy if exists recent_set_cards_read        on public.recent_set_cards;
 
 create policy formats_read
   on public.formats for select to anon, authenticated using (true);
@@ -266,9 +291,14 @@ create policy deck_cards_read
 create policy banned_cards_read
   on public.banned_cards for select to anon, authenticated using (true);
 
+-- Same reasoning as banned_cards: `recent_set_top_cards` is SECURITY INVOKER and
+-- joins this table, so without a read policy the browser would get no rows.
+create policy recent_set_cards_read
+  on public.recent_set_cards for select to anon, authenticated using (true);
+
 -- Ensure the anon/authenticated roles have table-level SELECT (RLS still gates rows).
 grant select on public.formats, public.archetypes, public.events, public.decks,
-                public.deck_cards, public.banned_cards
+                public.deck_cards, public.banned_cards, public.recent_set_cards
   to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -320,6 +350,9 @@ grant select on public.formats, public.archetypes, public.events, public.decks,
 -- classified in TypeScript (src/lib/eventSize.ts) and only the resulting event
 -- ids are sent, so the thresholds live in exactly one language and cannot drift
 -- between the grid and these tables.
+--
+-- `recent_set_top_cards` (below) repeats this function's filter block for the Top
+-- New Cards table; a change to the slice or legality filters belongs in both.
 -- ---------------------------------------------------------------------------
 drop function if exists public.top_cards(text, date, date, text, bigint[], bigint);
 drop function if exists public.top_cards(text, date, date, text, bigint[], bigint, bigint[]);
@@ -383,6 +416,77 @@ $$;
 -- underlying tables still gates the rows it reads (SECURITY INVOKER).
 grant execute on function
   public.top_cards(text, date, date, text, bigint[], bigint, bigint[])
+  to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Top New Cards aggregation (change add-recent-set-cards-table).
+-- Per-card copy counts over the cards recorded in `recent_set_cards` (printed in
+-- either of the two most recent main sets, reprints included). Takes the same
+-- slice parameters as `top_cards` above and applies the same filter block —
+-- date window, archetype, single event, event-size id set, and whole-deck
+-- legality — so KEEP THE TWO IN SYNC when either changes. It differs in three
+-- ways, which is why it is a separate function rather than more modes on
+-- `top_cards`:
+--   * no board predicate: mainboard and sideboard copies are summed, and
+--     deck_count counts distinct decks across both boards;
+--   * only BASIC lands are excluded (`Basic Land — Forest`, `Basic Snow Land —
+--     Forest`, `Basic Land — Wastes`), so a set's nonbasic lands can rank; a null
+--     type_line is kept, as in `top_cards`;
+--   * an inner join to `recent_set_cards` on the canonical name, so only cards
+--     printed in the recent sets appear, and an unresolved card never does.
+-- Grouped by the display name like `top_cards`; set_code is constant per card.
+-- SECURITY INVOKER so the caller's RLS applies (read-only for anon).
+-- ---------------------------------------------------------------------------
+create or replace function public.recent_set_top_cards(
+  p_format         text,
+  p_start          date,
+  p_end            date,
+  p_archetype_ids  bigint[] default null,
+  p_event_id       bigint   default null,
+  p_event_ids      bigint[] default null
+)
+returns table (
+  card_name    text,
+  total_copies bigint,
+  deck_count   bigint,
+  image_url    text,
+  set_code     text
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select dc.card_name,
+         sum(dc.quantity)::bigint            as total_copies,
+         count(distinct dc.deck_id)::bigint  as deck_count,
+         max(dc.image_url)                   as image_url,
+         max(r.set_code)                     as set_code
+  from public.deck_cards dc
+  join public.recent_set_cards r on r.card_name = dc.scryfall_name
+  join public.decks  d on d.id = dc.deck_id
+  join public.events e on e.id = d.event_id
+  where e.format_code = p_format
+    and e.event_date >= p_start
+    and e.event_date <  p_end
+    and (dc.type_line is null or dc.type_line not ilike '%basic%land%')
+    and (p_archetype_ids is null or d.archetype_id = any (p_archetype_ids))
+    and (p_event_id is null or d.event_id = p_event_id)
+    -- Empty array = no events in the selected size class = no rows (see top_cards).
+    and (p_event_ids is null or d.event_id = any (p_event_ids))
+    and not exists (
+      select 1
+      from public.deck_cards banned_line
+      join public.banned_cards b
+        on b.card_name = banned_line.scryfall_name
+       and b.format_code = p_format
+      where banned_line.deck_id = dc.deck_id
+    )
+  group by dc.card_name
+$$;
+
+grant execute on function
+  public.recent_set_top_cards(text, date, date, bigint[], bigint, bigint[])
   to anon, authenticated;
 
 -- ---------------------------------------------------------------------------

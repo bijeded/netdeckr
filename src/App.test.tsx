@@ -42,8 +42,10 @@ beforeEach(() => {
     creatures: [{ cardName: 'Creature Card', imageUrl: null, totalCopies: 100, avgCopies: 4 }],
     spells: [{ cardName: 'Spell Card', imageUrl: null, totalCopies: 80, avgCopies: 3 }],
     sideboard: [{ cardName: 'Sideboard Card', imageUrl: null, totalCopies: 40, avgCopies: 2 }],
+    newCards: [{ cardName: 'New Card', imageUrl: null, totalCopies: 30, avgCopies: 2, setCode: 'FRA' }],
     loading: false,
     error: null,
+    newCardsError: null,
   })
 })
 
@@ -1571,5 +1573,55 @@ describe('Main-window Reset', () => {
     i18n.changeLanguage('es')
     render(<App />)
     expect(screen.getByTestId('reset-filters')).toHaveTextContent('Restablecer')
+  })
+})
+
+describe('Top New Cards table', () => {
+  const tableTitles = () =>
+    screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))
+
+  it('renders after Sideboard, with the set-code chip and copies but no average', () => {
+    render(<App />)
+    expect(tableTitles()).toEqual(
+      expect.arrayContaining(['Top Creatures', 'Top Spells', 'Top Sideboard Cards', 'Top New Cards']),
+    )
+    const trending = tableTitles().filter((t) => t?.startsWith('Top '))
+    expect(trending).toEqual(['Top Creatures', 'Top Spells', 'Top Sideboard Cards', 'Top New Cards'])
+
+    const table = screen.getByRole('region', { name: 'Top New Cards' })
+    expect(within(table).getByText('New Card')).toBeInTheDocument()
+    expect(within(table).getByText('FRA')).toBeInTheDocument()
+    expect(within(table).getByText('30')).toBeInTheDocument()
+    expect(within(table).queryByText('Avg')).not.toBeInTheDocument()
+    expect(within(table).queryByText('2x')).not.toBeInTheDocument()
+  })
+
+  it('localizes the title in Spanish, keeping the set code', async () => {
+    render(<App />)
+    await act(() => i18n.changeLanguage('es'))
+    const table = screen.getByRole('region', { name: 'Top Cartas Nuevas' })
+    expect(within(table).getByText('FRA')).toBeInTheDocument()
+  })
+
+  it('shows its own empty state when no new-set card is played', () => {
+    useTrendingCards.mockReturnValue({ ...useTrendingCards(), newCards: [] })
+    render(<App />)
+    const table = screen.getByRole('region', { name: 'Top New Cards' })
+    expect(within(table).getByText('No new-set cards played yet')).toBeInTheDocument()
+  })
+
+  it.each(['ST', 'PI', 'MO', 'PAU'])('is rendered in %s', (format) => {
+    useFormatSelection.mockReturnValue({ format, setFormat })
+    render(<App />)
+    expect(screen.getByRole('region', { name: 'Top New Cards' })).toBeInTheDocument()
+  })
+
+  it('is absent in Pre-Modern while the other three tables still render', () => {
+    useFormatSelection.mockReturnValue({ format: 'PREM', setFormat })
+    render(<App />)
+    expect(screen.queryByRole('region', { name: 'Top New Cards' })).not.toBeInTheDocument()
+    for (const name of ['Top Creatures', 'Top Spells', 'Top Sideboard Cards']) {
+      expect(screen.getByRole('region', { name })).toBeInTheDocument()
+    }
   })
 })
