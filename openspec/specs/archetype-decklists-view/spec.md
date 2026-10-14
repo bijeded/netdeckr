@@ -90,28 +90,66 @@ A card SHALL be classified by its Scryfall type line using this precedence: a ty
 - **WHEN** the decklist modal is open on a narrow viewport
 - **THEN** the mainboard and sideboard remain legible and scrollable within the modal
 
-### Requirement: Export a decklist to MTG Arena
-The system SHALL provide an export action in the decklist modal that produces the deck in MTG Arena text format — an optional `About` block naming the deck (`Name <archetype>`), followed by a `Deck` section and a `Sideboard` section with one `"<quantity> <card name>"` line per card. Card lines SHALL use each card's Scryfall canonical English name with its current non-foil set and collector number when that mapping is present, and SHALL fall back to the card's scraped name otherwise, without failing the export. (Scryfall mapping is populated by a separate change; until then all cards use the scraped-name fallback.) For Arena-supported formats (Standard, Pioneer) the export SHALL copy the text to the clipboard and confirm; for the other formats (Modern, Pauper, Pre-Modern) the export SHALL download the text as a `.txt` file. The export action's label SHALL reflect its delivery — an Arena-export label for the clipboard formats and a download label for the file formats.
+### Requirement: Export a decklist to its client via the clipboard
+The decklist modal SHALL provide an export action that copies the deck to the clipboard as text for the client its format is played on: MTG Arena for Standard and Pioneer, Magic Online (MTGO) for Modern, Pauper, and Pre-Modern. No format SHALL download a file. The action's label SHALL name that client, and a successful copy SHALL show the same localized confirmation for both clients.
 
-#### Scenario: Copy a Standard or Pioneer deck to the clipboard
+#### Scenario: Standard or Pioneer copies Arena text
 - **WHEN** the decklist modal is open for a Standard or Pioneer deck and the user triggers the export action
-- **THEN** the deck is copied to the clipboard in Arena text format (an `About`/`Name` block, then Deck / Sideboard sections, one `"<quantity> <card name>"` line per card, using the Scryfall canonical name and current non-foil set + collector number when present and the scraped name otherwise) and a localized confirmation is shown
+- **THEN** the deck is copied to the clipboard as MTG Arena text and a localized confirmation is shown
 
-#### Scenario: Download a Modern, Pauper, or Pre-Modern deck as a file
+#### Scenario: Modern, Pauper, or Pre-Modern copies MTGO text
 - **WHEN** the decklist modal is open for a Modern, Pauper, or Pre-Modern deck and the user triggers the export action
-- **THEN** the export produces a `.txt` file containing the naming block and the mainboard and sideboard in the same line format, instead of copying to the clipboard
+- **THEN** the deck is copied to the clipboard as MTGO text and the same localized confirmation is shown
+- **AND** no file is downloaded
 
-#### Scenario: Card without a Scryfall mapping falls back to its scraped name
-- **WHEN** a decklist contains a card whose Scryfall mapping is absent and the user exports the deck
-- **THEN** the export succeeds and that card appears using its scraped name
-
-#### Scenario: Export delivery and label are chosen by format
+#### Scenario: Export label is chosen by format
 - **WHEN** the decklist modal renders its export action
-- **THEN** the action is clipboard copy with an Arena-export label for Standard and Pioneer decks, and file download with a download label for Modern, Pauper, and Pre-Modern decks
+- **THEN** it is labeled as an MTG Arena export for Standard and Pioneer decks and as an MTGO export for Modern, Pauper, and Pre-Modern decks
 
 #### Scenario: Export failure is surfaced
-- **WHEN** the export cannot complete (the clipboard write is rejected, or the file download cannot be produced)
+- **WHEN** the export cannot complete because the clipboard write is rejected
 - **THEN** a localized error message is shown and the modal remains usable
+
+### Requirement: Arena export text
+The MTG Arena export text SHALL be an optional `About` block naming the deck (`Name <archetype>`), followed by a `Deck` section and a `Sideboard` section with one `"<quantity> <card name>"` line per card. A card line SHALL use the card's Scryfall canonical English name with its current non-foil set and collector number when that mapping is present, and SHALL fall back to the card's scraped name otherwise, without failing the export.
+
+#### Scenario: Arena text layout
+- **WHEN** an Arena export is produced for a deck with a sideboard
+- **THEN** the text is an `About`/`Name` block, then a `Deck` section, then a `Sideboard` section, one `"<quantity> <card name>"` line per card, each using the Scryfall canonical name and current non-foil set + collector number when present
+
+#### Scenario: Arena card without a Scryfall mapping falls back to its scraped name
+- **WHEN** an Arena export includes a card whose Scryfall mapping is absent
+- **THEN** the export succeeds and that card's line uses its scraped name
+
+### Requirement: MTGO export text layout
+The MTGO export text SHALL contain only card lines: one `"<quantity> <card name>"` line per mainboard card, then — only when the deck has a sideboard — exactly one empty line followed by one line per sideboard card. It SHALL contain no deck-name block, no section headers, and no set codes or collector numbers, and its lines SHALL be separated by CRLF.
+
+#### Scenario: MTGO text layout
+- **WHEN** an MTGO export is produced for a deck with a sideboard
+- **THEN** the text is the mainboard card lines, one empty line, then the sideboard card lines, separated by CRLF, with no `About`/`Name` block, no `Deck` or `Sideboard` header, and no set code or collector number on any line
+
+#### Scenario: MTGO export of a deck without a sideboard
+- **WHEN** an MTGO export is produced for a deck with no sideboard cards
+- **THEN** the text contains only the mainboard card lines, with no trailing empty line
+
+### Requirement: MTGO card naming
+MTGO export card names SHALL follow MTGO's naming: a double-faced, modal double-faced, or adventure card SHALL be written by its front face name only; a split card SHALL be written as its two halves joined by a single `/` with no surrounding spaces; every other card SHALL be written by its Scryfall canonical English name. A card without a Scryfall mapping SHALL fall back to its scraped name under the same rules, without failing the export.
+
+#### Scenario: Double-faced card is written by its front face
+- **WHEN** an MTGO export includes a card whose canonical name is `Ajani, Nacatl Pariah // Ajani, Nacatl Avenger`
+- **THEN** its line reads `<quantity> Ajani, Nacatl Pariah`
+
+#### Scenario: Split card is written with an unspaced slash
+- **WHEN** an MTGO export includes a split card whose canonical name is `Wear // Tear`
+- **THEN** its line reads `<quantity> Wear/Tear`
+
+#### Scenario: Single-face card is written by its canonical name
+- **WHEN** an MTGO export includes a single-face card such as `Ragavan, Nimble Pilferer`
+- **THEN** its line reads `<quantity> Ragavan, Nimble Pilferer`
+
+#### Scenario: MTGO card without a Scryfall mapping falls back to its scraped name
+- **WHEN** an MTGO export includes a card whose Scryfall mapping is absent
+- **THEN** the export succeeds and that card's line uses its scraped name, with a split card's halves joined by an unspaced `/`
 
 ### Requirement: Localized decklist UI
 All user-facing text introduced by the decklist view — deck-row labels, modal headings, the mainboard card-type section headings (Lands, Creatures, Spells, Other), the list/image view control's label and accessible name, export action, and confirmations — SHALL be provided through react-i18next in both Spanish and English, with MTG proper nouns (card and archetype names) left in English in both locales. Card quantity indicators in image view are numeric and SHALL NOT require translation.
