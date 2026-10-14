@@ -56,7 +56,7 @@ Alternatives considered:
 
 `App.tsx` passes the localized error message to `TopCardsTable` in place of `emptyMessage` when the relevant error is set: `error` for Creatures/Spells/Sideboard, `newCardsError` for Top New Cards. On failure the hook already returns empty card arrays, so the table falls through to its `EmptyState` and shows that message. There is one shared error string, `trending.loadError` (ES/EN), rather than one per table.
 
-Alternative considered: a separate `errorMessage` prop with its own visual treatment. That is more surface for no behavioral gain. Whether the error should look different from the empty state (icon, color) is pending visual confirmation on the Vercel preview. This design asserts only that the text differs.
+Alternative considered: a separate `errorMessage` prop with its own visual treatment. That is more surface for no behavioral gain. Whether the error should look different from the empty state (icon, color) is pending visual confirmation on the Vercel preview. This design asserts only that the text differs. *Confirmed on the Vercel preview (2026-10-13): the error keeps the empty-state look; only the text differs.*
 
 ### 3. Report from the hook, through a small shared helper
 

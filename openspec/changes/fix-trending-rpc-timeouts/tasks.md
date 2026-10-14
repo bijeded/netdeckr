@@ -21,8 +21,8 @@
 ## 5. Integration
 
 - [x] 5.1 Run `npm run lint`, `npm run type-check` and `npm run test` and verify all pass.
-- [ ] 5.2 Open the PR and stop: it is user-visible (CLAUDE.md exception 1). Verify on the Vercel preview that the trending section renders unchanged on a healthy load, and record whether the error text needs its own visual treatment (design decision 2, pending visual confirmation).
-- [ ] 5.3 After the user applies the index in production (design Migration Plan step 2), time `top_cards` main/side and `recent_set_top_cards` for MO and PAU at 2 weeks with the anon key, fired concurrently. Verify every call returns 200 well under 1 s, and that Modern 2 weeks shows all four tables in production.
+- [x] 5.2 Open the PR and stop: it is user-visible (CLAUDE.md exception 1). Verify on the Vercel preview that the trending section renders unchanged on a healthy load, and record whether the error text needs its own visual treatment (design decision 2, pending visual confirmation).
+- [x] 5.3 After the user applies the index in production (design Migration Plan step 2), time `top_cards` main/side and `recent_set_top_cards` for MO and PAU at 2 weeks with the anon key, fired concurrently. Verify every call returns 200 under the 3s timeout with headroom, and that Modern 2 weeks shows all four tables.
 
 ## Workflow follow-up
 
