@@ -7,7 +7,9 @@ an index straight from a saved bulk fixture and never hit live Scryfall.
 
 Scryfall's `default_cards` bulk export holds one row per printing (multiple per
 card). We keep, per canonical card name, the best non-foil *paper* printing —
-ranking by plain treatment first (a plain printing beats any special-treatment
+ranking by release status first (a printing released by `today` beats one from a
+set still in its preview season, which Scryfall already lists), then plain
+treatment (a plain printing beats any special-treatment
 one: promo, booster-fun variant, full-art, textless, borderless, or showcase/
 extended/inverted frame — even in a newer set), then a preferred set type
 (expansion/core over commander/draft-innovation/box, with masters and everything
@@ -193,15 +195,28 @@ def _set_type_tier(row: dict) -> int:
     return 1
 
 
-def _selection_key(row: dict) -> tuple[int, int, str, str]:
-    """Sort key choosing the best printing (greater is better). Plain treatment
-    is the top priority — a plain printing beats any special-treatment one even
-    in a newer set — then the preferred set type, then the most recent release,
-    then set code as a stable tiebreak."""
+def _is_released(row: dict, today: str | None) -> bool:
+    """True unless the printing's set releases after `today` (ISO date). A set
+    releasing today counts as released, as does a row with no `released_at`;
+    without a `today` every printing counts as released."""
+    released_at = row.get("released_at")
+    return today is None or not released_at or released_at <= today
+
+
+def _selection_key(row: dict, today: str | None) -> tuple[int, int, int, str, str]:
+    """Sort key choosing the best printing (greater is better). Release status is
+    the top priority — a printing released by `today` beats one in a set still in
+    preview, whatever its treatment — then plain treatment — a plain printing
+    beats any special-treatment one even in a newer set — then the preferred set
+    type, then the most recent release, then set code as a stable tiebreak.
+
+    Unreleased printings are demoted, not rejected: a card printed only in an
+    upcoming set (played between its digital and paper release) still resolves."""
     return (
+        1 if _is_released(row, today) else 0,
         0 if _is_special_printing(row) else 1,
         _set_type_tier(row),
-        row.get("released_at", ""),
+        row.get("released_at") or "",
         str(row.get("set", "")),
     )
 
@@ -358,12 +373,14 @@ class CardIndex:
 
     @classmethod
     def from_bulk_rows(cls, rows, today: str | None = None) -> "CardIndex":
-        """Build the index from bulk rows. `today` (ISO date) enables the recent
-        main sets: only sets released on or before it qualify, so a set already in
-        the bulk data during its preview season is not picked early. Without it the
-        index carries no recent-set cards."""
-        # Per canonical name, keep the best paper non-foil printing: plain
-        # treatment beats any special-treatment one, then the preferred set type,
+        """Build the index from bulk rows. `today` (ISO date) keeps a set already in
+        the bulk data during its preview season from being picked early: printing
+        selection ranks its printings below released ones, and only sets released
+        on or before it qualify as recent main sets. Without it every printing
+        counts as released and the index carries no recent-set cards."""
+        # Per canonical name, keep the best paper non-foil printing: a released
+        # printing beats an unreleased one, then plain treatment beats any
+        # special-treatment one, then the preferred set type,
         # then the most recent, with set code as a stable tiebreak so selection
         # is deterministic regardless of bulk-file ordering.
         best: dict[str, dict] = {}
@@ -395,7 +412,7 @@ class CardIndex:
                 continue
             name = row["name"]
             current = best.get(name)
-            if current is None or _selection_key(row) > _selection_key(current):
+            if current is None or _selection_key(row, today) > _selection_key(current, today):
                 best[name] = row
 
         # Register keys in two priority passes, so a name a real card owns can never
