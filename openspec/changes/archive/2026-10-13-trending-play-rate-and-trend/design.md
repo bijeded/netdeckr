@@ -70,7 +70,7 @@ The play rate is displayed rounded to a whole percent, or `<1%` when it is above
 
 `ShareDelta` gains an optional `labelKeyPrefix` (default `shareDelta`), and the tables pass `trending.trend`. That gives localized "Play rate up {{value}} points vs the previous period" labels while the glyphs, colors and number format stay identical to the archetype cards.
 
-Whether the bordered chip reads well inside a dense table row, or needs a borderless variant, is **pending visual confirmation** on the preview.
+Whether the bordered chip reads well inside a dense table row, or needs a borderless variant, was **pending visual confirmation** on the preview. **Confirmed on the PR #211 preview:** the bordered `ShareDelta` chip is kept as-is; no borderless variant.
 
 ### D5. Uniform columns, and Copies hidden by a container query
 
@@ -92,9 +92,9 @@ A container query is used rather than a media query because table width depends 
 - at a 375px phone viewport the table is about 343px, so the name gets about 21px with Copies shown and about 77px with it hidden;
 - in the 2x2 grid with the sidebar open, a table is about 469px at a 1280px viewport, leaving the name about 147px with Copies shown.
 
-The exact track widths and the threshold (starting estimate ~520px of table width) are **pending visual confirmation** on the Vercel preview, and will be recorded here once settled.
+The exact track widths and the threshold (starting estimate ~520px of table width) were **pending visual confirmation** on the Vercel preview. **Confirmed on the PR #211 preview:** tracks `34px minmax(0, 1fr) 40px 56px 48px 64px`, and Copies hidden below a 520px table width (`@container (max-width: 520px)`).
 
-Header labels: EN `Avg` / `Copies` / `Decks` / `Trend`; ES `Prom.` / `Copias` / `Mazos` / `Tend.`. Whether the ES abbreviations read clearly is **pending visual confirmation**. The `trending.col.set` key is removed.
+Header labels: EN `Avg` / `Copies` / `Decks` / `Trend`; ES `Prom.` / `Copias` / `Mazos` / `Tend.`. Whether the ES abbreviations read clearly was **pending visual confirmation**; **confirmed on the PR #211 preview** as written. The `trending.col.set` key is removed.
 
 **Alternatives rejected:**
 - A `ResizeObserver` in React: an extra render per resize, a first-paint flash, and a JS dependency for layout.
@@ -124,5 +124,4 @@ Frontend-only; no database, RPC or pipeline change. The PR merges after the visu
 
 ## Open Questions
 
-- Exact column widths and the Copies-hiding threshold (D5): settled on the preview.
-- Bordered chip vs a borderless trend variant in table rows (D4): settled on the preview.
+None remaining. The column widths, the Copies-hiding threshold (D5), the trend chip variant (D4) and the ES header abbreviations were confirmed on the PR #211 preview and are recorded above.

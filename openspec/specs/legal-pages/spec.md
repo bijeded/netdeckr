@@ -67,7 +67,7 @@ Each legal page's long-form content SHALL be authored as a typed `Section[]` (he
 
 ### Requirement: How It Works content
 
-The How It Works page SHALL explain, in plain, direct language (not condescending, not aimed below the reader), how Netdeckr processes information: that it periodically reads publicly available tournament results from MTGTop8 and publicly available card data from Scryfall, and turns that into the metagame view shown on the dashboard. It SHALL explain, in accessible terms, what each dashboard data point means — the Events/Archetypes/Decks stat cards, metagame share, share delta, the Tier classification (including a one-sentence explanation of how Tier is decided, distinct from popularity), the tier trend arrow, and the Top Creatures/Top Spells/Top Sideboard Cards tables. It SHALL state that Netdeckr has no user accounts and does not collect anything personal from visitors, with an inline link on the words "Privacy Policy" that navigates to the Privacy Policy page. It SHALL credit DMM Studios as the site's developer, with the link applied only to the words "DMM Studios" (not the surrounding sentence). It SHALL include a Scryfall data/image credit line, without a cross-reference to the footer notice.
+The How It Works page SHALL explain, in plain, direct language (not condescending, not aimed below the reader), how Netdeckr processes information: that it periodically reads publicly available tournament results from MTGTop8 and publicly available card data from Scryfall, and turns that into the metagame view shown on the dashboard. It SHALL explain, in accessible terms, what each dashboard data point means — the Events/Archetypes/Decks stat cards, metagame share, share delta, the Tier classification (including a one-sentence explanation of how Tier is decided, distinct from popularity), the tier trend arrow, the Top Creatures/Top Spells/Top Sideboard Cards/Top New Cards tables, and each value those tables show per card: Avg (average copies in the decks that run it), Copies (total copies across the decks in view), Decks (the share of decks in view that run it) and Trend (how that share changed versus the previous period of the same length). It SHALL state that Netdeckr has no user accounts and does not collect anything personal from visitors, with an inline link on the words "Privacy Policy" that navigates to the Privacy Policy page. It SHALL credit DMM Studios as the site's developer, with the link applied only to the words "DMM Studios" (not the surrounding sentence). It SHALL include a Scryfall data/image credit line, without a cross-reference to the footer notice.
 
 #### Scenario: Plain-language data explanation
 - **WHEN** the How It Works page is displayed
@@ -75,7 +75,11 @@ The How It Works page SHALL explain, in plain, direct language (not condescendin
 
 #### Scenario: Dashboard data points explained
 - **WHEN** the How It Works page is displayed
-- **THEN** it explains what the stat cards, metagame share, share delta, Tier (including how Tier is decided in one sentence), the tier trend arrow, and the Top Creatures/Top Spells/Top Sideboard Cards tables each mean
+- **THEN** it explains what the stat cards, metagame share, share delta, Tier (including how Tier is decided in one sentence), the tier trend arrow, and the Top Creatures/Top Spells/Top Sideboard Cards/Top New Cards tables each mean
+
+#### Scenario: Trending table values explained
+- **WHEN** the How It Works page is displayed in English or Spanish
+- **THEN** it explains what Avg, Copies, Decks and Trend mean in the trending tables, notes that the tables are ranked by Copies, and does not mention a set code on Top New Cards
 
 #### Scenario: Inline link to the Privacy Policy
 - **WHEN** the How It Works page is displayed
