@@ -648,3 +648,103 @@
     font-size: var(--fs-sm);
   }
 }
+
+/* Sidebar "Explore" section: navigation to another view, not a filter. A hairline
+   divider sets it apart from the filter groups, and its row avoids their box +
+   fill vocabulary: bare text and an arrow, accent-coloured with a left bar while
+   its view is open. Exact values pending confirmation on the Vercel preview. */
+.explore-nav {
+  border-top: 1px solid var(--border-hair);
+  padding-top: var(--sp-5);
+}
+.explore-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 13px 9px 11px;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.explore-nav-row:hover {
+  color: var(--neon-text-soft);
+}
+.explore-nav-row[data-active='true'] {
+  color: var(--neon-text-soft);
+  border-left-color: var(--neon-500);
+}
+
+/* Players / Player view header: the back pill left, the ranking toggle right. */
+.players-view-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+.players-toggle {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--border-line);
+  border-radius: var(--r-pill);
+  padding: 2px;
+  background: var(--surface-faint);
+}
+.players-toggle button {
+  padding: 5px 13px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.players-toggle button[data-active='true'] {
+  background: var(--neon-tint-16);
+  color: var(--neon-text-soft);
+}
+
+/* A ranking row: rank | name | events | wins, one tap target. */
+.player-row {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: 11px 14px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.player-row:hover {
+  border-color: var(--neon-border);
+}
+
+/* The decklist modal's pilot name, as a link to their Player view. */
+.player-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  color: var(--neon-text-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}

@@ -13,6 +13,11 @@ interface EventSelectorProps {
   /** Selected event size class, or null for "All event sizes". */
   sizeClass: EventSizeClass | null
   onSizeClassChange: (sizeClass: EventSizeClass | null) => void
+  /**
+   * Disables the event select (the Players view ignores the event filter). The
+   * selection is kept and shown, and applies again once re-enabled.
+   */
+  disabled?: boolean
 }
 
 /**
@@ -32,6 +37,7 @@ export function EventSelector({
   onChange,
   sizeClass,
   onSizeClassChange,
+  disabled = false,
 }: EventSelectorProps) {
   const { t, i18n } = useTranslation()
   return (
@@ -54,7 +60,9 @@ export function EventSelector({
         aria-label={t('filters.event')}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-        style={selectBase}
+        disabled={disabled}
+        aria-describedby={disabled ? 'event-filter-off' : undefined}
+        style={disabled ? { ...selectBase, cursor: 'default', opacity: 0.5 } : selectBase}
       >
         <option value="">{t('filters.allEvents')}</option>
         {events.map((event) => (
@@ -63,6 +71,14 @@ export function EventSelector({
           </option>
         ))}
       </select>
+      {disabled && (
+        <div
+          id="event-filter-off"
+          style={{ marginTop: 'var(--sp-2)', fontSize: 'var(--fs-2xs)', color: 'var(--text-faint)' }}
+        >
+          {t('players.eventFilterOff')}
+        </div>
+      )}
     </div>
   )
 }

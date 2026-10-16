@@ -14,6 +14,7 @@ import { shareDeltas, type DeckForShareDelta } from '../lib/shareDelta'
 import { sizeClassOf, type EventSizeClass } from '../lib/eventSize'
 import { isUnrankedEvent } from '../lib/powerScore'
 import { EMPTY_BANLIST, type Banlist, type BannedCard } from '../lib/banlist'
+import type { PlayerDeck } from '../lib/players'
 
 /** The 2-week window anchors the stable tier baseline; the selected window is a date subset of it. */
 const BASELINE_WINDOW: WindowCode = '2weeks'
@@ -213,6 +214,9 @@ async function fetchBanlist(formatCode: FormatCode, startISO: string): Promise<B
  * `sliceDeckCounts` and `sizeClassEventIds` feed the trending tables' play rate
  * and trend: the legal deck counts of the selected and preceding windows, and the
  * size class's event ids across both (null when no size class is selected).
+ * `playerCorpus` is every legal deck in the selected window and size class,
+ * **ignoring the event filter**, for the Players view, which never narrows by
+ * event (see the players-view spec).
  */
 export function useMetagame(
   formatCode: FormatCode,
@@ -229,6 +233,7 @@ export function useMetagame(
   const [banState, setBanState] = useState<BanState>(EMPTY_BAN_STATE)
   const [sliceDeckCounts, setSliceDeckCounts] = useState<SliceDeckCounts>(EMPTY_SLICE_COUNTS)
   const [sizeClassEventIds, setSizeClassEventIds] = useState<number[] | null>(null)
+  const [playerCorpus, setPlayerCorpus] = useState<PlayerDeck[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
 
@@ -252,6 +257,7 @@ export function useMetagame(
           setBanState(EMPTY_BAN_STATE)
           setSliceDeckCounts(EMPTY_SLICE_COUNTS)
           setSizeClassEventIds(sizeClass === null ? null : [])
+          setPlayerCorpus([])
           setLoading(false)
           return
         }
@@ -336,6 +342,9 @@ export function useMetagame(
         // Every corpus event in the selected size class, across both windows, so
         // the trending RPCs can narrow either window by size with one id list.
         const sizeEventIds = new Set<number>()
+        // Window + size subset, event filter NOT applied, for the Players view.
+        // `unranked` is projected after the loop, once every event is judged.
+        const playerDecks: PlayerDeck[] = []
 
         for (const row of legalRows) {
           const archetypeName = row.archetypes?.name ?? ''
@@ -402,20 +411,24 @@ export function useMetagame(
             }
           }
 
-          // The breakdown/decks derive from the window corpus narrowed by the event
-          // filter (so shares are recomputed within the selected event).
+          // Everything below is the window corpus under the size filter. The player
+          // corpus takes all of it; the breakdown/decks are further narrowed by the
+          // event filter (so shares are recomputed within the selected event).
+          // Keep this the loop's last block: the `continue` skips nothing else.
+          if (!inWindow || !passesSize) continue
+          const deck: DeckRow = {
+            id: row.id,
+            sourceDeckId: row.source_deck_id,
+            player: row.player,
+            placement,
+            eventName: row.events?.name ?? '',
+            eventDate,
+            archetypeName,
+            colorIdentity,
+          }
+          playerDecks.push({ ...deck, eventId: rowEventId, playerCount, unranked: false })
           const passesEvent = eventId === null || row.events?.id === eventId
-          if (inWindow && passesEvent && passesSize) {
-            const deck: DeckRow = {
-              id: row.id,
-              sourceDeckId: row.source_deck_id,
-              player: row.player,
-              placement,
-              eventName: row.events?.name ?? '',
-              eventDate,
-              archetypeName,
-              colorIdentity,
-            }
+          if (passesEvent) {
             ;(selectedGrouped[archetypeName] ??= []).push(deck)
             selectedForBreakdown.push({ archetypeName, colorIdentity, placement, artImageUrl, artCropUrl })
             selectedCounts[archetypeName] = (selectedCounts[archetypeName] ?? 0) + 1
@@ -441,6 +454,9 @@ export function useMetagame(
         const unrankedEventIds = new Set<number>()
         for (const [id, facts] of eventFacts) {
           if (isUnrankedEvent(facts.placements, facts.playerCount)) unrankedEventIds.add(id)
+        }
+        for (const deck of playerDecks) {
+          deck.unranked = deck.eventId !== null && unrankedEventIds.has(deck.eventId)
         }
         const twoWeekUnranked = new Map<string, boolean[]>()
         for (const [name, ids] of twoWeekEventIds) {
@@ -494,6 +510,7 @@ export function useMetagame(
         setBanState({ bannedCards: banlist.bannedCards, hiddenDecks })
         setSliceDeckCounts({ selected: selectedCounts, preceding: precedingCounts })
         setSizeClassEventIds(sizeClass === null ? null : [...sizeEventIds])
+        setPlayerCorpus(playerDecks)
         setLoading(false)
       })
 
@@ -511,6 +528,7 @@ export function useMetagame(
     banState,
     sliceDeckCounts,
     sizeClassEventIds,
+    playerCorpus,
     loading,
     error,
   }

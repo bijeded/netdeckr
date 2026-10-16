@@ -103,7 +103,8 @@
     "viewDeck": "go to deck",
     "viewAll": "View all lists",
     "viewAllLabel": "View all {{archetype}} lists",
-    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
+    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})",
+    "archetypeRowLabel": "{{placement}} — {{archetype}}, {{event}} ({{date}})"
   },
   "modal": {
     "main": "Main",
@@ -171,5 +172,21 @@
     "title": "Something went wrong",
     "message": "The dashboard hit an unexpected error. Try reloading the page.",
     "reload": "Reload page"
+  },
+  "players": {
+    "explore": "Explore",
+    "nav": "Players",
+    "heading": "Players",
+    "caption": "Players",
+    "backToMetagame": "Metagame",
+    "rankingToggle": "Ranking",
+    "topPlayers": "Top Players",
+    "topGrinders": "Top Grinders",
+    "events_one": "{{count}} event",
+    "events_other": "{{count}} events",
+    "empty": "No player has 2 or more events in this view.",
+    "playerEmpty": "{{player}} has no decks in this view.",
+    "viewPlayerLabel": "View {{player}}'s decks",
+    "eventFilterOff": "Not applied in Players"
   }
 }

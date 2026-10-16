@@ -139,4 +139,12 @@ describe('EventSelector', () => {
       expect(within(select).getAllByRole('option')[0]).toHaveTextContent('Todos los tamaños')
     })
   })
+
+  it('disables the event select but keeps its selection when disabled', () => {
+    renderSelector({ value: 10, disabled: true })
+    const select = screen.getByRole('combobox', { name: 'Event' })
+    expect(select).toBeDisabled()
+    expect(select).toHaveValue('10')
+    expect(select).toHaveAccessibleDescription('Not applied in Players')
+  })
 })

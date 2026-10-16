@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import '../i18n'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
+import i18n from '../i18n'
 import type { DeckRow } from '../lib/deckSelection'
 
 const useDeckCards = vi.fn()
@@ -347,6 +347,41 @@ describe('DecklistModal', () => {
       expect(writeText.mock.calls[1][0]).toBe(fromList)
 
       vi.unstubAllGlobals()
+    })
+  })
+
+  describe('player link', () => {
+    it('opens the Player view through onPlayerSelect', () => {
+      const onPlayerSelect = vi.fn()
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} onPlayerSelect={onPlayerSelect} />)
+      fireEvent.click(screen.getByRole('button', { name: "View Norbspro's decks" }))
+      expect(onPlayerSelect).toHaveBeenCalledWith('Norbspro')
+    })
+
+    it('is a focusable native button, so Enter activates it', () => {
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} onPlayerSelect={vi.fn()} />)
+      const link = screen.getByTestId('modal-player-link')
+      expect(link.tagName).toBe('BUTTON')
+      link.focus()
+      expect(link).toHaveFocus()
+    })
+
+    it('is plain text without onPlayerSelect (the player\'s own view)', () => {
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} />)
+      expect(screen.queryByTestId('modal-player-link')).toBeNull()
+      expect(screen.getByText('Norbspro')).toBeInTheDocument()
+    })
+
+    it('is plain text for an unnamed deck', () => {
+      render(<DecklistModal deck={{ ...deck, player: '' }} format="ST" onClose={vi.fn()} onPlayerSelect={vi.fn()} />)
+      expect(screen.queryByTestId('modal-player-link')).toBeNull()
+    })
+
+    it('carries a localized label', async () => {
+      await act(() => i18n.changeLanguage('es'))
+      render(<DecklistModal deck={deck} format="ST" onClose={vi.fn()} onPlayerSelect={vi.fn()} />)
+      expect(screen.getByRole('button', { name: 'Ver los mazos de Norbspro' })).toBeInTheDocument()
+      await act(() => i18n.changeLanguage('en'))
     })
   })
 })

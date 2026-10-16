@@ -805,4 +805,84 @@ describe('useMetagame', () => {
       expect(result.current.sliceDeckCounts.preceding).toEqual({})
     })
   })
+  describe('player corpus', () => {
+    /** Two sized events in the 7-day window, one ladder, and one older event. */
+    function playerRows() {
+      return [
+        deckRow({
+          id: 1,
+          source_deck_id: 'a',
+          player: 'Luminati',
+          events: { id: 1, name: 'Challenge', event_date: daysAgo(1), player_count: 128 },
+        }),
+        deckRow({
+          id: 2,
+          source_deck_id: 'b',
+          player: 'Kampo',
+          placement: '3-4',
+          events: { id: 2, name: 'RCQ', event_date: daysAgo(2), player_count: 20 },
+        }),
+        // Unranked shape: no size, no bracket range anywhere in the event.
+        deckRow({
+          id: 3,
+          source_deck_id: 'c',
+          player: 'Luminati',
+          events: { id: 3, name: 'League', event_date: daysAgo(3), player_count: null },
+        }),
+        deckRow({
+          id: 4,
+          source_deck_id: 'd',
+          player: 'Luminati',
+          placement: '5-8',
+          events: { id: 4, name: 'Old Challenge', event_date: daysAgo(10), player_count: 128 },
+        }),
+      ]
+    }
+
+    it('holds every window deck with its event facts', async () => {
+      queryResult.data = playerRows()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.playerCorpus.map((d) => d.id).sort()).toEqual([1, 2, 3, 4])
+      const first = result.current.playerCorpus.find((d) => d.id === 1)!
+      expect(first).toMatchObject({ player: 'Luminati', eventId: 1, playerCount: 128, unranked: false })
+    })
+
+    it('is unaffected by the event filter', async () => {
+      queryResult.data = playerRows()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks', { eventId: 2 }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.totals.decks).toBe(1)
+      expect(result.current.playerCorpus).toHaveLength(4)
+    })
+
+    it('is narrowed by the size class', async () => {
+      queryResult.data = playerRows()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks', { sizeClass: 'large' }))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.playerCorpus.map((d) => d.id).sort()).toEqual([1, 4])
+    })
+
+    it('is narrowed by the 7-day window', async () => {
+      queryResult.data = playerRows()
+      const { result } = renderHook(() => useMetagame('ST', '7days'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.playerCorpus.map((d) => d.id).sort()).toEqual([1, 2, 3])
+    })
+
+    it('flags decks of unranked events', async () => {
+      queryResult.data = playerRows()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      const unranked = result.current.playerCorpus.filter((d) => d.unranked).map((d) => d.id)
+      expect(unranked).toEqual([3])
+    })
+
+    it('is empty on a query error', async () => {
+      queryResult.error = { message: 'boom' }
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.playerCorpus).toEqual([])
+    })
+  })
 })

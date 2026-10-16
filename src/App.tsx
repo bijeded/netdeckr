@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
@@ -36,6 +36,11 @@ import { TopCardsTable } from './components/TopCardsTable'
 import { hasNewCardsTable, sliceDeckTotal } from './lib/trendingCards'
 import { useLegalPage } from './hooks/useLegalPage'
 import { useArchetypeSelection } from './hooks/useArchetypeSelection'
+import { usePlayerViewSelection } from './hooks/usePlayerViewSelection'
+import { groupPlayers, playerKey, rankTopGrinders, rankTopPlayers, type PlayerGroup } from './lib/players'
+import { ExploreNav } from './components/ExploreNav'
+import { PlayersView, type PlayerRanking } from './components/PlayersView'
+import { PlayerView } from './components/PlayerView'
 import { Footer } from './components/Footer'
 import { LegalPage } from './components/LegalPage'
 import { howItWorksEn } from './content/legal/howItWorks.en'
@@ -73,6 +78,9 @@ function App() {
     leaveArchetype,
   } = useArchetypeSelection()
   const [tier, setTier] = useState<Tier | null>(null)
+  // The Players view (`?v=players`) and the Player view inside it (`&p=`).
+  const playerView = usePlayerViewSelection()
+  const [ranking, setRanking] = useState<PlayerRanking>('top')
 
   const {
     breakdown,
@@ -83,9 +91,13 @@ function App() {
     banState = { bannedCards: [], hiddenDecks: 0 },
     sliceDeckCounts = { selected: {}, preceding: {} },
     sizeClassEventIds = null,
+    playerCorpus = [],
     loading,
     error,
-  } = useMetagame(format, metaWindow, { eventId, sizeClass })
+    // The player views ignore the event filter, so the breakdown they read tiers
+    // and archetype options from must not be event-narrowed either. The stored
+    // `eventId` is kept and applies again on return to the dashboard.
+  } = useMetagame(format, metaWindow, { eventId: playerView.open ? null : eventId, sizeClass })
   const lastUpdated = useLastUpdated(format)
 
   // Which archetype card is expanded to show its decklists. Collapses whenever the
@@ -100,14 +112,18 @@ function App() {
 
   // Filters are format-specific; reset to defaults when the format changes. Only
   // on an actual change — not on mount, which would discard an `?a=` deep link.
+  // A Player view is format-scoped too, so it falls back to the new format's
+  // rankings; the Players view itself stays open.
   const previousFormat = useRef(format)
+  const { clearPlayer } = playerView
   useEffect(() => {
     if (previousFormat.current === format) return
     previousFormat.current = format
     setEventId(null)
     setArchetypeName(null)
     setTier(null)
-  }, [format, setArchetypeName])
+    clearPlayer()
+  }, [format, setArchetypeName, clearPlayer])
 
   // Auto-reset a filter whose selection is no longer valid after a format/window/
   // other-filter change (silent — no stale selection). The Tier filter's options
@@ -310,6 +326,27 @@ function App() {
     setTier(null)
   }
 
+  // Player views: the window/size corpus (never event-narrowed) further narrowed
+  // by the same archetype resolution the trending tables use, so "top pilots of
+  // X" and the tier rule cannot drift from them. Rankings, counts and a Player
+  // view's decks all read these groups, so they can never disagree.
+  const playerGroups = useMemo(() => {
+    const names = archetypeFiltered
+      ? new Set([archetypeName])
+      : tierFiltered
+        ? new Set(breakdown.filter((a) => a.tier === tier).map((a) => a.name))
+        : null
+    return groupPlayers(names === null ? playerCorpus : playerCorpus.filter((d) => names.has(d.archetypeName)))
+  }, [playerCorpus, archetypeFiltered, archetypeName, tierFiltered, tier, breakdown])
+  const topPlayers = useMemo(() => rankTopPlayers(playerGroups), [playerGroups])
+  const topGrinders = useMemo(() => rankTopGrinders(playerGroups), [playerGroups])
+  const requestedKey = playerView.player === null ? null : playerKey(playerView.player)
+  const selectedPlayer = requestedKey === null ? null : (playerGroups.find((g) => g.key === requestedKey) ?? null)
+  // What narrows the player views, named in their caption: archetype or tier,
+  // then size. The event is absent on purpose — those views ignore it.
+  const narrowingLabel = archetypeFiltered ? archetypeName : tierFiltered ? tierLabel : null
+  const playersCaption = [narrowingLabel, sizeLabel].filter(Boolean).join(' — ') || t('players.caption')
+
   // "View all lists →" on an expanded card: the same isolation the Archetype filter
   // performs, but as a navigation into the archetype (Back returns to the grid).
   // The card can sit far down the grid, so bring the isolated view's top into
@@ -319,6 +356,18 @@ function App() {
     selectArchetype(name, { push: true })
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     mainRef.current?.scrollTo?.({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
+  }
+  const scrollToTop = () => mainRef.current?.scrollTo?.({ top: 0 })
+  // Navigation into the player views pushes a history entry, so Back undoes it.
+  const openPlayersView = () => {
+    setRanking('top')
+    playerView.openPlayers({ push: true })
+    if (narrow) setSidebarOpen(false)
+    scrollToTop()
+  }
+  const openPlayer = (name: string) => {
+    playerView.openPlayer(name, { push: true })
+    scrollToTop()
   }
 
   // Header StatCard strip: the hook's totals reflect the format/window/event
@@ -513,6 +562,7 @@ function App() {
                 onChange={setEventId}
                 sizeClass={sizeClass}
                 onSizeClassChange={selectSizeClass}
+                disabled={playerView.open}
               />
               <ArchetypeSelector
                 value={archetypeName}
@@ -521,6 +571,7 @@ function App() {
               />
               <TierSelector value={tier} onChange={selectTier} />
               <ClearFiltersButton disabled={!filtersActive} onClear={clearFilters} />
+              <ExploreNav active={playerView.open} onOpenPlayers={openPlayersView} />
             </div>
           </aside>
         )}
@@ -562,10 +613,12 @@ function App() {
               >
                 {metaWindow === '7days' ? `${windowLabel} →` : `← ${windowLabel}`}
               </button>
-              {/* StatCard strip: right-aligned on the title row (title stays left). */}
+              {/* StatCard strip: right-aligned on the title row (title stays left).
+                  Dashboard only — its numbers describe the metagame grid. */}
               {/* Each card opens the filter that breaks its number down: Events →
                   the event filter, Archetypes → the archetype filter, Decks →
                   the tier filter (730 decks grouped, rather than listed). */}
+              {!playerView.open && (
               <div data-testid="stat-strip" className="stat-strip">
                 <StatCard
                   value={stat(stripTotals.events)}
@@ -586,6 +639,7 @@ function App() {
                   open={openFilter === 'tier'}
                 />
               </div>
+              )}
             </div>
             {/* Caption row: caption + freshness on the left, Reset right-aligned
                 against the block on both layouts. */}
@@ -603,7 +657,7 @@ function App() {
                     color: 'var(--neon-text-soft)',
                   }}
                 >
-                  {gridCaption}
+                  {playerView.open ? playersCaption : gridCaption}
                 </div>
                 {freshness && (
                   <div
@@ -633,6 +687,40 @@ function App() {
             </div>
 
             {/* Main */}
+            {playerView.open ? (
+              <div style={{ marginTop: 'var(--sp-6)' }}>
+                <BanNotice
+                  formatCode={format}
+                  bannedCards={banState.bannedCards}
+                  hiddenDecks={banState.hiddenDecks}
+                />
+                {loading ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
+                    <Spinner label={t('dashboard.loading')} />
+                  </div>
+                ) : error ? (
+                  <EmptyState message={t('dashboard.empty')} />
+                ) : playerView.player !== null ? (
+                  <PlayerView
+                    player={selectedPlayer}
+                    requestedName={playerView.player}
+                    context={narrowingLabel}
+                    onSelectDeck={setSelectedDeck}
+                    onBack={playerView.leave}
+                  />
+                ) : (
+                  <PlayersView
+                    ranking={ranking}
+                    onRankingChange={setRanking}
+                    topPlayers={topPlayers}
+                    topGrinders={topGrinders}
+                    onSelectPlayer={(player: PlayerGroup) => openPlayer(player.displayName)}
+                    onBack={playerView.leave}
+                  />
+                )}
+              </div>
+            ) : (
+              <>
             <div style={{ marginTop: 'var(--sp-6)' }}>
               {/* Above the grid, below the stat strip: it explains the numbers,
                   so it has to be read before them. Renders nothing unless this
@@ -810,12 +898,30 @@ function App() {
             )}
               </>
             )}
+              </>
+            )}
           </div>
           <Footer onNavigate={setPage} />
         </main>
       </div>
 
-      {selectedDeck && <DecklistModal deck={selectedDeck} format={format} onClose={() => setSelectedDeck(null)} />}
+      {selectedDeck && (
+        <DecklistModal
+          deck={selectedDeck}
+          format={format}
+          onClose={() => setSelectedDeck(null)}
+          // Inside a Player view the modal's deck is that player's own, so the
+          // name stays text there.
+          onPlayerSelect={
+            playerView.player === null
+              ? (name) => {
+                  setSelectedDeck(null)
+                  openPlayer(name)
+                }
+              : undefined
+          }
+        />
+      )}
       {openFilter === 'event' && (
         <FilterModal
           title={t('filters.event')}
