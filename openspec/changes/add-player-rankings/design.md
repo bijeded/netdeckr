@@ -89,6 +89,7 @@ Both are cheap to reverse if the preview argues otherwise.
 
 No data or schema migration. Ship on a feature branch and confirm on the Vercel preview (user-visible, CLAUDE.md exception 1, not merged without approval). If the preview is rejected, close the PR and delete the branch. Production is untouched until merge. After merge, rollback is a revert of the PR.
 
-## Open Questions
+### 11. Most-played archetype in ranking rows
+This resolves the former open question: after reviewing the preview, the user asked for it. `groupPlayers` adds `topArchetype` (name + color identity), picked by the same most-common-with-recency-tie-break rule as the display name, through one shared `mostCommon` helper. The row stacks it under the name as a faint secondary line with pips, so the name stays the row's lead and the events/wins columns keep their alignment. Pending visual confirmation on the preview.
 
-- Whether ranking rows should also show the player's most-played archetype. This is additive, decide on the preview.
+Known redundancy: with an archetype isolated, every row repeats that archetype. It is kept for now (it confirms the narrowing). If it reads as noise on the preview, it can be hidden in that state.

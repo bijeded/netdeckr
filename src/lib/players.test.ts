@@ -69,6 +69,23 @@ describe('groupPlayers', () => {
     expect(groups[0].displayName).toBe('Moxlessguy')
   })
 
+  it('names the most-played archetype, with its color identity', () => {
+    const g = groupPlayers([
+      deck({ archetypeName: 'Kuldotha', colorIdentity: 'R', eventDate: '2026-10-09' }),
+      deck({ archetypeName: 'Affinity', colorIdentity: 'U', eventDate: '2026-10-01' }),
+      deck({ archetypeName: 'Affinity', colorIdentity: 'U', eventDate: '2026-10-02' }),
+    ])[0]
+    expect(g.topArchetype).toEqual({ name: 'Affinity', colorIdentity: 'U' })
+  })
+
+  it('breaks a most-played archetype tie by the most recent deck', () => {
+    const g = groupPlayers([
+      deck({ archetypeName: 'Affinity', eventDate: '2026-10-01' }),
+      deck({ archetypeName: 'Kuldotha', eventDate: '2026-10-09' }),
+    ])[0]
+    expect(g.topArchetype.name).toBe('Kuldotha')
+  })
+
   it('drops decks with an empty pilot name', () => {
     expect(groupPlayers([deck({ player: '' }), deck({ player: '  ' })])).toEqual([])
   })

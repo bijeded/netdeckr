@@ -23,6 +23,8 @@ export interface PlayerGroup {
   key: string
   /** Most common spelling across the decks; ties go to the most recent deck's. */
   displayName: string
+  /** Archetype on most of the decks; ties go to the most recent deck's. */
+  topArchetype: { name: string; colorIdentity: string }
   /** Most recent event first, best finish first within an event. */
   decks: PlayerDeck[]
   /** Distinct events (two decks in one event count once). */
@@ -69,21 +71,22 @@ function byRecencyThenFinish(a: PlayerDeck, b: PlayerDeck): number {
   )
 }
 
-function displayNameOf(sortedDecks: PlayerDeck[]): string {
+/**
+ * The deck whose `keyOf` value is most frequent. Decks are most-recent-first,
+ * so the first to reach the top count is the most recent one among the tied.
+ */
+function mostCommon(sortedDecks: PlayerDeck[], keyOf: (deck: PlayerDeck) => string): PlayerDeck {
   const counts = new Map<string, number>()
   for (const deck of sortedDecks) {
-    const name = deck.player.trim()
-    counts.set(name, (counts.get(name) ?? 0) + 1)
+    const key = keyOf(deck)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
   }
-  // Decks are most-recent-first, so the first spelling to reach the top count
-  // is the most recent one among the tied.
-  let best = ''
+  let best = sortedDecks[0]
   let bestCount = 0
   for (const deck of sortedDecks) {
-    const name = deck.player.trim()
-    const count = counts.get(name)!
+    const count = counts.get(keyOf(deck))!
     if (count > bestCount) {
-      best = name
+      best = deck
       bestCount = count
     }
   }
@@ -109,9 +112,11 @@ export function groupPlayers(decks: PlayerDeck[]): PlayerGroup[] {
       if (deck.eventId === null) eventless += 1
       else eventIds.add(deck.eventId)
     }
+    const topDeck = mostCommon(sorted, (d) => d.archetypeName)
     groups.push({
       key,
-      displayName: displayNameOf(sorted),
+      displayName: mostCommon(sorted, (d) => d.player.trim()).player.trim(),
+      topArchetype: { name: topDeck.archetypeName, colorIdentity: topDeck.colorIdentity },
       decks: sorted,
       events: eventIds.size + eventless,
       wins: sorted.filter((d) => !d.unranked && placementBadge(d.placement).kind === 'first').length,

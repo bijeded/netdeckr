@@ -13,11 +13,12 @@
 
 - [x] 3.1 Build `ExploreNav`, `PlayersView`, `PlayerRankingRow` and `PlayerView`; add the `lead` prop to `DeckCard`; add `onPlayerSelect` to `DecklistModal` and `disabled` to `EventSelector` (design §5–8). Add every new string to `src/locales/en.json` and `es.json` ("Top Jugadores" / "Top Grinders", empty states, "← Metagame", "← Back", the player-link accessible label). Verify with component tests covering the players-view "Players view layout" and "Player view" scenarios and the archetype-decklists-view modal-link scenarios (link opens the view, plain text in the player's own view, keyboard activation, localized label). Verify that `DeckCard` with the default `lead` renders as before.
 - [x] 3.2 Wire the views into `App.tsx`: branch the main column on `?v=players`, pass `playerCorpus` narrowed by the trending archetype-name resolution, disable the Event filter in the views while keeping its selection, clear `?p=` on format change, keep the view on "Clear filters", and close the drawer on narrow viewports when the nav row is used. Verify with `App` tests for the "Filters inside the player views" and "Player views persisted in the URL" scenarios: top pilots of an isolated archetype, the tier filter applies, the event filter is disabled but survives a round trip, Clear filters stays in the view, a format switch keeps the Players view, and Back from a Player view goes to the Players view and then to the dashboard.
+- [x] 3.3 Show each ranked player's most-played archetype (with pips; ties to the most recent deck) beneath the name in `PlayerRankingRow` (design §11). Verify with `players.test.ts` (most-played and tie-break cases) and `PlayersView.test.tsx` (archetype and pips render in the row).
 
 ## 4. Integration and preview
 
 - [x] 4.1 Run `npm run lint`, `npm run type-check` and `npm run test`; all pass.
-- [ ] 4.2 Push the `task/add-player-rankings` branch and open a PR. Confirm on the Vercel preview, desktop and phone: the nav row reads as navigation rather than a filter, the ranking layout, the defaults from design §10 (tier applies, drawer-only mobile entry), and the open question about the most-played archetype. Record the confirmed visual values in design.md §9. Do not merge until the user approves: user-visible change, CLAUDE.md exception 1.
+- [ ] 4.2 Push the `task/add-player-rankings` branch and open a PR. Confirm on the Vercel preview, desktop and phone: the nav row reads as navigation rather than a filter, the ranking layout, the defaults from design §10 (tier applies, drawer-only mobile entry), and the most-played archetype line (design §11). Record the confirmed visual values in design.md §9. Do not merge until the user approves: user-visible change, CLAUDE.md exception 1.
 
 ## Workflow follow-up
 

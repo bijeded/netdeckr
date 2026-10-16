@@ -120,6 +120,21 @@ The Players view SHALL replace the dashboard's main column below the format titl
 - **WHEN** the UI language is Spanish
 - **THEN** the toggle reads "Top Jugadores" / "Top Grinders" and every other label is in Spanish, while player names stay as scraped
 
+### Requirement: Most-played archetype in ranking rows
+Each ranking row SHALL show, beneath the player name, the archetype the player registered most often in the active subset, with its color pips. A tie SHALL go to the archetype of the player's most recent deck among the tied. The archetype name SHALL stay in English in both locales.
+
+#### Scenario: Most-played archetype is shown
+- **WHEN** a ranked player has two Affinity decks and one Kuldotha deck in the active subset
+- **THEN** their row shows "Affinity" with Affinity's color pips beneath the player name
+
+#### Scenario: Tie goes to the most recent deck
+- **WHEN** a ranked player has one Affinity deck and one more recent Kuldotha deck
+- **THEN** their row shows "Kuldotha"
+
+#### Scenario: Follows the active filters
+- **WHEN** an archetype is isolated and the Players view is open
+- **THEN** every row's most-played archetype is the isolated archetype, since only its decks are counted
+
 ### Requirement: Player view
 The Player view SHALL show the player's display name, their distinct events and wins, and every one of their decks in the active subset, most recent event first. Each deck row SHALL show placement, archetype with its color pips, event name and date, and activating it SHALL open the existing decklist modal. A localized "← Back" control SHALL leave the view.
 

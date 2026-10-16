@@ -7,7 +7,15 @@ import type { PlayerGroup } from '../lib/players'
 afterEach(() => i18n.changeLanguage('en'))
 
 function player(name: string, events: number, wins: number): PlayerGroup {
-  return { key: name.toLowerCase(), displayName: name, decks: [], events, wins, score: 0 }
+  return {
+    key: name.toLowerCase(),
+    displayName: name,
+    topArchetype: { name: 'Boros Energy', colorIdentity: 'RW' },
+    decks: [],
+    events,
+    wins,
+    score: 0,
+  }
 }
 
 const topPlayers = [player('rastaf', 7, 2), player('Slasher21', 2, 1), player('Noah Walters', 2, 0)]
@@ -37,6 +45,13 @@ describe('PlayersView', () => {
     expect(rows()[0]).toHaveTextContent('rastaf')
     expect(rows()[0]).toHaveTextContent('7 events')
     expect(within(rows()[0]).getByRole('img', { name: '2 event wins' })).toBeInTheDocument()
+  })
+
+  it("shows each player's most-played archetype with its pips", () => {
+    renderView()
+    const archetype = within(rows()[0]).getByTestId('player-top-archetype')
+    expect(archetype).toHaveTextContent('Boros Energy')
+    expect(within(archetype).getAllByTestId('mana-pip')).toHaveLength(2)
   })
 
   it('omits the trophy for a player with no wins', () => {
