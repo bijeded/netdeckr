@@ -12,6 +12,11 @@ vi.mock('./components/ArchetypeAnalysis', () => {
 })
 vi.mock('./hooks/useFormatSelection', () => ({ useFormatSelection: () => ({ format: 'ST', setFormat: vi.fn() }) }))
 vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => null }))
+// Mocked like App.test.tsx's hooks, so the real Supabase client (which needs
+// env vars CI does not set) is never constructed.
+vi.mock('./hooks/useDeckCards', () => ({
+  useDeckCards: () => ({ main: [], side: [], mainCount: 0, sideCount: 0, loading: false, error: null }),
+}))
 vi.mock('./hooks/useTrendingCards', () => ({
   useTrendingCards: () => ({ creatures: [], spells: [], sideboard: [], newCards: [], loading: false, error: null, newCardsError: null }),
 }))
