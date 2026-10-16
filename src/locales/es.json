@@ -103,7 +103,8 @@
     "viewDeck": "ver deck",
     "viewAll": "Ver todas las listas",
     "viewAllLabel": "Ver todas las listas de {{archetype}}",
-    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
+    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})",
+    "archetypeRowLabel": "{{placement}} — {{archetype}}, {{event}} ({{date}})"
   },
   "modal": {
     "main": "Main",
@@ -171,5 +172,21 @@
     "title": "Algo salió mal",
     "message": "El dashboard tuvo un error inesperado. Intenta recargar la página.",
     "reload": "Recargar página"
+  },
+  "players": {
+    "explore": "Explorar",
+    "nav": "Jugadores",
+    "heading": "Jugadores",
+    "caption": "Jugadores",
+    "backToMetagame": "Metagame",
+    "rankingToggle": "Ranking",
+    "topPlayers": "Top Jugadores",
+    "topGrinders": "Top Grinders",
+    "events_one": "{{count}} evento",
+    "events_other": "{{count}} eventos",
+    "empty": "Ningún jugador tiene 2 o más eventos en esta vista.",
+    "playerEmpty": "{{player}} no tiene mazos en esta vista.",
+    "viewPlayerLabel": "Ver los mazos de {{player}}",
+    "eventFilterOff": "No se aplica en Jugadores"
   }
 }

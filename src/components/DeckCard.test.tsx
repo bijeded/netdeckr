@@ -39,4 +39,12 @@ describe('DeckCard', () => {
     expect(screen.queryByText(/go to deck/)).toBeNull()
     fireEvent.click(button) // does not throw
   })
+
+  it('leads with the archetype and its pips when lead="archetype"', () => {
+    render(<DeckCard deck={deck} lead="archetype" />)
+    expect(screen.getByText('Izzet Control')).toBeInTheDocument()
+    expect(screen.queryByText('Norbspro')).toBeNull()
+    expect(screen.getAllByTestId('mana-pip')).toHaveLength(2)
+    expect(screen.getByRole('button')).toHaveAccessibleName(/Izzet Control/)
+  })
 })

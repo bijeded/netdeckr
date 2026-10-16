@@ -18,6 +18,11 @@ interface DecklistModalProps {
   /** Current format — decides whether the export copies MTG Arena or MTGO text. */
   format: FormatCode
   onClose: () => void
+  /**
+   * Opens the pilot's Player view; the caller closes the modal. Omitted where
+   * the modal is opened from that same player's view, so the name stays text.
+   */
+  onPlayerSelect?: (player: string) => void
 }
 
 const BADGE: Record<PlacementKind, { color: string; bg: string }> = {
@@ -116,7 +121,7 @@ function SectionHeading({ label, count }: { label: string; count: string }) {
 
 /** Full decklist modal: mainboard + sideboard for one deck. Dismissible; returns
  * focus to the element that opened it. */
-export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
+export function DecklistModal({ deck, format, onClose, onPlayerSelect }: DecklistModalProps) {
   const { t, i18n } = useTranslation()
   const { main, side, mainCount, sideCount, loading, error } = useDeckCards(deck.id)
   const mainGroups = useMemo(() => groupMainByType(main), [main])
@@ -303,7 +308,19 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
             <span style={badgeStyle}>{badge.label}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', color: 'var(--text-faint)', fontSize: 'var(--fs-sm)' }}>
-            <span style={{ color: 'var(--text-secondary)', fontWeight: 'var(--fw-semibold)' }}>{deck.player}</span>
+            {onPlayerSelect && deck.player.trim() !== '' ? (
+              <button
+                type="button"
+                data-testid="modal-player-link"
+                className="player-link"
+                aria-label={t('players.viewPlayerLabel', { player: deck.player })}
+                onClick={() => onPlayerSelect(deck.player)}
+              >
+                {deck.player}
+              </button>
+            ) : (
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 'var(--fw-semibold)' }}>{deck.player}</span>
+            )}
             <span>·</span>
             <span>{deck.eventName}</span>
             <span>·</span>

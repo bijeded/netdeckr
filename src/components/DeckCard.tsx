@@ -3,11 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { placementBadge, type PlacementKind } from '../lib/placement'
 import { formatShortDate } from '../lib/formatDate'
 import type { DeckRow } from '../lib/deckSelection'
+import { ManaPips } from './ManaPips'
 
 interface DeckCardProps {
   deck: DeckRow
   /** Opens the decklist modal (wired in task group 3). */
   onSelect?: (deck: DeckRow) => void
+  /**
+   * What the row leads with: the pilot (default, inside an archetype) or the
+   * archetype with its pips (inside a Player view, where the pilot is the page).
+   */
+  lead?: 'player' | 'archetype'
 }
 
 // Position-badge colours by finish kind (design: 1st green, 2nd cyan, Top 4 violet).
@@ -18,14 +24,15 @@ const BADGE: Record<PlacementKind, { color: string; bg: string }> = {
   other: { color: 'var(--text-faint)', bg: 'rgba(255,255,255,.06)' },
 }
 
-export function DeckCard({ deck, onSelect }: DeckCardProps) {
+export function DeckCard({ deck, onSelect, lead = 'player' }: DeckCardProps) {
   const { t, i18n } = useTranslation()
   const badge = placementBadge(deck.placement)
   const badgeColors = BADGE[badge.kind]
   const dateLabel = formatShortDate(deck.eventDate, i18n.language)
-  const label = t('decks.rowLabel', {
+  const label = t(lead === 'archetype' ? 'decks.archetypeRowLabel' : 'decks.rowLabel', {
     placement: badge.label,
     player: deck.player,
+    archetype: deck.archetypeName,
     event: deck.eventName,
     date: dateLabel,
   })
@@ -71,9 +78,17 @@ export function DeckCard({ deck, onSelect }: DeckCardProps) {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
+          ...(lead === 'archetype' && { display: 'flex', alignItems: 'center', gap: 6 }),
         }}
       >
-        {deck.player}
+        {lead === 'archetype' ? (
+          <>
+            <ManaPips colors={deck.colorIdentity} size={11} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{deck.archetypeName}</span>
+          </>
+        ) : (
+          deck.player
+        )}
       </div>
       <div
         style={{
