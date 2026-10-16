@@ -4,8 +4,8 @@
 // happens in JSX. See openspec/changes/archetype-analysis/design.md (Decision 4).
 //
 // The analysis deliberately ignores the sidebar filters: it takes the whole
-// legal corpus and slices it to 2 weeks itself. Share, share change, tier, and
-// wins are produced by the grid's own functions over that slice, so they match
+// legal corpus and slices it to 2 weeks itself. Share, tier, and wins are
+// produced by the grid's own functions over that slice, so they match
 // the archetype card on the unfiltered Last 2 Weeks view by construction.
 
 import { cardCategory, type CardTypeCategory } from './cardType'
@@ -13,7 +13,6 @@ import { exportTarget } from './deckExport'
 import type { FormatCode } from './formats'
 import { attachPowerTiers, deriveBreakdown, type DeckForBreakdown } from './metagame'
 import { archetypePowerScore, finishQuality } from './powerScore'
-import { shareDeltas, type ShareDelta } from './shareDelta'
 import { EVENT_SIZE_CLASSES, sizeClassOf, type EventSizeClass } from './eventSize'
 import type { StockCard } from './stockList'
 import type { Tier } from './tiers'
@@ -66,13 +65,10 @@ export interface Performance {
   eventCount: number
   wins: number
   sharePct: number
-  shareDelta: ShareDelta | null
   tier: Tier
   powerScore: number
   /** Decks from ranked events with a parseable standing — the funnel's population. */
   rankedDecks: number
-  /** Decks from unranked events (e.g. MTGO Leagues), kept out of the funnel. */
-  unrankedDecks: number
   /** Share of ranked decks finishing Top 8 or better, 0–100; null with no ranked decks. */
   top8Rate: number | null
   funnel: FunnelPoint[]
@@ -125,7 +121,7 @@ function forBreakdown(d: AnalysisDeck): DeckForBreakdown {
 
 /**
  * The archetype's performance over the format's Last 2 Weeks, from the whole
- * legal corpus (the extra preceding 2 weeks feed only the share change).
+ * legal corpus.
  * Returns null when the archetype has no deck in the window.
  */
 export function analysePerformance(
@@ -164,27 +160,17 @@ export function analysePerformance(
     unranked.get(archetypeName) ?? [],
   )
 
-  const deltas = shareDeltas(
-    corpus.map((d) => ({ archetypeName: d.archetypeName, eventDate: d.eventDate })),
-    TWO_WEEKS,
-    now,
-  )
-
   // Funnel and top-8 rate count ranked decks only: an unranked event's "1, 2, 3…"
   // is listing order and would otherwise mint champions.
   const funnelCounts = new Map<FunnelBucket, number>(FUNNEL_BUCKETS.map((b) => [b, 0]))
   let rankedDecks = 0
-  let unrankedDecks = 0
   const sizeAcc = new Map<EventSizeClass, { decks: number; qualities: number[] }>()
   for (const d of own) {
     const sizeClass = sizeClassOf(d.playerCount)
     const acc = sizeAcc.get(sizeClass) ?? { decks: 0, qualities: [] }
     acc.decks += 1
     sizeAcc.set(sizeClass, acc)
-    if (d.unranked) {
-      unrankedDecks += 1
-      continue
-    }
+    if (d.unranked) continue
     const bucket = funnelBucket(d.placement)
     if (bucket === null) continue
     rankedDecks += 1
@@ -224,11 +210,9 @@ export function analysePerformance(
     eventCount: new Set(own.map((d) => d.eventId).filter((id) => id !== null)).size,
     wins: entry?.wins ?? 0,
     sharePct: entry?.sharePct ?? 0,
-    shareDelta: deltas?.get(archetypeName) ?? null,
     tier: tiered?.tier ?? 'Otros',
     powerScore,
     rankedDecks,
-    unrankedDecks,
     top8Rate: rankedDecks === 0 ? null : (top8Count / rankedDecks) * 100,
     funnel: FUNNEL_BUCKETS.map((bucket) => ({ bucket, count: funnelCounts.get(bucket) ?? 0 })),
     bySize,

@@ -194,7 +194,7 @@ describe('buildStockList', () => {
     expect(names(result.consensus)).toEqual(['Card A'])
   })
 
-  it('bands consensus rows and marks only stock-list cards', () => {
+  it('bands consensus rows by plain inclusion', () => {
     const lists: Record<number, Line[]> = {}
     for (let i = 1; i <= 32; i++) {
       const lines: Line[] = sixty(24, 'base')
@@ -209,8 +209,6 @@ describe('buildStockList', () => {
     expect(byName.get('Staple')).toMatchObject({ band: 'core', decks: 30 })
     expect(byName.get('Flexy')).toMatchObject({ band: 'flex', decks: 12 })
     expect(byName.get('Spicy')).toMatchObject({ band: 'spicy', decks: 2 })
-    const inStock = result.consensus.filter((r) => r.inStock).map((r) => r.name).sort()
-    expect(inStock).toEqual(names(result.main).sort())
   })
 
   it('returns an empty result when no rows match the corpus', () => {

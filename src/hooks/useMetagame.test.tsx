@@ -849,14 +849,13 @@ describe('useMetagame', () => {
       expect(result.current.corpus.map((d) => d.id)).not.toContain(3)
     })
 
-    it('yields the same share, delta, tier, and wins as the unfiltered 2-week card', async () => {
+    it('yields the same share, tier, and wins as the unfiltered 2-week card', async () => {
       queryResult.data = analysisRows()
       const { result } = renderHook(() => useMetagame('ST', '2weeks'))
       await waitFor(() => expect(result.current.loading).toBe(false))
       for (const card of result.current.breakdown) {
         const perf = analysePerformance(result.current.corpus, card.name)!
         expect(perf.sharePct).toBe(card.sharePct)
-        expect(perf.shareDelta).toEqual(card.shareDelta)
         expect(perf.tier).toBe(card.tier)
         expect(perf.wins).toBe(card.wins)
       }

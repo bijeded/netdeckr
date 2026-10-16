@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { Bar, BarChart, LabelList, ResponsiveContainer, XAxis } from 'recharts'
+import { Bar, BarChart, Cell, LabelList, Pie, PieChart, ResponsiveContainer, XAxis } from 'recharts'
+import type { CardTypeCategory } from '../lib/cardType'
 import { WILDCARD_RARITIES, type CurvePoint, type TypeSplitPoint, type WildcardCost } from '../lib/archetypeAnalysis'
 
 interface CompositionRailProps {
@@ -8,6 +9,14 @@ interface CompositionRailProps {
   /** null outside Arena formats — the wildcard block is then not rendered. */
   wildcards: WildcardCost | null
   smallSample: boolean
+}
+
+/** Segment colours, matching the legend dots' CSS classes. */
+const TYPE_COLOR: Record<CardTypeCategory, string> = {
+  lands: 'var(--text-muted)',
+  creatures: 'var(--neon-500)',
+  spells: 'var(--band-flex)',
+  other: 'var(--band-spicy)',
 }
 
 /**
@@ -67,28 +76,44 @@ export function CompositionRail({ curve, types, wildcards, smallSample }: Compos
 
       <div className="analysis-rail-block" data-testid="type-split">
         <h4 className="analysis-subtitle">{t('analysis.composition.typesTitle')}</h4>
-        <div className="analysis-type-bar" aria-hidden="true">
-          {types
-            .filter((p) => p.count > 0)
-            .map((p) => (
-              <span
-                key={p.category}
-                className={`analysis-type-seg analysis-type-${p.category}`}
-                style={{ flexGrow: p.count }}
-              />
-            ))}
+        {/* A small doughnut beside its legend, so it fits the 280px rail and the
+            phone column without growing the rail's height. */}
+        <div className="analysis-types">
+          <div className="analysis-doughnut" aria-hidden="true">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={types.filter((p) => p.count > 0)}
+                  dataKey="count"
+                  nameKey="category"
+                  innerRadius="62%"
+                  outerRadius="100%"
+                  paddingAngle={2}
+                  stroke="none"
+                  isAnimationActive={false}
+                >
+                  {types
+                    .filter((p) => p.count > 0)
+                    .map((p) => (
+                      <Cell key={p.category} fill={TYPE_COLOR[p.category]} />
+                    ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <span className="analysis-doughnut-total">{typeTotal}</span>
+          </div>
+          <ul className="analysis-legend">
+            {types
+              .filter((p) => p.count > 0)
+              .map((p) => (
+                <li key={p.category}>
+                  <span className={`analysis-legend-dot analysis-type-${p.category}`} aria-hidden="true" />
+                  <span>{t(`modal.group.${p.category}`)}</span>
+                  <span className="analysis-figure">{p.count}</span>
+                </li>
+              ))}
+          </ul>
         </div>
-        <ul className="analysis-legend">
-          {types
-            .filter((p) => p.count > 0)
-            .map((p) => (
-              <li key={p.category}>
-                <span className={`analysis-legend-dot analysis-type-${p.category}`} aria-hidden="true" />
-                <span>{t(`modal.group.${p.category}`)}</span>
-                <span className="analysis-figure">{p.count}</span>
-              </li>
-            ))}
-        </ul>
         <span className="visually-hidden">{t('analysis.composition.cards', { count: typeTotal })}</span>
       </div>
 
@@ -104,7 +129,6 @@ export function CompositionRail({ curve, types, wildcards, smallSample }: Compos
               </li>
             ))}
           </ul>
-          <p className="analysis-muted">{t('analysis.composition.wildcardsApprox')}</p>
         </div>
       )}
     </aside>

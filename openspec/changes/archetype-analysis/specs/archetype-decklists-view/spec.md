@@ -32,11 +32,11 @@ An expanded archetype card that is not already isolated SHALL show a localized "
 ## ADDED Requirements
 
 ### Requirement: Open the archetype analysis from an expanded card
-An expanded archetype card that is not already isolated SHALL show a localized "Analysis →" control beside "View all lists →", with the same treatment. Activating it SHALL open the isolated archetype view for that archetype with the Analysis tab selected, bring that view's top into sight, and add a history entry so Back returns to the grid.
+An expanded archetype card that is not already isolated SHALL show a localized "Analysis →" control beside "View all lists →", in the same pill shape with its own distinct accent. Activating it SHALL open the isolated archetype view for that archetype with the Analysis tab selected, bring that view's top into sight, and add a history entry so Back returns to the grid.
 
 #### Scenario: Analysis control appears beside View all lists
 - **WHEN** the user expands an archetype card in the grid with no archetype isolated
-- **THEN** the recent-decklists header shows an "Analysis →" control (localized) beside "View all lists →", with the same emphasis
+- **THEN** the recent-decklists header shows an "Analysis →" control (localized) beside "View all lists →", the same pill shape in a distinct accent that is not the share-delta trend colors
 
 #### Scenario: Analysis control opens the Analysis tab
 - **WHEN** the user activates "Analysis →" on an expanded archetype card

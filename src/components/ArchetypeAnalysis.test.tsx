@@ -58,7 +58,7 @@ function rowsFor(n: number): CardStatRow[] {
 
 function renderAnalysis(props: Partial<Parameters<typeof ArchetypeAnalysis>[0]> = {}) {
   return render(
-    <ArchetypeAnalysis format="ST" archetypeName="Dimir Aggro" corpus={corpusOf(6)} filtersActive={false} {...props} />,
+    <ArchetypeAnalysis format="ST" archetypeName="Dimir Aggro" corpus={corpusOf(6)} {...props} />,
   )
 }
 
@@ -74,13 +74,6 @@ describe('ArchetypeAnalysis', () => {
     renderAnalysis()
     expect(screen.getByText('Last 2 weeks · all events')).toBeInTheDocument()
     expect(screen.getByText(/6 decks · 2 events/)).toBeInTheDocument()
-  })
-
-  it('notes that sidebar filters apply to Lists only, only while one is active', () => {
-    const { rerender } = renderAnalysis()
-    expect(screen.queryByTestId('analysis-filter-note')).toBeNull()
-    rerender(<ArchetypeAnalysis format="ST" archetypeName="Dimir Aggro" corpus={corpusOf(6)} filtersActive />)
-    expect(screen.getByTestId('analysis-filter-note')).toHaveTextContent('Sidebar filters apply to the Lists tab only.')
   })
 
   it('shows the stock list first, as a grouped decklist', () => {
@@ -161,20 +154,25 @@ describe('ArchetypeAnalysis', () => {
   })
 
   describe('sections', () => {
-    it('shows performance figures, the ranked funnel, and the unranked count', () => {
+    it('shows six stat cards and a funnel of ranked finishes only', () => {
       const corpus = corpusOf(6).map((d, i) =>
         i === 5 ? { ...d, unranked: true, playerCount: null } : { ...d, placement: ['1', '2', '3-4', '5-8', '9-16'][i] },
       )
       renderAnalysis({ corpus })
-      const perf = screen.getByTestId('analysis-performance')
-      expect(within(perf).getByText('100.0%')).toBeInTheDocument()
+      const stats = screen.getByTestId('analysis-stats')
+      const labels = within(stats).getAllByText(/./, { selector: '.stat-card-label' }).map((l) => l.textContent)
+      expect(labels).toEqual(['Share', 'Tier', 'Power Score', 'Top 8 rate', 'Wins', 'Decks'])
+      expect(within(stats).getByText('100.0%')).toBeInTheDocument()
+      // Tier reads as plain stat text, like the other cards — not a badge.
+      expect(within(stats).queryByTestId(/tier-badge/)).toBeNull()
+      expect(within(stats).getByText('80%')).toBeInTheDocument()
+      // The unranked (league) deck is left out of the funnel, without a note.
       const funnel = within(screen.getByTestId('analysis-funnel')).getAllByRole('listitem')
       expect(funnel.map((li) => li.textContent)).toEqual(['1st1', '2nd1', 'Top 41', 'Top 81', 'Beyond Top 81'])
-      expect(within(perf).getByText('80%')).toBeInTheDocument()
-      expect(screen.getByTestId('analysis-unranked')).toHaveTextContent('1 league deck (no standings) not counted')
+      expect(screen.queryByText(/league deck/)).toBeNull()
     })
 
-    it('bands consensus rows and marks stock-list cards', () => {
+    it('bands consensus rows with plain inclusion and average copies', () => {
       const ids = [1, 2, 3, 4, 5, 6]
       cardStats.rows = [
         row('Island', 20, 'Basic Land — Island', ids),
@@ -189,11 +187,10 @@ describe('ArchetypeAnalysis', () => {
       expect(byName('Bomb')).toHaveAttribute('data-band', 'core')
       expect(byName('Spice')).toHaveAttribute('data-band', 'spicy')
       expect(within(byName('Bomb')).getByText('6/6')).toBeInTheDocument()
-      expect(within(byName('Bomb')).getByTestId('in-stock')).toBeInTheDocument()
-      expect(within(byName('Spice')).queryByTestId('in-stock')).toBeNull()
+      expect(within(byName('Bomb')).getByText('40.0x')).toBeInTheDocument()
+      expect(within(table).getByRole('columnheader', { name: 'Avg' })).toBeInTheDocument()
       const side = screen.getByTestId('sideboard-plan')
       expect(within(side).getByText('Answer')).toBeInTheDocument()
-      expect(within(side).getByTestId('in-stock')).toBeInTheDocument()
     })
 
     it('lists the curve values and type split for the stock list', () => {
@@ -222,6 +219,35 @@ describe('ArchetypeAnalysis', () => {
       for (const id of ['stock-list', 'consensus-table', 'sideboard-plan', 'mana-curve']) {
         expect(within(screen.getByTestId(id)).getByTestId('small-sample')).toBeInTheDocument()
       }
+    })
+
+    it('pages the consensus table ten rows at a time', () => {
+      const ids = [1, 2, 3, 4, 5, 6]
+      cardStats.rows = [
+        row('Island', 20, 'Basic Land — Island', ids),
+        ...Array.from({ length: 23 }, (_, i) => row(`Spell ${String(i).padStart(2, '0')}`, 1, 'Instant', ids.slice(0, 6 - (i % 6)))),
+      ]
+      renderAnalysis()
+      const table = screen.getByTestId('consensus-table')
+      const bodyRows = () => within(table).getAllByRole('row').slice(1)
+      expect(bodyRows()).toHaveLength(10)
+      expect(within(table).getByText('1 / 3')).toBeInTheDocument()
+      const prev = within(table).getByRole('button', { name: 'Previous page' })
+      const next = within(table).getByRole('button', { name: 'Next page' })
+      expect(prev).toBeDisabled()
+      const firstPage = bodyRows().map((r) => r.textContent)
+
+      fireEvent.click(next)
+      expect(within(table).getByText('2 / 3')).toBeInTheDocument()
+      expect(bodyRows().map((r) => r.textContent)).not.toEqual(firstPage)
+      fireEvent.click(next)
+      expect(bodyRows()).toHaveLength(4)
+      expect(next).toBeDisabled()
+    })
+
+    it('shows no pager when every row fits on one page', () => {
+      renderAnalysis()
+      expect(within(screen.getByTestId('consensus-table')).queryByRole('navigation')).toBeNull()
     })
   })
 })

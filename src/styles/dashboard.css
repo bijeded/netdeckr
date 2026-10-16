@@ -623,6 +623,18 @@
     min-height: 32px;
   }
 }
+/* "Analysis →" beside it: the same pill in the T2 cyan, so the two entries read
+   as two destinations rather than one control repeated. Text ~10:1 on the
+   expanded card's tinted panel (~7.8:1 on hover). Pending preview confirmation. */
+.view-all-pill--analysis {
+  background: rgba(127, 216, 255, 0.1);
+  border-color: rgba(127, 216, 255, 0.45);
+  color: var(--tier-2-on-dark);
+}
+.view-all-pill--analysis:hover {
+  background: rgba(127, 216, 255, 0.2);
+  border-color: rgba(127, 216, 255, 0.7);
+}
 
 /* Expanded card's deck-list header: heading left, count + pill pushed right on
    one row, with the deck grid's own gap below it. On phones the pill takes its
@@ -734,11 +746,6 @@
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   color: var(--text-secondary);
-}
-.analysis-scope-note {
-  flex: 1 0 100%;
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
 }
 .analysis-panel {
   background: var(--surface-card);
@@ -852,9 +859,6 @@
   gap: var(--sp-6);
   padding: 18px 22px 22px;
 }
-.analysis-panel-hint {
-  flex: 1 0 100%;
-}
 .analysis-subtitle {
   margin: 0 0 var(--sp-3);
   font-family: var(--font-display);
@@ -880,35 +884,20 @@
   color: var(--text-muted);
 }
 
-/* Headline figures. */
+/* Headline figures: the header strip's StatCards, six to a row on wide
+   screens and three by two on phones. */
 .analysis-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--sp-3);
 }
-.analysis-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border-soft);
-  background: var(--surface-faint);
+.analysis-stats .stat-card {
+  min-width: 0;
 }
-.analysis-stat-value {
-  display: flex;
-  align-items: center;
-  min-height: 28px;
-  font-family: var(--font-mono);
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-bold);
-  color: var(--text-primary);
-}
-.analysis-stat-label {
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--track-wide);
-  text-transform: uppercase;
-  color: var(--text-muted);
+@media (max-width: 760px) {
+  .analysis-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .analysis-perf-grid {
@@ -991,25 +980,38 @@
 .analysis-curve {
   height: 120px;
 }
-.analysis-type-bar {
+.analysis-types {
   display: flex;
-  gap: 2px;
-  height: 10px;
-  border-radius: var(--r-pill);
-  overflow: hidden;
+  align-items: center;
+  gap: var(--sp-4);
 }
-.analysis-type-seg {
-  flex-basis: 0;
+.analysis-doughnut {
+  position: relative;
+  flex: 0 0 96px;
+  height: 96px;
+}
+.analysis-doughnut-total {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  pointer-events: none;
 }
 .analysis-type-lands { background: var(--text-muted); }
 .analysis-type-creatures { background: var(--neon-500); }
 .analysis-type-spells { background: var(--band-flex); }
 .analysis-type-other { background: var(--band-spicy); }
 .analysis-legend {
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px var(--sp-3);
-  margin: var(--sp-3) 0 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin: 0;
   padding: 0;
   list-style: none;
   font-size: var(--fs-xs);
@@ -1050,8 +1052,7 @@
 .analysis-wildcard-pip {
   width: 14px;
   height: 14px;
-  transform: rotate(45deg);
-  border-radius: 3px;
+  border-radius: 50%;
 }
 .analysis-rarity-mythic { background: var(--rarity-mythic); }
 .analysis-rarity-rare { background: var(--rarity-rare); }
@@ -1094,9 +1095,6 @@
 .analysis-table .analysis-num {
   text-align: right;
 }
-.analysis-row {
-  box-shadow: inset 3px 0 0 var(--band-color, transparent);
-}
 .analysis-band-core { --band-color: var(--band-core); }
 .analysis-band-flex { --band-color: var(--band-flex); }
 .analysis-band-spicy { --band-color: var(--band-spicy); }
@@ -1114,26 +1112,10 @@
   text-transform: uppercase;
   color: var(--band-color);
 }
-.analysis-in-stock {
-  color: var(--neon-text);
-  font-size: var(--fs-xs);
-}
-.analysis-inclusion {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-3);
-}
-.analysis-inclusion-track {
-  width: 64px;
-}
-.analysis-bar-inclusion {
-  background: var(--band-color, var(--neon-gradient));
-}
 @media (max-width: 640px) {
   .analysis-panel-body {
     padding: 16px;
   }
-  .analysis-inclusion-track,
   .analysis-band-chip {
     display: none;
   }
@@ -1142,4 +1124,36 @@
     padding-left: 10px;
     padding-right: 10px;
   }
+}
+
+/* Consensus / sideboard pager: ← n / N →, ten rows a page. */
+.analysis-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  padding: 10px 14px;
+}
+.analysis-pager-status {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+.analysis-pager-button {
+  width: 32px;
+  height: 28px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-line);
+  background: var(--surface-faint);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.analysis-pager-button:hover:not(:disabled) {
+  border-color: var(--neon-border);
+  color: var(--neon-text-soft);
+}
+.analysis-pager-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

@@ -65,8 +65,6 @@ export interface ConsensusRow {
   /** Mean copies among the decks that play it. */
   avgCopies: number
   band: ConsensusBand
-  /** Whether the card was placed in the stock list (on the same board). */
-  inStock: boolean
 }
 
 export interface StockListResult {
@@ -243,14 +241,12 @@ export function buildStockList(rows: CardStatRow[], decks: WeightedDeckInput[]):
   )
   // Keep ranking order across both groups; the decklist view groups by type itself.
   const placedByName = new Map([...lands, ...spells].map((c) => [c.name, c]))
-  const placedMain = new Set(placedByName.keys())
   const main = rankedMain
     .map((c) => placedByName.get(c.row.name))
     .filter((c): c is StockCard => c !== undefined)
   const side = fill(rankedSide, sideSize)
-  const placedSide = new Set(side.map((c) => c.name))
 
-  const toRow = (card: RankedCard, placed: Set<string>): ConsensusRow => {
+  const toRow = (card: RankedCard): ConsensusRow => {
     const inclusionPct = (card.decks / deckCount) * 100
     return {
       name: card.row.name,
@@ -260,15 +256,14 @@ export function buildStockList(rows: CardStatRow[], decks: WeightedDeckInput[]):
       inclusionPct,
       avgCopies: card.avgCopies,
       band: bandOf(inclusionPct),
-      inStock: placed.has(card.row.name),
     }
   }
 
   return {
     main,
     side,
-    consensus: rankedMain.map((c) => toRow(c, placedMain)),
-    sideboardPlan: rankedSide.map((c) => toRow(c, placedSide)),
+    consensus: rankedMain.map(toRow),
+    sideboardPlan: rankedSide.map(toRow),
     deckCount,
   }
 }

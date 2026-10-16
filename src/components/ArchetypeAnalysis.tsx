@@ -27,8 +27,6 @@ interface ArchetypeAnalysisProps {
   archetypeName: string
   /** The format's legal corpus, unfiltered — the analysis slices it to 2 weeks itself. */
   corpus: AnalysisDeck[]
-  /** A sidebar filter other than the archetype is narrowing the Lists tab. */
-  filtersActive: boolean
 }
 
 /** A small "Small sample" chip, shown on sections built from fewer than 5 decks. */
@@ -46,7 +44,7 @@ function SmallSampleBadge() {
  * events, regardless of the sidebar. Performance comes from the loaded corpus;
  * the stock list and composition come from one card-stats request.
  */
-export function ArchetypeAnalysis({ format, archetypeName, corpus, filtersActive }: ArchetypeAnalysisProps) {
+export function ArchetypeAnalysis({ format, archetypeName, corpus }: ArchetypeAnalysisProps) {
   const { t } = useTranslation()
   const performance = useMemo(() => analysePerformance(corpus, archetypeName), [corpus, archetypeName])
   const ownDecks = useMemo(
@@ -87,11 +85,6 @@ export function ArchetypeAnalysis({ format, archetypeName, corpus, filtersActive
           {t('analysis.decksCount', { count: performance.deckCount })} ·{' '}
           {t('analysis.eventsCount', { count: performance.eventCount })}
         </span>
-        {filtersActive && (
-          <span className="analysis-scope-note" data-testid="analysis-filter-note">
-            {t('analysis.filterNote')}
-          </span>
-        )}
       </div>
 
       <div className="analysis-stock-row">
@@ -134,7 +127,6 @@ export function ArchetypeAnalysis({ format, archetypeName, corpus, filtersActive
         <div className="analysis-two-col">
           <ConsensusTable
             title={t('analysis.composition.consensusTitle')}
-            hint={t('analysis.composition.consensusHint')}
             rows={stock.consensus}
             deckCount={stock.deckCount}
             testId="consensus-table"

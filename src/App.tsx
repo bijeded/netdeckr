@@ -312,10 +312,6 @@ function App() {
     noArchetypeResults || noTierResults ? t('filters.noResults') : t('dashboard.empty')
   const filtersActive =
     eventId !== null || sizeClass !== null || archetypeName !== null || tier !== null
-  // The Analysis tab always covers the full 2 weeks; it notes when the sidebar is
-  // narrowed by anything other than the archetype, since that only moves Lists.
-  const analysisFilterNote =
-    eventId !== null || sizeClass !== null || tier !== null || metaWindow !== '2weeks'
   // One handler behind both clear controls — the sidebar's and the main window's.
   const clearFilters = () => {
     setEventId(null)
@@ -777,7 +773,7 @@ function App() {
                                 <button
                                   type="button"
                                   data-testid="open-analysis"
-                                  className="window-pill view-all-pill"
+                                  className="window-pill view-all-pill view-all-pill--analysis"
                                   aria-label={t('decks.analysisLabel', { archetype: archetype.name })}
                                   onClick={() => openArchetype(archetype.name, 'analysis')}
                                 >
@@ -803,7 +799,6 @@ function App() {
                                   format={format}
                                   archetypeName={archetype.name}
                                   corpus={corpus}
-                                  filtersActive={analysisFilterNote}
                                 />
                               </Suspense>
                             ) : (

@@ -78,12 +78,20 @@ Intended treatments, none settled:
 - **Contrast (calculated during apply):** every new text/background pair clears 4.5:1; chart labels sit on `--surface-card`, never over art. On `--surface-card`: band text core 8.5, flex 11.7, spicy 10.0; rarity mythic 7.2, rare 11.2, uncommon 10.6, common 5.7; `--text-muted` 5.7 (used instead of `--text-faint`, 3.7, for analysis text). Over the expanded card's neon-tinted panel: selected tab `--neon-text-soft` ~10, idle tab `--text-secondary` 5.9, filter note `--text-muted` 4.8.
 - **Implemented as (pending preview):** funnel, size breakdown, inclusion, and type split are HTML/CSS bars (legible, accessible, testable); Recharts is used for the share-per-day sparkline and the mana curve only, each with its values also exposed as text. Share-per-day gaps are left unconnected so a day without events never reads as a value.
 
+**Revised after the first preview review** (user feedback on PR #220; each item below supersedes the intent above it):
+- **Entry pill:** "Analysis →" takes the T2 cyan (`--tier-2-on-dark` text on a cyan tint, ~10:1) instead of repeating "View all lists →"'s violet, so the two read as two destinations.
+- **Headline figures:** the header strip's `StatCard`s, six of them (Share, Tier, Power Score, Top 8 rate, Wins, Decks), six across on desktop and 3×2 on phones. Seven read badly on mobile; Events was dropped because the scope line already carries the event count. Tier is plain stat text, not a `TierBadge`. Label shortened to "Share", and the share-change chip is removed.
+- **Type split:** a 96px doughnut (Recharts `Pie`) with its total in the centre and the legend beside it, sized to fit the 280px rail without growing it, instead of one stacked bar.
+- **Wildcards:** round pips instead of rhombuses.
+- **Consensus / sideboard tables:** the coloured left rail, inclusion bars, and ✓ stock-list markers are removed as noise; the band stays as a text label. Ten rows a page with a ←/→ pager. The copies column is "Avg" / "Prom.", as in the trending tables.
+- **Copy removed as not useful in place** (left to the "How it works" page): the sidebar-filter note, the consensus ordering hint, the League-deck count under the funnel, the size breakdown's "0–100" caption, and the wildcard "approximate" note.
+
 Exact sizes, spacing, colour values, and chart dimensions are recorded here once confirmed on the preview.
 
 ## Risks / Trade-offs
 
-- **Stored rarity is the paper printing's, not Arena's** → occasionally off by one rarity, and cards missing from Arena can't be detected. Mitigation: label the wildcard cost as approximate.
-- **Wins vs funnel disagreement** → the card counts any "1" placement as a win (League decks included), while the funnel excludes unranked events. The two can show different "1st" counts. Mitigation: keep card parity for wins (spec), label the funnel as "ranked events", and show the League deck count beside it.
+- **Stored rarity is the paper printing's, not Arena's** → occasionally off by one rarity, and cards missing from Arena can't be detected. Mitigation: ~~label the wildcard cost as approximate~~ — the on-screen label was removed after preview review; the caveat belongs on the "How it works" page.
+- **Wins vs funnel disagreement** → the card counts any "1" placement as a win (League decks included), while the funnel excludes unranked events. The two can show different "1st" counts. Mitigation: keep card parity for wins (spec) and label the funnel as "ranked events". ~~Show the League deck count beside it~~ — removed after preview review as not useful in place.
 - **Function deployment order** → if the frontend ships before `schema.sql` is applied to production, the tab's card data fails. Mitigation: apply the function first (task 1), and the spec'd error state keeps the tab and dashboard usable regardless.
 - **Weighted fill surprises** → a highly weighted 1-of from one winning list can beat a widely played 2-of for the last slot. Mitigation: the consensus table shows both numbers; tuning stays inside the pure module, covered by tests.
 - **Refactoring `DecklistModal`** → regression risk in a well-tested component. Mitigation: extract with the existing modal tests unchanged and passing before adding the stock list.

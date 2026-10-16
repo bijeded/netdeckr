@@ -145,7 +145,6 @@
     "decksCount_other": "{{count}} listas",
     "eventsCount_one": "{{count}} evento",
     "eventsCount_other": "{{count}} eventos",
-    "filterNote": "Los filtros de la barra lateral solo afectan a la pestaña Listas.",
     "smallSample": "Muestra pequeña",
     "smallSampleHint": "Menos de 5 listas — toma estas cifras con cautela.",
     "error": "No se pudieron cargar las cartas. Intenta recargar la página.",
@@ -157,17 +156,14 @@
     },
     "performance": {
       "title": "Rendimiento",
-      "share": "Cuota del metagame",
+      "share": "Cuota",
       "tier": "Tier",
       "power": "Power Score",
       "decks": "Listas",
-      "events": "Eventos",
       "wins": "Victorias",
       "top8": "Tasa de Top 8",
       "funnelTitle": "Resultados · eventos con clasificación",
       "deeper": "Fuera del Top 8",
-      "unranked_one": "{{count}} lista de liga (sin clasificación) no contada",
-      "unranked_other": "{{count}} listas de liga (sin clasificación) no contadas",
       "bySizeTitle": "Por tamaño de evento",
       "avgFinish": "Resultado medio",
       "noRanked": "Sin resultados clasificados",
@@ -176,22 +172,18 @@
     },
     "composition": {
       "consensusTitle": "Consenso",
-      "consensusHint": "Todas las cartas vistas, ordenadas por popularidad ponderada por resultado",
       "sideboardTitle": "Plan de banquillo",
       "card": "Carta",
       "played": "Jugada",
-      "copies": "Copias medias",
       "bands": {
         "core": "Núcleo",
         "flex": "Flex",
         "spicy": "Picante"
       },
-      "inStock": "En la lista base",
       "curveTitle": "Curva de maná",
       "curveAxis": "Valor de maná",
       "typesTitle": "Tipos de carta",
       "wildcardsTitle": "Comodines de Arena",
-      "wildcardsApprox": "Aproximado — según la rareza impresa",
       "rarity": {
         "mythic": "Mítica",
         "rare": "Rara",
@@ -199,7 +191,11 @@
         "common": "Común"
       },
       "cards_one": "{{count}} carta",
-      "cards_other": "{{count}} cartas"
+      "cards_other": "{{count}} cartas",
+      "pagerLabel": "Páginas de {{table}}",
+      "prevPage": "Página anterior",
+      "nextPage": "Página siguiente",
+      "pageOf": "{{page}} / {{pages}}"
     }
   },
   "language": {

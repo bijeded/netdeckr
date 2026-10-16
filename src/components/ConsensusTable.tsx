@@ -1,10 +1,10 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CardArtPreview } from './CardArtPreview'
 import type { ConsensusRow } from '../lib/stockList'
 
 interface ConsensusTableProps {
   title: string
-  hint?: string
   rows: ConsensusRow[]
   /** Analysed decks — the denominator of each row's "played" count. */
   deckCount: number
@@ -12,13 +12,22 @@ interface ConsensusTableProps {
   smallSample?: boolean
 }
 
+/** Rows per page; the tables otherwise run to every card the archetype has ever played. */
+export const CONSENSUS_PAGE_SIZE = 10
+
 /**
  * Every card the archetype's decks ran on one board, ordered by the stock-list
- * ranking: band rail (core / flex / spicy), plain inclusion, average copies,
- * and a ✓ on cards that made the stock list.
+ * ranking, with its band (core / flex / spicy), plain inclusion, and average
+ * copies — paged ten rows at a time.
  */
-export function ConsensusTable({ title, hint, rows, deckCount, testId, smallSample }: ConsensusTableProps) {
+export function ConsensusTable({ title, rows, deckCount, testId, smallSample }: ConsensusTableProps) {
   const { t } = useTranslation()
+  const [page, setPage] = useState(0)
+  const pages = Math.max(1, Math.ceil(rows.length / CONSENSUS_PAGE_SIZE))
+  // A new archetype (or a refetch) brings new rows: start again from the top.
+  useEffect(() => setPage(0), [rows])
+  const visible = rows.slice(page * CONSENSUS_PAGE_SIZE, (page + 1) * CONSENSUS_PAGE_SIZE)
+
   return (
     <section className="analysis-panel" aria-label={title} data-testid={testId}>
       <header className="analysis-panel-header">
@@ -30,7 +39,6 @@ export function ConsensusTable({ title, hint, rows, deckCount, testId, smallSamp
             </span>
           )}
         </div>
-        {hint && <span className="analysis-panel-subtitle analysis-panel-hint">{hint}</span>}
       </header>
       <table className="analysis-table">
         <thead>
@@ -40,43 +48,55 @@ export function ConsensusTable({ title, hint, rows, deckCount, testId, smallSamp
               {t('analysis.composition.played')}
             </th>
             <th scope="col" className="analysis-num">
-              {t('analysis.composition.copies')}
+              {t('trending.col.avg')}
             </th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {visible.map((row) => (
             <tr key={row.name} className={`analysis-row analysis-band-${row.band}`} data-band={row.band}>
               <td>
                 <span className="analysis-card-cell">
                   <span className="analysis-band-chip">{t(`analysis.composition.bands.${row.band}`)}</span>
                   <CardArtPreview name={row.name} imageUrl={row.imageUrl} />
-                  {row.inStock && (
-                    <span className="analysis-in-stock" data-testid="in-stock" title={t('analysis.composition.inStock')}>
-                      <span aria-hidden="true">✓</span>
-                      <span className="visually-hidden">{t('analysis.composition.inStock')}</span>
-                    </span>
-                  )}
                 </span>
               </td>
-              <td className="analysis-num">
-                <span className="analysis-inclusion">
-                  <span className="analysis-bar-track analysis-inclusion-track">
-                    <span className="analysis-bar analysis-bar-inclusion" style={{ width: `${row.inclusionPct}%` }} />
-                  </span>
-                  <span className="analysis-figure">
-                    {Math.round(row.inclusionPct)}%
-                    <span className="analysis-figure-sub">
-                      {row.decks}/{deckCount}
-                    </span>
-                  </span>
+              <td className="analysis-num analysis-figure">
+                {Math.round(row.inclusionPct)}%
+                <span className="analysis-figure-sub">
+                  {row.decks}/{deckCount}
                 </span>
               </td>
-              <td className="analysis-num analysis-figure">{row.avgCopies.toFixed(1)}</td>
+              <td className="analysis-num analysis-figure">{row.avgCopies.toFixed(1)}x</td>
             </tr>
           ))}
         </tbody>
       </table>
+      {pages > 1 && (
+        <nav className="analysis-pager" aria-label={t('analysis.composition.pagerLabel', { table: title })}>
+          <button
+            type="button"
+            className="analysis-pager-button"
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 0}
+            aria-label={t('analysis.composition.prevPage')}
+          >
+            ←
+          </button>
+          <span className="analysis-pager-status" aria-live="polite">
+            {t('analysis.composition.pageOf', { page: page + 1, pages })}
+          </span>
+          <button
+            type="button"
+            className="analysis-pager-button"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page === pages - 1}
+            aria-label={t('analysis.composition.nextPage')}
+          >
+            →
+          </button>
+        </nav>
+      )}
     </section>
   )
 }

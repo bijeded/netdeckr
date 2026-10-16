@@ -102,7 +102,6 @@ describe('analysePerformance', () => {
     const perf = analysePerformance(corpus, 'Dimir Aggro', NOW)!
     expect(perf.funnel.map((p) => p.count)).toEqual([1, 1, 1, 1, 1])
     expect(perf.rankedDecks).toBe(5)
-    expect(perf.unrankedDecks).toBe(2)
     expect(perf.top8Rate).toBe(80)
   })
 
@@ -139,20 +138,6 @@ describe('analysePerformance', () => {
     expect(byDate.get('2026-10-10')).toBe(50)
     expect(byDate.get('2026-10-12')).toBe(0)
     expect(byDate.get('2026-10-11')).toBeNull()
-  })
-
-  it('compares share with the preceding 2 weeks', () => {
-    const corpus = [
-      deck({ eventDate: '2026-10-14' }),
-      deck({ eventDate: '2026-10-14', archetypeName: 'Other' }),
-      // Preceding window: Dimir held 1 of 4 decks (25%) → now 50%.
-      deck({ eventDate: '2026-09-25' }),
-      deck({ eventDate: '2026-09-25', archetypeName: 'Other' }),
-      deck({ eventDate: '2026-09-25', archetypeName: 'Other' }),
-      deck({ eventDate: '2026-09-25', archetypeName: 'Other' }),
-    ]
-    const perf = analysePerformance(corpus, 'Dimir Aggro', NOW)!
-    expect(perf.shareDelta).toEqual({ direction: 'up', valuePct: 25 })
   })
 })
 

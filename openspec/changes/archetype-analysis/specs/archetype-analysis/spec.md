@@ -22,16 +22,15 @@ The Analysis tab SHALL analyse the isolated archetype over the active format's L
 - **THEN** that deck contributes to no figure, card, or count on the Analysis tab
 
 ### Requirement: Analysis states its fixed scope
-The Analysis tab SHALL display a localized label stating that it covers the last 2 weeks and all events, and the number of decks and events it is built from. While any sidebar filter other than the archetype is active, the tab SHALL also display a localized note that those filters apply to the Lists tab only.
+The Analysis tab SHALL display a localized label stating that it covers the last 2 weeks and all events, and the number of decks and events it is built from. It SHALL NOT display an explanation of how the sidebar filters relate to it.
 
 #### Scenario: Scope label is always shown
 - **WHEN** the Analysis tab renders
 - **THEN** it shows a "Last 2 weeks · all events" label (localized) with the analysed deck and event counts
 
-#### Scenario: Filter note appears only while a filter is active
+#### Scenario: No sidebar-filter note
 - **WHEN** the Analysis tab renders with an event, event-size, or tier filter active, or with the time frame on Last 7 Days
-- **THEN** a note states that the sidebar filters apply to the Lists tab only
-- **AND** the note is absent when no such filter is active and the time frame is Last 2 Weeks
+- **THEN** the tab shows no note about the sidebar filters
 
 ### Requirement: Stock list ranks cards by finish-weighted inclusion
 The stock list SHALL be built from the archetype's analysed decks, ranking each card by weighted inclusion: the summed weight of the decks playing it divided by the summed weight of all analysed decks. A deck's weight SHALL grow with how deep it finished and with its tournament's size, consistently with how the Power Score weights finishes. Cards SHALL be identified by canonical name, so each basic land type is its own card.
@@ -97,11 +96,15 @@ The stock list SHALL be the first section of the Analysis tab, presented like a 
 - **THEN** the stock list is copied as MTGO text
 
 ### Requirement: Performance section
-The Analysis tab SHALL show the archetype's 2-week share with its change versus the preceding 2 weeks, its tier and Power Score, its deck, event, and win counts, its top-8 conversion rate, a placement funnel, a per-event-size breakdown, and its share per day. Share change, tier, and wins SHALL agree with what the archetype card shows on the Last 2 Weeks time frame with no other filter.
+The Analysis tab SHALL show six headline figures in the style of the dashboard header's stat cards — 2-week share, tier, Power Score, top-8 rate, wins, and decks — then a placement funnel, a per-event-size breakdown, and share per day. Share, tier, and wins SHALL agree with the archetype card on the Last 2 Weeks time frame with no other filter.
+
+#### Scenario: Six headline figures
+- **WHEN** the performance section renders
+- **THEN** it shows exactly the Share, Tier, Power Score, Top 8 rate, Wins, and Decks figures, each as a value with an uppercase label like the header stat cards, with no share-change indicator
 
 #### Scenario: Figures match the unfiltered 2-week card
 - **WHEN** the user compares the Analysis tab with the archetype's card on Last 2 Weeks with no other filter
-- **THEN** the share, share change, tier, and win count are identical
+- **THEN** the share, tier, and win count are identical
 
 #### Scenario: Placement funnel and top-8 rate
 - **WHEN** the archetype's ranked-event decks finished 1st, 2nd, Top 4, Top 8, and deeper
@@ -109,7 +112,7 @@ The Analysis tab SHALL show the archetype's 2-week share with its change versus 
 
 #### Scenario: Unranked events do not mint finishes
 - **WHEN** some of the archetype's decks come from an event whose standings are presentation order (e.g. an MTGO League)
-- **THEN** those decks are counted separately from the placement funnel and top-8 rate rather than as 1st, 2nd, or Top 4 finishes
+- **THEN** those decks are excluded from the placement funnel and top-8 rate rather than counted as 1st, 2nd, or Top 4 finishes, and no note about them is shown
 
 #### Scenario: Per-event-size breakdown
 - **WHEN** the archetype has decks from small, medium, large, massive, and unsized events
@@ -120,22 +123,29 @@ The Analysis tab SHALL show the archetype's 2-week share with its change versus 
 - **THEN** the share-per-day chart plots the archetype's share of that day's decks on each day with events and shows no value on days without events
 
 ### Requirement: Consensus card table
-The Analysis tab SHALL list every mainboard card seen in the analysed decks with its inclusion (share of decks playing it) and average copies among decks that play it, banded as core (≥ 90% inclusion), flex (≥ 25%), or spicy (below 25%), and ordered by the stock list ranking. Each card in the stock list SHALL be marked as such.
+The Analysis tab SHALL list every mainboard card seen in the analysed decks with its inclusion (share of decks playing it) and average copies among decks that play it, labelled "Avg" as in the trending tables, banded as core (≥ 90% inclusion), flex (≥ 25%), or spicy (below 25%), and ordered by the stock list ranking.
 
 #### Scenario: Cards are banded by inclusion
 - **WHEN** a card is played by 30 of 32 decks, another by 12 of 32, and another by 2 of 32
 - **THEN** they appear as core, flex, and spicy respectively, each with its inclusion and average copies
 
-#### Scenario: Stock list membership is marked
-- **WHEN** the consensus table renders
-- **THEN** every card placed in the stock list mainboard carries a marker and no other card does
+### Requirement: Card tables are paged
+The consensus table and the sideboard plan SHALL each show at most 10 rows at a time, with localized previous/next controls and a page indicator when they hold more than 10 rows. The first page SHALL be shown whenever the archetype's card data changes.
+
+#### Scenario: A long table pages
+- **WHEN** the consensus table holds 24 cards
+- **THEN** it shows the first 10 with a "1 / 3" indicator, the previous control disabled, and the next control moving to rows 11–20
+
+#### Scenario: A short table has no pager
+- **WHEN** a table holds 10 cards or fewer
+- **THEN** all of them are shown and no page controls appear
 
 ### Requirement: Sideboard plan
-The Analysis tab SHALL list every sideboard card seen in the analysed decks with its inclusion and average copies among decks that play it, ordered by the stock list ranking, marking those placed in the stock list sideboard.
+The Analysis tab SHALL list every sideboard card seen in the analysed decks with its inclusion and average copies among decks that play it, ordered by the stock list ranking.
 
 #### Scenario: Sideboard cards with inclusion
 - **WHEN** the analysed decks run sideboard cards
-- **THEN** each appears with its inclusion and average copies, and those in the stock list sideboard are marked
+- **THEN** each appears with its inclusion and average copies
 
 ### Requirement: Mana curve and card-type split
 The Analysis tab SHALL show the stock list mainboard's mana curve (non-land card counts by mana value, with the highest bucket open-ended) and its split into lands, creatures, spells, and other, using the decklist type classification.

@@ -1,8 +1,6 @@
-import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ShareDelta } from './ShareDelta'
-import { TierBadge } from './TierBadge'
+import { StatCard } from './StatCard'
 import type { FunnelBucket, Performance } from '../lib/archetypeAnalysis'
 import type { EventSizeClass } from '../lib/eventSize'
 import { formatShortDate } from '../lib/formatDate'
@@ -29,14 +27,6 @@ const SIZE_LABEL_KEY: Record<EventSizeClass, string> = {
 
 const pct = (value: number) => `${value.toFixed(1)}%`
 
-function Stat({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="analysis-stat">
-      <span className="analysis-stat-value">{children}</span>
-      <span className="analysis-stat-label">{label}</span>
-    </div>
-  )
-}
 
 /**
  * The Analysis tab's performance section: headline figures, the placement
@@ -55,21 +45,21 @@ export function AnalysisPerformance({ performance }: AnalysisPerformanceProps) {
         </h3>
       </header>
       <div className="analysis-panel-body">
-        <div className="analysis-stats">
-          <Stat label={t('analysis.performance.share')}>
-            {pct(performance.sharePct)}
-            <ShareDelta delta={performance.shareDelta} style={{ marginLeft: 8 }} />
-          </Stat>
-          <Stat label={t('analysis.performance.tier')}>
-            <TierBadge tier={performance.tier} />
-          </Stat>
-          <Stat label={t('analysis.performance.power')}>{Math.round(performance.powerScore)}</Stat>
-          <Stat label={t('analysis.performance.top8')}>
-            {performance.top8Rate === null ? '–' : `${Math.round(performance.top8Rate)}%`}
-          </Stat>
-          <Stat label={t('analysis.performance.wins')}>{performance.wins}</Stat>
-          <Stat label={t('analysis.performance.decks')}>{performance.deckCount}</Stat>
-          <Stat label={t('analysis.performance.events')}>{performance.eventCount}</Stat>
+        {/* The same readouts as the header strip. Six, not seven: the event count
+            already sits in the tab's scope line. */}
+        <div className="analysis-stats" data-testid="analysis-stats">
+          <StatCard label={t('analysis.performance.share')} value={pct(performance.sharePct)} />
+          <StatCard
+            label={t('analysis.performance.tier')}
+            value={performance.tier === 'Otros' ? t('tiers.rogue') : performance.tier}
+          />
+          <StatCard label={t('analysis.performance.power')} value={String(Math.round(performance.powerScore))} />
+          <StatCard
+            label={t('analysis.performance.top8')}
+            value={performance.top8Rate === null ? '–' : `${Math.round(performance.top8Rate)}%`}
+          />
+          <StatCard label={t('analysis.performance.wins')} value={String(performance.wins)} />
+          <StatCard label={t('analysis.performance.decks')} value={String(performance.deckCount)} />
         </div>
 
         <div className="analysis-perf-grid">
@@ -95,11 +85,6 @@ export function AnalysisPerformance({ performance }: AnalysisPerformanceProps) {
                 ))}
               </ol>
             )}
-            {performance.unrankedDecks > 0 && (
-              <p className="analysis-muted" data-testid="analysis-unranked">
-                {t('analysis.performance.unranked', { count: performance.unrankedDecks })}
-              </p>
-            )}
           </div>
 
           <div>
@@ -118,7 +103,6 @@ export function AnalysisPerformance({ performance }: AnalysisPerformanceProps) {
                 </li>
               ))}
             </ul>
-            <p className="analysis-muted">{t('analysis.performance.avgFinish')} · 0–100</p>
           </div>
         </div>
 
