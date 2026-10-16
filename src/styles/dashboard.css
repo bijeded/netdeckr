@@ -677,14 +677,15 @@
 }
 
 /* Lists / Analysis segmented control on the isolated card. Shares the pill
-   family's shape; the selected option takes the neon fill, the other stays a
-   quiet label, so the pair reads as one control with one state. Exact values
-   pending confirmation on the preview. */
+   family's shape in the T2 cyan of the "Analysis →" entry it continues; the
+   selected option takes the cyan fill, the other stays a quiet label, so the
+   pair reads as one control with one state. "← Back" beside it keeps the
+   violet. Exact values pending confirmation on the preview. */
 .tab-toggle {
   display: inline-flex;
   padding: 2px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--neon-border);
+  border: 1px solid rgba(127, 216, 255, 0.45);
   background: var(--surface-subtle);
 }
 .tab-toggle-option {
@@ -701,11 +702,11 @@
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .tab-toggle-option:hover {
-  color: var(--neon-text-soft);
+  color: var(--tier-2-on-dark);
 }
 .tab-toggle-option[aria-selected='true'] {
-  background: linear-gradient(140deg, rgba(177, 75, 255, 0.32), rgba(122, 43, 255, 0.24));
-  color: var(--neon-text-soft); /* ~10:1 on the fill; --neon-text was only ~4.7 */
+  background: rgba(127, 216, 255, 0.22);
+  color: var(--tier-2-on-dark); /* ~7.4:1 on the fill */
 }
 @media (pointer: coarse) {
   .tab-toggle-option {
@@ -1063,10 +1064,6 @@
   font-size: var(--fs-md);
   font-weight: var(--fw-bold);
   color: var(--text-primary);
-}
-.analysis-wildcard-label {
-  font-size: var(--fs-2xs);
-  color: var(--text-secondary);
 }
 
 /* Consensus / sideboard tables. */

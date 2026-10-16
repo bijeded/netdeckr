@@ -82,7 +82,8 @@ Intended treatments, none settled:
 - **Entry pill:** "Analysis →" takes the T2 cyan (`--tier-2-on-dark` text on a cyan tint, ~10:1) instead of repeating "View all lists →"'s violet, so the two read as two destinations.
 - **Headline figures:** the header strip's `StatCard`s, six of them (Share, Tier, Power Score, Top 8 rate, Wins, Decks), six across on desktop and 3×2 on phones. Seven read badly on mobile; Events was dropped because the scope line already carries the event count. Tier is plain stat text, not a `TierBadge`. Label shortened to "Share", and the share-change chip is removed.
 - **Type split:** a 96px doughnut (Recharts `Pie`) with its total in the centre and the legend beside it, sized to fit the 280px rail without growing it, instead of one stacked bar.
-- **Wildcards:** round pips instead of rhombuses.
+- **Wildcards:** round pips instead of rhombuses, with no visible rarity name (second review); the pip colour carries it on screen and the name stays as screen-reader text.
+- **Tab toggle (second review):** the Lists / Analysis control takes the same T2 cyan as "Analysis →" (cyan border, selected option `--tier-2-on-dark` on a cyan fill, ~7.4:1); "← Back" keeps the violet. Supersedes the neon-filled toggle in "Tab toggle" above.
 - **Consensus / sideboard tables:** the coloured left rail, inclusion bars, and ✓ stock-list markers are removed as noise; the band stays as a text label. Ten rows a page with a ←/→ pager. The copies column is "Avg" / "Prom.", as in the trending tables.
 - **Copy removed as not useful in place** (left to the "How it works" page): the sidebar-filter note, the consensus ordering hint, the League-deck count under the funnel, the size breakdown's "0–100" caption, and the wildcard "approximate" note.
 

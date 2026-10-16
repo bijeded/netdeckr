@@ -125,7 +125,8 @@ export function CompositionRail({ curve, types, wildcards, smallSample }: Compos
               <li key={rarity} className="analysis-wildcard" data-rarity={rarity}>
                 <span className={`analysis-wildcard-pip analysis-rarity-${rarity}`} aria-hidden="true" />
                 <span className="analysis-wildcard-count">{wildcards[rarity]}</span>
-                <span className="analysis-wildcard-label">{t(`analysis.composition.rarity.${rarity}`)}</span>
+                {/* The pip colour carries the rarity on screen; the name stays for assistive tech. */}
+                <span className="visually-hidden">{t(`analysis.composition.rarity.${rarity}`)}</span>
               </li>
             ))}
           </ul>
