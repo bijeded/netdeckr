@@ -124,4 +124,82 @@ describe('useArchetypeSelection', () => {
     })
     expect(result.current.archetype).toBeNull()
   })
+
+  describe('tab', () => {
+    const tabParam = () => new URLSearchParams(window.location.search).get('tab')
+
+    it('defaults to Lists with no tab param', () => {
+      setUrl('?a=UW+Control')
+      const { result } = renderHook(() => useArchetypeSelection())
+      expect(result.current.tab).toBe('lists')
+    })
+
+    it('restores the Analysis tab from a link', () => {
+      setUrl('?f=ST&a=UW+Control&tab=analysis')
+      const { result } = renderHook(() => useArchetypeSelection())
+      expect(result.current.tab).toBe('analysis')
+      expect(tabParam()).toBe('analysis')
+    })
+
+    it('drops an unknown tab value and falls back to Lists', () => {
+      setUrl('?a=UW+Control&tab=stats')
+      const { result } = renderHook(() => useArchetypeSelection())
+      expect(result.current.tab).toBe('lists')
+      expect(tabParam()).toBeNull()
+      expect(param()).toBe('UW Control')
+    })
+
+    it('drops a tab param without an archetype', () => {
+      setUrl('?f=ST&tab=analysis')
+      const { result } = renderHook(() => useArchetypeSelection())
+      expect(result.current.tab).toBe('lists')
+      expect(tabParam()).toBeNull()
+    })
+
+    it('opens the analysis in one pushed history entry', () => {
+      setUrl('?f=ST')
+      const { result } = renderHook(() => useArchetypeSelection())
+      const before = window.history.length
+      act(() => result.current.setArchetype('UW Control', { push: true, tab: 'analysis' }))
+      expect(window.history.length).toBe(before + 1)
+      expect(result.current.tab).toBe('analysis')
+      expect(param()).toBe('UW Control')
+      expect(tabParam()).toBe('analysis')
+    })
+
+    it('selects Lists when isolating without a tab', () => {
+      setUrl('?a=UW+Control&tab=analysis')
+      const { result } = renderHook(() => useArchetypeSelection())
+      act(() => result.current.setArchetype('Dimir Aggro'))
+      expect(result.current.tab).toBe('lists')
+      expect(tabParam()).toBeNull()
+    })
+
+    it('switches tabs without stacking history', () => {
+      setUrl('?a=UW+Control')
+      const { result } = renderHook(() => useArchetypeSelection())
+      const before = window.history.length
+      act(() => result.current.setTab('analysis'))
+      act(() => result.current.setTab('lists'))
+      act(() => result.current.setTab('analysis'))
+      expect(window.history.length).toBe(before)
+      expect(tabParam()).toBe('analysis')
+    })
+
+    it('leaving the archetype removes both params', () => {
+      setUrl('?f=ST&a=UW+Control&tab=analysis')
+      const { result } = renderHook(() => useArchetypeSelection())
+      act(() => result.current.leaveArchetype())
+      expect(param()).toBeNull()
+      expect(tabParam()).toBeNull()
+      expect(result.current.tab).toBe('lists')
+    })
+
+    it('ignores a tab switch with no archetype isolated', () => {
+      const { result } = renderHook(() => useArchetypeSelection())
+      act(() => result.current.setTab('analysis'))
+      expect(result.current.tab).toBe('lists')
+      expect(tabParam()).toBeNull()
+    })
+  })
 })

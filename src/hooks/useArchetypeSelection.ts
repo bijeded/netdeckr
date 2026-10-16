@@ -14,6 +14,32 @@ function readArchetypeFromUrl(): string | null {
   return value === null || value === '' ? null : value
 }
 
+/** The isolated archetype view's two tabs. Lists is the absence of `tab`. */
+export type ArchetypeTab = 'lists' | 'analysis'
+
+const TAB_PARAM = 'tab'
+const ANALYSIS: ArchetypeTab = 'analysis'
+
+function readTabFromUrl(): ArchetypeTab {
+  if (typeof window === 'undefined') return 'lists'
+  const params = new URLSearchParams(window.location.search)
+  return params.get(TAB_PARAM) === ANALYSIS && readArchetypeFromUrl() !== null ? ANALYSIS : 'lists'
+}
+
+function urlFor(params: URLSearchParams): string {
+  const query = params.toString()
+  return query ? `?${query}` : window.location.pathname
+}
+
+/** Drop a `tab` param that names no tab or has no archetype to belong to. */
+function dropInvalidTabParam() {
+  if (typeof window === 'undefined') return
+  const params = new URLSearchParams(window.location.search)
+  if (!params.has(TAB_PARAM) || readTabFromUrl() === ANALYSIS) return
+  params.delete(TAB_PARAM)
+  window.history.replaceState(window.history.state, '', urlFor(params))
+}
+
 /**
  * The isolated archetype, backed by the `?a=` URL param so an archetype view can
  * be reloaded and shared — the same read/write pattern as useFormatSelection/
@@ -27,28 +53,43 @@ function readArchetypeFromUrl(): string | null {
  * `leaveArchetype` is the in-page Back: on an entry it pushed, it steps back
  * through history (so the browser's own Back never lands on a duplicate grid);
  * otherwise — a shared link, a sidebar selection — it clears the param in place.
+ *
+ * `tab` is the isolated view's selected tab, persisted as `tab=analysis` (Lists
+ * is its absence). Setting an archetype selects Lists unless `{ tab: 'analysis' }`
+ * is passed; clearing the archetype removes `tab`. `setTab` replaces the entry,
+ * so tab switches never stack history.
  */
+interface SetArchetypeOptions {
+  push?: boolean
+  tab?: ArchetypeTab
+}
+
 export function useArchetypeSelection() {
   const [archetype, setArchetypeState] = useState<string | null>(readArchetypeFromUrl)
+  const [tab, setTabState] = useState<ArchetypeTab>(readTabFromUrl)
 
   useEffect(() => {
-    const onPopState = () => setArchetypeState(readArchetypeFromUrl())
+    dropInvalidTabParam()
+    const onPopState = () => {
+      setArchetypeState(readArchetypeFromUrl())
+      setTabState(readTabFromUrl())
+    }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  const setArchetype = useCallback((next: string | null, options: { push?: boolean } = {}) => {
+  const setArchetype = useCallback((next: string | null, options: SetArchetypeOptions = {}) => {
+    const nextTab: ArchetypeTab = next !== null && options.tab === ANALYSIS ? ANALYSIS : 'lists'
     setArchetypeState(next)
+    setTabState(nextTab)
     const params = new URLSearchParams(window.location.search)
-    if (next === null) {
-      if (!params.has('a')) return
-      params.delete('a')
-    } else {
-      if (params.get('a') === next) return
-      params.set('a', next)
-    }
-    const query = params.toString()
-    const url = query ? `?${query}` : window.location.pathname
+    const before = params.toString()
+    if (next === null) params.delete('a')
+    else params.set('a', next)
+    if (nextTab === ANALYSIS) params.set(TAB_PARAM, ANALYSIS)
+    else params.delete(TAB_PARAM)
+    if (params.toString() === before) return
+    const url = urlFor(params)
     if (options.push) {
       window.history.pushState({ [ENTRY_MARKER]: true }, '', url)
     } else {
@@ -56,6 +97,15 @@ export function useArchetypeSelection() {
       // in-place change (e.g. picking another archetype from the sidebar).
       window.history.replaceState(window.history.state, '', url)
     }
+  }, [])
+
+  const setTab = useCallback((next: ArchetypeTab) => {
+    if (readArchetypeFromUrl() === null) return
+    setTabState(next)
+    const params = new URLSearchParams(window.location.search)
+    if (next === ANALYSIS) params.set(TAB_PARAM, ANALYSIS)
+    else params.delete(TAB_PARAM)
+    window.history.replaceState(window.history.state, '', urlFor(params))
   }, [])
 
   const leaveArchetype = useCallback(() => {
@@ -66,5 +116,5 @@ export function useArchetypeSelection() {
     }
   }, [setArchetype])
 
-  return { archetype, setArchetype, leaveArchetype }
+  return { archetype, tab, setArchetype, setTab, leaveArchetype }
 }

@@ -103,7 +103,14 @@
     "viewDeck": "ver deck",
     "viewAll": "Ver todas las listas",
     "viewAllLabel": "Ver todas las listas de {{archetype}}",
-    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
+    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})",
+    "analysis": "Análisis",
+    "analysisLabel": "Abrir el análisis de {{archetype}}",
+    "tabs": {
+      "label": "Vista del arquetipo",
+      "lists": "Listas",
+      "analysis": "Análisis"
+    }
   },
   "modal": {
     "main": "Main",
@@ -128,6 +135,67 @@
     "view": {
       "toImages": "Galería",
       "toList": "Lista"
+    }
+  },
+  "analysis": {
+    "heading": "Análisis del arquetipo",
+    "loading": "Cargando análisis…",
+    "scope": "Últimas 2 semanas · todos los eventos",
+    "decksCount_one": "{{count}} lista",
+    "decksCount_other": "{{count}} listas",
+    "eventsCount_one": "{{count}} evento",
+    "eventsCount_other": "{{count}} eventos",
+    "smallSample": "Muestra pequeña",
+    "smallSampleHint": "Menos de 5 listas — toma estas cifras con cautela.",
+    "error": "No se pudieron cargar las cartas. Intenta recargar la página.",
+    "empty": "Este arquetipo no tiene listas en las últimas 2 semanas.",
+    "stock": {
+      "title": "Lista base",
+      "subtitle_one": "Promedio de {{count}} lista, ponderado por resultado",
+      "subtitle_other": "Promedio de {{count}} listas, ponderado por resultado"
+    },
+    "performance": {
+      "title": "Rendimiento",
+      "share": "Cuota",
+      "tier": "Tier",
+      "power": "Power Score",
+      "decks": "Listas",
+      "wins": "Victorias",
+      "top8": "Tasa de Top 8",
+      "funnelTitle": "Resultados · eventos con clasificación",
+      "deeper": "Fuera del Top 8",
+      "bySizeTitle": "Por tamaño de evento",
+      "avgFinish": "Resultado medio",
+      "noRanked": "Sin resultados clasificados",
+      "sharePerDayTitle": "Cuota por día",
+      "noEvents": "Sin eventos"
+    },
+    "composition": {
+      "consensusTitle": "Consenso",
+      "sideboardTitle": "Plan de banquillo",
+      "card": "Carta",
+      "played": "Jugada",
+      "bands": {
+        "core": "Núcleo",
+        "flex": "Flex",
+        "spicy": "Picante"
+      },
+      "curveTitle": "Curva de maná",
+      "curveAxis": "Valor de maná",
+      "typesTitle": "Tipos de carta",
+      "wildcardsTitle": "Comodines de Arena",
+      "rarity": {
+        "mythic": "Mítica",
+        "rare": "Rara",
+        "uncommon": "Infrecuente",
+        "common": "Común"
+      },
+      "cards_one": "{{count}} carta",
+      "cards_other": "{{count}} cartas",
+      "pagerLabel": "Páginas de {{table}}",
+      "prevPage": "Página anterior",
+      "nextPage": "Página siguiente",
+      "pageOf": "{{page}} / {{pages}}"
     }
   },
   "language": {

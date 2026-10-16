@@ -586,3 +586,105 @@ as $$
 $$;
 
 grant execute on function public.illegal_deck_ids(text, date) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Per-card aggregate for one archetype's analysis (change archetype-analysis).
+--
+-- One archetype over 2 weeks is ~30–80 decks × ~30 card lines — past PostgREST's
+-- 1,000-row cap if `deck_cards` were read directly. This groups to one row per
+-- (board, card), ~100–200 rows, carrying which decks played the card and how
+-- many copies each, as aligned arrays: `deck_ids[i]` ran `quantities[i]` copies.
+-- Quantities are summed per deck first, so a card listed on two lines of one
+-- deck counts once.
+--
+-- Deliberately does NO weighting: a deck's weight depends on its finish, its
+-- event's size, and unranked-event detection, which all live in TypeScript
+-- (src/lib/powerScore.ts). The browser already holds every deck's placement and
+-- event, so it joins these arrays by deck id. Keeping those rules in one
+-- language means the analysis cannot drift from the grid's Power Score.
+--
+-- A card is identified by its canonical Scryfall name, falling back to the
+-- scraped name on a resolution miss, so each basic land type is its own card.
+-- Its printing columns all come from ONE representative row — the latest
+-- `released_at` — via DISTINCT ON, so `set_code` and `collector_number` stay
+-- paired (independent max() calls could mix two printings and break an Arena
+-- import).
+--
+-- Legality uses the same `NOT IN` hashed-SubPlan form as `top_cards`, for the
+-- planner reason documented there. Do not rewrite it as `not exists`.
+-- SECURITY INVOKER so the caller's RLS applies; anon stays read-only.
+-- ---------------------------------------------------------------------------
+create or replace function public.archetype_card_stats(
+  p_format       text,
+  p_archetype_id bigint,
+  p_start        date,
+  p_end          date
+)
+returns table (
+  board            text,
+  card_name        text,
+  scraped_name     text,
+  deck_ids         bigint[],
+  quantities       integer[],
+  type_line        text,
+  cmc              numeric,
+  rarity           text,
+  set_code         text,
+  collector_number text,
+  image_url        text,
+  small_image_url  text
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with lines as (
+    select dc.id, dc.deck_id, dc.board, dc.quantity,
+           coalesce(dc.scryfall_name, dc.card_name) as name,
+           dc.card_name, dc.type_line, dc.cmc, dc.rarity, dc.set_code,
+           dc.collector_number, dc.image_url, dc.small_image_url, dc.released_at
+    from public.deck_cards dc
+    join public.decks  d on d.id = dc.deck_id
+    join public.events e on e.id = d.event_id
+    where e.format_code = p_format
+      and d.archetype_id = p_archetype_id
+      and e.event_date >= p_start
+      and e.event_date <  p_end
+      and d.id not in (
+        select banned_line.deck_id
+        from public.banned_cards b
+        join public.deck_cards banned_line
+          on banned_line.scryfall_name = b.card_name
+        where b.format_code = p_format
+      )
+  ),
+  per_deck as (
+    select l.board, l.name, l.deck_id, sum(l.quantity)::integer as qty
+    from lines l
+    group by l.board, l.name, l.deck_id
+  ),
+  agg as (
+    select p.board, p.name,
+           array_agg(p.deck_id order by p.deck_id) as deck_ids,
+           array_agg(p.qty     order by p.deck_id) as quantities
+    from per_deck p
+    group by p.board, p.name
+  ),
+  rep as (
+    select distinct on (l.board, l.name)
+           l.board, l.name, l.card_name, l.type_line, l.cmc, l.rarity,
+           l.set_code, l.collector_number, l.image_url, l.small_image_url
+    from lines l
+    order by l.board, l.name, l.released_at desc nulls last, l.id desc
+  )
+  select a.board, a.name, r.card_name, a.deck_ids, a.quantities,
+         r.type_line, r.cmc, r.rarity, r.set_code, r.collector_number,
+         r.image_url, r.small_image_url
+  from agg a
+  join rep r on r.board = a.board and r.name = a.name
+$$;
+
+grant execute on function
+  public.archetype_card_stats(text, bigint, date, date)
+  to anon, authenticated;

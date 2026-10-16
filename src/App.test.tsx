@@ -8,12 +8,14 @@ const useMetagame = vi.fn()
 const useLastUpdated = vi.fn()
 const useDeckCards = vi.fn()
 const useTrendingCards = vi.fn()
+const useArchetypeCardStats = vi.fn(() => ({ rows: [], loading: false, error: null }))
 
 vi.mock('./hooks/useFormatSelection', () => ({ useFormatSelection: () => useFormatSelection() }))
 vi.mock('./hooks/useMetagame', () => ({ useMetagame: (...args: unknown[]) => useMetagame(...args) }))
 vi.mock('./hooks/useLastUpdated', () => ({ useLastUpdated: () => useLastUpdated() }))
 vi.mock('./hooks/useDeckCards', () => ({ useDeckCards: (id: number | null) => useDeckCards(id) }))
 vi.mock('./hooks/useTrendingCards', () => ({ useTrendingCards: (...args: unknown[]) => useTrendingCards(...args) }))
+vi.mock('./hooks/useArchetypeCardStats', () => ({ useArchetypeCardStats: () => useArchetypeCardStats() }))
 
 const setFormat = vi.fn()
 
@@ -1915,6 +1917,121 @@ describe('Isolated archetype in the URL (?a=)', () => {
       expect(archetypeSelect()).toHaveValue('')
       expect(archetypeParam()).toBeNull()
       expect(window.history.length).toBe(lengthAfterPush)
+    })
+  })
+
+  describe('"Analysis →" control and Lists / Analysis tabs', () => {
+    const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    const corpusDeck = (id: number) => ({
+      id,
+      archetypeId: 5,
+      archetypeName: 'Izzet Control',
+      colorIdentity: 'UR',
+      artImageUrl: null,
+      artCropUrl: null,
+      placement: '1',
+      eventId: 10,
+      eventDate: recent,
+      playerCount: 128,
+      unranked: false,
+    })
+    const tabParam = () => new URLSearchParams(window.location.search).get('tab')
+    const expand = (name: string) =>
+      act(() => fireEvent.click(within(grid()).getByRole('button', { name: new RegExp(name), expanded: false })))
+
+    beforeEach(() => {
+      useMetagame.mockReturnValue({ ...LOADED, corpus: [corpusDeck(1), corpusDeck(2)] })
+    })
+
+    it('appears beside "View all lists →" with the same treatment', () => {
+      render(<App />)
+      expand('Izzet Control')
+      const control = screen.getByTestId('open-analysis')
+      expect(control).toHaveTextContent('Analysis →')
+      expect(control).toHaveAccessibleName('Open the Izzet Control analysis')
+      expect(control).toHaveClass('view-all-pill')
+      expect(control.parentElement).toBe(screen.getByTestId('view-all-lists').parentElement)
+    })
+
+    it('opens the isolated view on the Analysis tab in one history entry', async () => {
+      const scrollTo = vi.fn()
+      render(<App />)
+      screen.getByRole('main').scrollTo = scrollTo
+      expand('Izzet Control')
+
+      act(() => fireEvent.click(screen.getByTestId('open-analysis')))
+
+      expect(archetypeSelect()).toHaveValue('Izzet Control')
+      expect(archetypeParam()).toBe('Izzet Control')
+      expect(tabParam()).toBe('analysis')
+      // A pushed entry (not a replaced one), so Back returns to the grid. Length
+      // is not asserted: forward entries left by earlier tests are truncated.
+      expect(window.history.state).toMatchObject({ archetypeEntry: true })
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }))
+      expect(screen.getByTestId('archetype-tab-analysis')).toHaveAttribute('aria-selected', 'true')
+      expect(await screen.findByTestId('archetype-analysis')).toBeInTheDocument()
+    })
+
+    it('returns to the grid on browser Back', async () => {
+      render(<App />)
+      expand('Izzet Control')
+      act(() => fireEvent.click(screen.getByTestId('open-analysis')))
+      await act(async () => {
+        window.history.back()
+        await new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+      })
+      expect(archetypeParam()).toBeNull()
+      expect(tabParam()).toBeNull()
+      expect(within(grid()).getByText('4/5C Control')).toBeInTheDocument()
+    })
+
+    it('shows no tab toggle outside the isolated view', () => {
+      render(<App />)
+      expand('Izzet Control')
+      expect(screen.queryByRole('tablist')).toBeNull()
+    })
+
+    it('defaults an isolated archetype to the Lists tab', () => {
+      setUrl('?a=Izzet+Control')
+      render(<App />)
+      expect(screen.getByTestId('archetype-tab-lists')).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByText('Player 1')).toBeInTheDocument()
+      expect(screen.queryByTestId('archetype-analysis')).toBeNull()
+    })
+
+    it('switches between Lists and Analysis without stacking history', async () => {
+      setUrl('?a=Izzet+Control')
+      render(<App />)
+      const before = window.history.length
+
+      act(() => fireEvent.click(screen.getByTestId('archetype-tab-analysis')))
+      expect(await screen.findByTestId('archetype-analysis')).toBeInTheDocument()
+      expect(screen.queryByText('Player 1')).toBeNull()
+      expect(tabParam()).toBe('analysis')
+
+      act(() => fireEvent.click(screen.getByTestId('archetype-tab-lists')))
+      expect(screen.getByText('Player 1')).toBeInTheDocument()
+      expect(screen.queryByTestId('archetype-analysis')).toBeNull()
+      expect(tabParam()).toBeNull()
+      expect(window.history.length).toBe(before)
+    })
+
+    it('moves between tabs with the arrow keys', async () => {
+      setUrl('?a=Izzet+Control')
+      render(<App />)
+      act(() => fireEvent.keyDown(screen.getByTestId('archetype-tab-lists'), { key: 'ArrowRight' }))
+      expect(screen.getByTestId('archetype-tab-analysis')).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByTestId('archetype-tab-analysis')).toHaveFocus()
+      expect(await screen.findByTestId('archetype-analysis')).toBeInTheDocument()
+    })
+
+    it('restores the Analysis tab from a link and clears both params on "← Back"', async () => {
+      setUrl('?a=Izzet+Control&tab=analysis')
+      render(<App />)
+      expect(await screen.findByTestId('archetype-analysis')).toBeInTheDocument()
+      act(() => fireEvent.click(screen.getByTestId('leave-archetype')))
+      expect(archetypeParam()).toBeNull()
+      expect(tabParam()).toBeNull()
     })
   })
 

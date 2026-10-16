@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
@@ -35,13 +35,20 @@ import { useTrendingCards } from './hooks/useTrendingCards'
 import { TopCardsTable } from './components/TopCardsTable'
 import { hasNewCardsTable, sliceDeckTotal } from './lib/trendingCards'
 import { useLegalPage } from './hooks/useLegalPage'
-import { useArchetypeSelection } from './hooks/useArchetypeSelection'
+import { useArchetypeSelection, type ArchetypeTab } from './hooks/useArchetypeSelection'
+import { ArchetypeTabToggle } from './components/ArchetypeTabToggle'
 import { Footer } from './components/Footer'
 import { LegalPage } from './components/LegalPage'
 import { howItWorksEn } from './content/legal/howItWorks.en'
 import { howItWorksEs } from './content/legal/howItWorks.es'
 import { privacyEn } from './content/legal/privacy.en'
 import { privacyEs } from './content/legal/privacy.es'
+
+// The Analysis tab (and Recharts with it) loads on first selection, so the
+// dashboard's initial bundle carries none of it.
+const ArchetypeAnalysis = lazy(() =>
+  import('./components/ArchetypeAnalysis').then((m) => ({ default: m.ArchetypeAnalysis })),
+)
 
 const SIDEBAR_MQ = '(max-width: 860px)'
 
@@ -69,7 +76,9 @@ function App() {
   const [sizeClass, setSizeClass] = useState<EventSizeClass | null>(null)
   const {
     archetype: archetypeName,
+    tab: archetypeTab,
     setArchetype: setArchetypeName,
+    setTab: setArchetypeTab,
     leaveArchetype,
   } = useArchetypeSelection()
   const [tier, setTier] = useState<Tier | null>(null)
@@ -83,6 +92,7 @@ function App() {
     banState = { bannedCards: [], hiddenDecks: 0 },
     sliceDeckCounts = { selected: {}, preceding: {} },
     sizeClassEventIds = null,
+    corpus = [],
     loading,
     error,
   } = useMetagame(format, metaWindow, { eventId, sizeClass })
@@ -151,7 +161,7 @@ function App() {
   const tierOf = (name: string) => breakdown.find((a) => a.name === name)?.tier ?? null
   // `push` adds a history entry, for entry points that navigate *into* an
   // archetype (Back returns to the grid); filter-style changes replace it.
-  const selectArchetype = (name: string | null, options: { push?: boolean } = {}) => {
+  const selectArchetype = (name: string | null, options: { push?: boolean; tab?: ArchetypeTab } = {}) => {
     setArchetypeName(name, options)
     if (name !== null && tier !== null && tierOf(name) !== null && tierOf(name) !== tier) setTier(null)
   }
@@ -315,8 +325,8 @@ function App() {
   // The card can sit far down the grid, so bring the isolated view's top into
   // sight — `.app-main` is the scroll container, not the window.
   const mainRef = useRef<HTMLElement>(null)
-  const openArchetype = (name: string) => {
-    selectArchetype(name, { push: true })
+  const openArchetype = (name: string, tab: ArchetypeTab = 'lists') => {
+    selectArchetype(name, { push: true, tab })
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     mainRef.current?.scrollTo?.({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
   }
@@ -671,6 +681,7 @@ function App() {
                         : (decksByArchetype[archetype.name] ?? [])
                     const expandable = decks.length > 0
                     const expanded = isolated ? true : expandable && expandedName === archetype.name
+                    const showAnalysis = isolated && archetypeTab === 'analysis'
                     return (
                       <ArchetypeCard
                         key={archetype.rank}
@@ -715,7 +726,7 @@ function App() {
                                 color: 'var(--neon-text-soft)',
                               }}
                             >
-                              {t('decks.heading')}
+                              {t(showAnalysis ? 'analysis.heading' : 'decks.heading')}
                             </span>
                             <span
                               className="deck-list-count"
@@ -725,43 +736,84 @@ function App() {
                                 color: 'var(--text-faint)',
                               }}
                             >
-                              {t('decks.count', { count: decks.length })}
+                              {showAnalysis ? null : t('decks.count', { count: decks.length })}
                             </span>
                             {/* One slot, two directions: a grid card opens its
-                                archetype view, the isolated card leads back out
-                                (clearing only the archetype, keeping other filters). */}
+                                archetype view (on its lists or its analysis), the
+                                isolated card leads back out (clearing only the
+                                archetype, keeping other filters) and switches tabs. */}
                             {isolated ? (
-                              <button
-                                type="button"
-                                data-testid="leave-archetype"
-                                className="window-pill view-all-pill"
-                                aria-label={t('filters.backLabel')}
-                                onClick={leaveArchetype}
-                              >
-                                ← {t('filters.back')}
-                              </button>
+                              <div className="deck-list-actions">
+                                <button
+                                  type="button"
+                                  data-testid="leave-archetype"
+                                  className="window-pill view-all-pill"
+                                  aria-label={t('filters.backLabel')}
+                                  onClick={leaveArchetype}
+                                >
+                                  ← {t('filters.back')}
+                                </button>
+                                <ArchetypeTabToggle
+                                  tab={archetypeTab}
+                                  onChange={setArchetypeTab}
+                                  panelId="archetype-tab-panel"
+                                />
+                              </div>
                             ) : (
-                              <button
-                                type="button"
-                                data-testid="view-all-lists"
-                                className="window-pill view-all-pill"
-                                aria-label={t('decks.viewAllLabel', { archetype: archetype.name })}
-                                onClick={() => openArchetype(archetype.name)}
-                              >
-                                {t('decks.viewAll')} →
-                              </button>
+                              <div className="deck-list-actions">
+                                <button
+                                  type="button"
+                                  data-testid="view-all-lists"
+                                  className="window-pill view-all-pill"
+                                  aria-label={t('decks.viewAllLabel', { archetype: archetype.name })}
+                                  onClick={() => openArchetype(archetype.name)}
+                                >
+                                  {t('decks.viewAll')} →
+                                </button>
+                                <button
+                                  type="button"
+                                  data-testid="open-analysis"
+                                  className="window-pill view-all-pill view-all-pill--analysis"
+                                  aria-label={t('decks.analysisLabel', { archetype: archetype.name })}
+                                  onClick={() => openArchetype(archetype.name, 'analysis')}
+                                >
+                                  {t('decks.analysis')} →
+                                </button>
+                              </div>
                             )}
                           </div>
                           <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-                              gap: 18,
-                            }}
+                            id={isolated ? 'archetype-tab-panel' : undefined}
+                            role={isolated ? 'tabpanel' : undefined}
+                            aria-labelledby={isolated ? `archetype-tab-${archetypeTab}` : undefined}
                           >
-                            {decks.map((deck) => (
-                              <DeckCard key={deck.sourceDeckId} deck={deck} onSelect={setSelectedDeck} />
-                            ))}
+                            {showAnalysis ? (
+                              <Suspense
+                                fallback={
+                                  <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--sp-8)' }}>
+                                    <Spinner label={t('analysis.loading')} />
+                                  </div>
+                                }
+                              >
+                                <ArchetypeAnalysis
+                                  format={format}
+                                  archetypeName={archetype.name}
+                                  corpus={corpus}
+                                />
+                              </Suspense>
+                            ) : (
+                              <div
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                                  gap: 18,
+                                }}
+                              >
+                                {decks.map((deck) => (
+                                  <DeckCard key={deck.sourceDeckId} deck={deck} onSelect={setSelectedDeck} />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </ArchetypeCard>
