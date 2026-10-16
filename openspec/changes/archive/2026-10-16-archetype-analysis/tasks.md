@@ -32,7 +32,7 @@
 ## 7. Integration
 
 - [x] 7.1 Run `npm run lint`, `npm run type-check`, `npm run test`, and `npm run build`. Verify all pass and the build output emits Recharts in a separate chunk from the main bundle.
-- [ ] 7.2 Open the PR and confirm the Analysis tab on the Vercel preview against production data (requires 1.2): stock list exports and imports cleanly into Arena for a Standard archetype, figures match the 2-week card, layout works at phone width. Record the confirmed visual values in `design.md` Decision 8.
+- [x] 7.2 Open the PR and confirm the Analysis tab on the Vercel preview against production data (requires 1.2): stock list exports and imports cleanly into Arena for a Standard archetype, figures match the 2-week card, layout works at phone width. Record the confirmed visual values in `design.md` Decision 8.
 
 ## Workflow follow-up
 

@@ -51,7 +51,7 @@ board | card_name (canonical, fallback scraped) | deck_ids bigint[] | quantities
 - Copy count = mode among decks playing the card, with ties going to the higher count. Fill order = weighted inclusion, then average copies, then canonical name, so the output is deterministic.
 
 ### 3. Consensus table shows plain inclusion, ordered by weighted rank
-Bands and the displayed % use plain inclusion ("played in 12 of 32 decks"), which players can verify. Ordering and stock-list membership use weighted inclusion. A card can therefore sit above one with a slightly higher plain %. The table header says it is ordered by finish-weighted popularity.
+Bands and the displayed % use plain inclusion ("played in 12 of 32 decks"), which players can verify. Ordering and stock-list membership use weighted inclusion. A card can therefore sit above one with a slightly higher plain %. ~~The table header says it is ordered by finish-weighted popularity.~~ Superseded after preview review: the in-table hint was removed as noise; the ordering is to be explained on the "How it works" page.
 **Alternative:** show weighted % everywhere. Rejected: "% of decks" that isn't a share of decks is harder to trust.
 
 ### 4. Performance figures reuse the grid's derivations over an unfiltered 2-week slice
@@ -87,7 +87,12 @@ Intended treatments, none settled:
 - **Consensus / sideboard tables:** the coloured left rail, inclusion bars, and ✓ stock-list markers are removed as noise; the band stays as a text label. Ten rows a page with a ←/→ pager. The copies column is "Avg" / "Prom.", as in the trending tables.
 - **Copy removed as not useful in place** (left to the "How it works" page): the sidebar-filter note, the consensus ordering hint, the League-deck count under the funnel, the size breakdown's "0–100" caption, and the wildcard "approximate" note.
 
-Exact sizes, spacing, colour values, and chart dimensions are recorded here once confirmed on the preview.
+**Confirmed on the Vercel preview (PR #220, after two review rounds).** The shipped values are the ones in `src/styles/dashboard.css` (`.analysis-*`, `.tab-toggle*`, `.view-all-pill--analysis`) and the band/rarity tokens in `src/styles/tokens/colors.css`:
+- Layout: stock list beside a 280px composition rail, single column below 960px; consensus and sideboard plan side by side at 3fr / 2fr, stacked below 960px.
+- Headline figures: six `StatCard`s, six across, 3×2 below 760px.
+- Charts: share-per-day sparkline 84px tall; mana curve 120px tall; card-type doughnut 96px, inner radius 62%.
+- Accents: T2 cyan for "Analysis →" and the Lists / Analysis toggle; violet for "View all lists →" and "← Back".
+- Tables: 10 rows per page.
 
 ## Risks / Trade-offs
 
