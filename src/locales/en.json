@@ -103,7 +103,14 @@
     "viewDeck": "go to deck",
     "viewAll": "View all lists",
     "viewAllLabel": "View all {{archetype}} lists",
-    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})"
+    "rowLabel": "{{placement}} — {{player}}, {{event}} ({{date}})",
+    "analysis": "Analysis",
+    "analysisLabel": "Open the {{archetype}} analysis",
+    "tabs": {
+      "label": "Archetype view",
+      "lists": "Lists",
+      "analysis": "Analysis"
+    }
   },
   "modal": {
     "main": "Main",
@@ -128,6 +135,71 @@
     "view": {
       "toImages": "Gallery",
       "toList": "List"
+    }
+  },
+  "analysis": {
+    "heading": "Archetype analysis",
+    "loading": "Loading analysis…",
+    "scope": "Last 2 weeks · all events",
+    "decksCount_one": "{{count}} deck",
+    "decksCount_other": "{{count}} decks",
+    "eventsCount_one": "{{count}} event",
+    "eventsCount_other": "{{count}} events",
+    "filterNote": "Sidebar filters apply to the Lists tab only.",
+    "smallSample": "Small sample",
+    "smallSampleHint": "Fewer than 5 decks — read these numbers loosely.",
+    "error": "Could not load card data. Try reloading the page.",
+    "empty": "No decks for this archetype in the last 2 weeks.",
+    "stock": {
+      "title": "Stock list",
+      "subtitle_one": "Averaged from {{count}} deck, weighted by finish",
+      "subtitle_other": "Averaged from {{count}} decks, weighted by finish"
+    },
+    "performance": {
+      "title": "Performance",
+      "share": "Metagame share",
+      "tier": "Tier",
+      "power": "Power Score",
+      "decks": "Decks",
+      "events": "Events",
+      "wins": "Wins",
+      "top8": "Top 8 rate",
+      "funnelTitle": "Finishes · ranked events",
+      "deeper": "Beyond Top 8",
+      "unranked_one": "{{count}} league deck (no standings) not counted",
+      "unranked_other": "{{count}} league decks (no standings) not counted",
+      "bySizeTitle": "By event size",
+      "avgFinish": "Avg finish",
+      "noRanked": "No ranked finishes",
+      "sharePerDayTitle": "Share per day",
+      "noEvents": "No events"
+    },
+    "composition": {
+      "consensusTitle": "Consensus",
+      "consensusHint": "Every card seen, ordered by finish-weighted popularity",
+      "sideboardTitle": "Sideboard plan",
+      "card": "Card",
+      "played": "Played",
+      "copies": "Avg copies",
+      "bands": {
+        "core": "Core",
+        "flex": "Flex",
+        "spicy": "Spicy"
+      },
+      "inStock": "In the stock list",
+      "curveTitle": "Mana curve",
+      "curveAxis": "Mana value",
+      "typesTitle": "Card types",
+      "wildcardsTitle": "Arena wildcards",
+      "wildcardsApprox": "Approximate — based on printed rarity",
+      "rarity": {
+        "mythic": "Mythic",
+        "rare": "Rare",
+        "uncommon": "Uncommon",
+        "common": "Common"
+      },
+      "cards_one": "{{count}} card",
+      "cards_other": "{{count}} cards"
     }
   },
   "language": {

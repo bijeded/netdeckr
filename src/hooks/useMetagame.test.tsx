@@ -37,6 +37,7 @@ const { from, rpc, eq, gte, range, queryResult, bannedResult, illegalResult } = 
 vi.mock('../lib/supabase', () => ({ supabase: { from, rpc } }))
 
 import { useMetagame } from './useMetagame'
+import { analysePerformance } from '../lib/archetypeAnalysis'
 
 /** ISO date `n` days before now (the hook filters by the real current date). */
 function daysAgo(n: number): string {
@@ -803,6 +804,62 @@ describe('useMetagame', () => {
       expect(result.current.sliceDeckCounts.selected).toEqual({ Izzet: 1, 'Mono Red': 1 })
       expect(sum(result.current.sliceDeckCounts.selected)).toBe(result.current.totals.decks)
       expect(result.current.sliceDeckCounts.preceding).toEqual({})
+    })
+  })
+
+  describe('corpus (archetype analysis)', () => {
+    function analysisRows() {
+      const mono = { id: 7, name: 'Mono Red', color_identity: 'R', art_image_url: null, art_crop_url: null }
+      const izzet = { id: 8, name: 'Izzet', color_identity: 'UR', art_image_url: null, art_crop_url: null }
+      return [
+        deckRow({ id: 1, source_deck_id: 'a', placement: '1', archetypes: mono, events: { id: 1, name: 'E1', event_date: daysAgo(1), player_count: 20 } }),
+        deckRow({ id: 2, source_deck_id: 'b', placement: '5-8', archetypes: izzet, events: { id: 1, name: 'E1', event_date: daysAgo(1), player_count: 20 } }),
+        deckRow({ id: 3, source_deck_id: 'c', placement: '2', archetypes: mono, events: { id: 2, name: 'E2', event_date: daysAgo(10), player_count: 200 } }),
+        deckRow({ id: 4, source_deck_id: 'd', placement: '1', archetypes: izzet, events: { id: 2, name: 'E2', event_date: daysAgo(10), player_count: 200 } }),
+        deckRow({ id: 5, source_deck_id: 'e', placement: '3-4', archetypes: izzet, events: { id: 3, name: 'E3', event_date: daysAgo(20), player_count: 50 } }),
+        deckRow({ id: 6, source_deck_id: 'f', placement: '1', archetypes: mono, events: { id: 3, name: 'E3', event_date: daysAgo(20), player_count: 50 } }),
+        deckRow({ id: 9, source_deck_id: 'g', placement: '5-8', archetypes: mono, events: { id: 3, name: 'E3', event_date: daysAgo(20), player_count: 50 } }),
+      ]
+    }
+
+    it('selects the archetype id with each deck', async () => {
+      queryResult.data = analysisRows()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.corpus.find((d) => d.id === 1)?.archetypeId).toBe(7)
+    })
+
+    it('ignores the window, event, size, and tier filters', async () => {
+      queryResult.data = analysisRows()
+      const { result: unfiltered } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(unfiltered.current.loading).toBe(false))
+      const { result: filtered } = renderHook(() =>
+        useMetagame('ST', '7days', { eventId: 1, sizeClass: 'small' }),
+      )
+      await waitFor(() => expect(filtered.current.loading).toBe(false))
+      expect(filtered.current.corpus).toEqual(unfiltered.current.corpus)
+      expect(filtered.current.corpus).toHaveLength(7)
+    })
+
+    it('drops banned decks', async () => {
+      queryResult.data = analysisRows()
+      illegalResult.data = [{ deck_id: 3 }]
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      expect(result.current.corpus.map((d) => d.id)).not.toContain(3)
+    })
+
+    it('yields the same share, delta, tier, and wins as the unfiltered 2-week card', async () => {
+      queryResult.data = analysisRows()
+      const { result } = renderHook(() => useMetagame('ST', '2weeks'))
+      await waitFor(() => expect(result.current.loading).toBe(false))
+      for (const card of result.current.breakdown) {
+        const perf = analysePerformance(result.current.corpus, card.name)!
+        expect(perf.sharePct).toBe(card.sharePct)
+        expect(perf.shareDelta).toEqual(card.shareDelta)
+        expect(perf.tier).toBe(card.tier)
+        expect(perf.wins).toBe(card.wins)
+      }
     })
   })
 })

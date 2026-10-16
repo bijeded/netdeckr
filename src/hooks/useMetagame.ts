@@ -14,6 +14,7 @@ import { shareDeltas, type DeckForShareDelta } from '../lib/shareDelta'
 import { sizeClassOf, type EventSizeClass } from '../lib/eventSize'
 import { isUnrankedEvent } from '../lib/powerScore'
 import { EMPTY_BANLIST, type Banlist, type BannedCard } from '../lib/banlist'
+import type { AnalysisDeck } from '../lib/archetypeAnalysis'
 
 /** The 2-week window anchors the stable tier baseline; the selected window is a date subset of it. */
 const BASELINE_WINDOW: WindowCode = '2weeks'
@@ -30,6 +31,7 @@ interface DeckQueryRow {
   player: string
   placement: string
   archetypes: {
+    id?: number
     name: string
     color_identity: string
     art_image_url: string | null
@@ -130,7 +132,7 @@ async function fetchCorpusDecks(
     const { data, error } = await supabase
       .from('decks')
       .select(
-        'id, source_deck_id, player, placement, archetypes(name, color_identity, art_image_url, art_crop_url), events!inner(id, name, event_date, format_code, player_count)',
+        'id, source_deck_id, player, placement, archetypes(id, name, color_identity, art_image_url, art_crop_url), events!inner(id, name, event_date, format_code, player_count)',
       )
       .eq('events.format_code', formatCode)
       .gte('events.event_date', startISO)
@@ -213,6 +215,8 @@ async function fetchBanlist(formatCode: FormatCode, startISO: string): Promise<B
  * `sliceDeckCounts` and `sizeClassEventIds` feed the trending tables' play rate
  * and trend: the legal deck counts of the selected and preceding windows, and the
  * size class's event ids across both (null when no size class is selected).
+ * `corpus` is the legal 28-day corpus with no filter applied, for the archetype
+ * Analysis tab.
  */
 export function useMetagame(
   formatCode: FormatCode,
@@ -229,6 +233,7 @@ export function useMetagame(
   const [banState, setBanState] = useState<BanState>(EMPTY_BAN_STATE)
   const [sliceDeckCounts, setSliceDeckCounts] = useState<SliceDeckCounts>(EMPTY_SLICE_COUNTS)
   const [sizeClassEventIds, setSizeClassEventIds] = useState<number[] | null>(null)
+  const [corpus, setCorpus] = useState<AnalysisDeck[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
 
@@ -252,6 +257,7 @@ export function useMetagame(
           setBanState(EMPTY_BAN_STATE)
           setSliceDeckCounts(EMPTY_SLICE_COUNTS)
           setSizeClassEventIds(sizeClass === null ? null : [])
+          setCorpus([])
           setLoading(false)
           return
         }
@@ -442,6 +448,29 @@ export function useMetagame(
         for (const [id, facts] of eventFacts) {
           if (isUnrankedEvent(facts.placements, facts.playerCount)) unrankedEventIds.add(id)
         }
+        // The legal corpus, unfiltered by window, event, size, or tier, for the
+        // archetype Analysis tab — which always covers the full Last 2 Weeks and
+        // slices this itself (see lib/archetypeAnalysis.ts).
+        const analysisCorpus: AnalysisDeck[] = []
+        for (const row of legalRows) {
+          const name = row.archetypes?.name ?? ''
+          if (!name) continue
+          const rowEventId = row.events?.id ?? null
+          analysisCorpus.push({
+            id: row.id,
+            archetypeId: row.archetypes?.id ?? null,
+            archetypeName: name,
+            colorIdentity: row.archetypes?.color_identity ?? '',
+            artImageUrl: row.archetypes?.art_image_url ?? null,
+            artCropUrl: row.archetypes?.art_crop_url ?? null,
+            placement: row.placement,
+            eventId: rowEventId,
+            eventDate: row.events?.event_date ?? null,
+            playerCount: row.events?.player_count ?? null,
+            unranked: rowEventId !== null && unrankedEventIds.has(rowEventId),
+          })
+        }
+
         const twoWeekUnranked = new Map<string, boolean[]>()
         for (const [name, ids] of twoWeekEventIds) {
           twoWeekUnranked.set(
@@ -494,6 +523,7 @@ export function useMetagame(
         setBanState({ bannedCards: banlist.bannedCards, hiddenDecks })
         setSliceDeckCounts({ selected: selectedCounts, preceding: precedingCounts })
         setSizeClassEventIds(sizeClass === null ? null : [...sizeEventIds])
+        setCorpus(analysisCorpus)
         setLoading(false)
       })
 
@@ -511,6 +541,7 @@ export function useMetagame(
     banState,
     sliceDeckCounts,
     sizeClassEventIds,
+    corpus,
     loading,
     error,
   }

@@ -638,13 +638,508 @@
 .deck-list-count {
   margin-left: auto;
 }
+/* The header's controls ("View all lists →" + "Analysis →" on a grid card;
+   "← Back" + the Lists / Analysis toggle on the isolated card) travel as one
+   group, so on phones they share a single full-width row. */
+.deck-list-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
 @media (max-width: 640px) {
   .deck-list-header {
     row-gap: var(--sp-4);
   }
-  .deck-list-header .view-all-pill {
+  .deck-list-actions {
     flex: 1 0 100%;
+  }
+  .deck-list-actions .view-all-pill,
+  .deck-list-actions .tab-toggle {
+    flex: 1 1 0;
     padding: 7px 12px;
     font-size: var(--fs-sm);
+  }
+  .deck-list-actions .tab-toggle {
+    padding: 2px;
+  }
+}
+
+/* Lists / Analysis segmented control on the isolated card. Shares the pill
+   family's shape; the selected option takes the neon fill, the other stays a
+   quiet label, so the pair reads as one control with one state. Exact values
+   pending confirmation on the preview. */
+.tab-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--neon-border);
+  background: var(--surface-subtle);
+}
+.tab-toggle-option {
+  flex: 1 1 0;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.tab-toggle-option:hover {
+  color: var(--neon-text-soft);
+}
+.tab-toggle-option[aria-selected='true'] {
+  background: linear-gradient(140deg, rgba(177, 75, 255, 0.32), rgba(122, 43, 255, 0.24));
+  color: var(--neon-text-soft); /* ~10:1 on the fill; --neon-text was only ~4.7 */
+}
+@media (pointer: coarse) {
+  .tab-toggle-option {
+    min-height: 30px;
+  }
+}
+@media (max-width: 640px) {
+  .tab-toggle-option {
+    padding: 5px 12px;
+    font-size: var(--fs-sm);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Archetype Analysis tab (change archetype-analysis). Layout and every visual
+   value below are pending confirmation on the Vercel preview.
+   --------------------------------------------------------------------------- */
+.analysis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+.analysis-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-4);
+}
+.analysis-scope-label {
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--neon-text-soft);
+}
+.analysis-scope-counts {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+.analysis-scope-note {
+  flex: 1 0 100%;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.analysis-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--border-line);
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+  min-width: 0;
+}
+.analysis-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.analysis-stock .analysis-panel-header {
+  background: linear-gradient(120deg, var(--neon-tint-16), transparent 70%);
+}
+.analysis-panel-titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-3);
+  min-width: 0;
+}
+.analysis-panel-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--track-tight);
+  color: var(--text-primary);
+}
+.analysis-panel-subtitle {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-muted);
+}
+.analysis-panel-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+.analysis-notice {
+  flex: 1 0 100%;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+.analysis-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-line);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .analysis-panel-header {
+    padding: 14px 16px;
+  }
+  .analysis-panel-actions {
+    margin-left: 0;
+    flex: 1 0 100%;
+  }
+  .analysis-panel-actions > * {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+/* Screen-reader-only text (chart values, ✓ meaning). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Stock list beside its composition rail on wide screens; stacked below. */
+.analysis-stock-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: var(--sp-5);
+  align-items: start;
+}
+.analysis-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--sp-5);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .analysis-stock-row,
+  .analysis-two-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.analysis-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  padding: 18px 22px 22px;
+}
+.analysis-panel-hint {
+  flex: 1 0 100%;
+}
+.analysis-subtitle {
+  margin: 0 0 var(--sp-3);
+  font-family: var(--font-display);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.analysis-muted {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.analysis-figure {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.analysis-figure-sub {
+  margin-left: 6px;
+  color: var(--text-muted);
+}
+
+/* Headline figures. */
+.analysis-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: var(--sp-3);
+}
+.analysis-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-soft);
+  background: var(--surface-faint);
+}
+.analysis-stat-value {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+}
+.analysis-stat-label {
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.analysis-perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-6);
+}
+
+/* Horizontal bars shared by the funnel, size breakdown, and inclusion. */
+.analysis-bar-track {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+.analysis-bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--neon-gradient);
+}
+/* The funnel steps down in intensity from champion to beyond Top 8. */
+.analysis-bar-second { opacity: 0.85; }
+.analysis-bar-top4 { opacity: 0.7; }
+.analysis-bar-top8 { opacity: 0.55; }
+.analysis-bar-deeper { background: var(--text-muted); opacity: 0.45; }
+.analysis-bar-finish { background: linear-gradient(90deg, var(--neon-600), var(--band-flex)); }
+
+.analysis-funnel,
+.analysis-size-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.analysis-funnel-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.analysis-funnel-label,
+.analysis-size-label {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+.analysis-funnel-row .analysis-figure {
+  text-align: right;
+}
+.analysis-size-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 64px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.analysis-size-row .analysis-figure:last-child {
+  text-align: right;
+}
+
+.analysis-sparkline {
+  height: 84px;
+}
+
+/* Composition rail. */
+.analysis-rail {
+  display: flex;
+  flex-direction: column;
+}
+.analysis-rail-block {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.analysis-rail-block:last-child {
+  border-bottom: 0;
+}
+.analysis-curve {
+  height: 120px;
+}
+.analysis-type-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.analysis-type-seg {
+  flex-basis: 0;
+}
+.analysis-type-lands { background: var(--text-muted); }
+.analysis-type-creatures { background: var(--neon-500); }
+.analysis-type-spells { background: var(--band-flex); }
+.analysis-type-other { background: var(--band-spicy); }
+.analysis-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px var(--sp-3);
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+.analysis-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.analysis-legend .analysis-figure {
+  margin-left: auto;
+}
+.analysis-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.analysis-wildcards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.analysis-wildcard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: var(--r-md);
+  background: var(--surface-faint);
+  border: 1px solid var(--border-soft);
+}
+.analysis-wildcard-pip {
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg);
+  border-radius: 3px;
+}
+.analysis-rarity-mythic { background: var(--rarity-mythic); }
+.analysis-rarity-rare { background: var(--rarity-rare); }
+.analysis-rarity-uncommon { background: var(--rarity-uncommon); }
+.analysis-rarity-common { background: var(--rarity-common); }
+.analysis-wildcard-count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+}
+.analysis-wildcard-label {
+  font-size: var(--fs-2xs);
+  color: var(--text-secondary);
+}
+
+/* Consensus / sideboard tables. */
+.analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.analysis-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-soft);
+}
+.analysis-table td {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border-hair);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+.analysis-table .analysis-num {
+  text-align: right;
+}
+.analysis-row {
+  box-shadow: inset 3px 0 0 var(--band-color, transparent);
+}
+.analysis-band-core { --band-color: var(--band-core); }
+.analysis-band-flex { --band-color: var(--band-flex); }
+.analysis-band-spicy { --band-color: var(--band-spicy); }
+.analysis-card-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.analysis-band-chip {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  color: var(--band-color);
+}
+.analysis-in-stock {
+  color: var(--neon-text);
+  font-size: var(--fs-xs);
+}
+.analysis-inclusion {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.analysis-inclusion-track {
+  width: 64px;
+}
+.analysis-bar-inclusion {
+  background: var(--band-color, var(--neon-gradient));
+}
+@media (max-width: 640px) {
+  .analysis-panel-body {
+    padding: 16px;
+  }
+  .analysis-inclusion-track,
+  .analysis-band-chip {
+    display: none;
+  }
+  .analysis-table th,
+  .analysis-table td {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 }

@@ -16,3 +16,13 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 })
+
+// jsdom has no ResizeObserver; Recharts' ResponsiveContainer observes its box
+// with one. A no-op stub is enough: charts render at zero size in tests, which
+// assert values from the accessible text beside them, never from the SVG.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Object.defineProperty(window, 'ResizeObserver', { writable: true, value: ResizeObserverStub })

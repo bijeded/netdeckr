@@ -1,15 +1,14 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ManaPips } from './ManaPips'
-import { CardArtPreview } from './CardArtPreview'
-import { CardTile } from './CardTile'
-import { GalleryIcon, ListIcon } from './viewIcons'
 import { Spinner } from './Spinner'
 import { EmptyState } from './EmptyState'
-import { useDeckCards, type DeckCardLine } from '../hooks/useDeckCards'
-import { groupMainByType, type CardTypeCategory } from '../lib/cardType'
+import { DecklistBoards } from './DecklistBoards'
+import { DecklistViewToggle } from './DecklistViewToggle'
+import { DeckExportButton } from './DeckExportButton'
+import { useDeckCards } from '../hooks/useDeckCards'
+import { useDeckExport } from '../hooks/useDeckExport'
 import { placementBadge, type PlacementKind } from '../lib/placement'
-import { buildArenaDeck, buildMtgoDeck, exportTarget } from '../lib/deckExport'
 import type { FormatCode } from '../lib/formats'
 import type { DeckRow } from '../lib/deckSelection'
 
@@ -34,117 +33,19 @@ function formatDate(isoDate: string, locale: string): string {
   return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function CardLine({ line }: { line: DeckCardLine }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '3px 0', breakInside: 'avoid' }}>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--neon-text-soft)', width: 18, flex: '0 0 auto' }}>
-        {line.quantity}
-      </span>
-      <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
-        <CardArtPreview name={line.name} imageUrl={line.imageUrl} />
-      </span>
-    </div>
-  )
-}
-
-/** Card-type groups rendered within the mainboard, in fixed order. */
-const CARD_GROUP_ORDER: CardTypeCategory[] = ['lands', 'creatures', 'spells', 'other']
-
-/**
- * Image view flattens the same groups into one grid in a different order, with
- * lands last. There are no per-group wrappers, so a type transition never starts
- * a new row — the lands simply continue whichever row the spells ended on.
- */
-const CARD_TILE_ORDER: CardTypeCategory[] = ['creatures', 'spells', 'other', 'lands']
-
-const sumQuantity = (lines: DeckCardLine[]) => lines.reduce((total, line) => total + line.quantity, 0)
-
-/** A subdued sub-heading for a mainboard card-type group (e.g. Lands · 24). */
-function GroupHeading({ label, count }: { label: string; count: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: 8,
-        margin: '14px 0 6px',
-        breakInside: 'avoid',
-        breakAfter: 'avoid',
-      }}
-    >
-      <span
-        data-testid="card-group-heading"
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--fs-2xs)',
-          fontWeight: 'var(--fw-semibold)',
-          letterSpacing: 'var(--track-wide)',
-          textTransform: 'uppercase',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        {label}
-      </span>
-      <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-2xs)', color: 'var(--text-faint)' }}>
-        {count}
-      </span>
-    </div>
-  )
-}
-
-function SectionHeading({ label, count }: { label: string; count: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-      <span
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--fs-2xs)',
-          fontWeight: 'var(--fw-bold)',
-          letterSpacing: 'var(--track-wide)',
-          textTransform: 'uppercase',
-          color: 'var(--neon-text-soft)',
-        }}
-      >
-        {label}
-      </span>
-      <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-2xs)', color: 'var(--text-faint)' }}>
-        {count}
-      </span>
-    </div>
-  )
-}
-
 /** Full decklist modal: mainboard + sideboard for one deck. Dismissible; returns
  * focus to the element that opened it. */
 export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
   const { t, i18n } = useTranslation()
-  const { main, side, mainCount, sideCount, loading, error } = useDeckCards(deck.id)
-  const mainGroups = useMemo(() => groupMainByType(main), [main])
-  // Flat, lands-last ordering for image view. One array, one grid, no group
-  // wrappers — which is what lets lands continue the preceding row.
-  const mainTiles = useMemo(
-    () => CARD_TILE_ORDER.flatMap((category) => mainGroups[category]),
-    [mainGroups],
-  )
+  const { main, side, loading, error } = useDeckCards(deck.id)
   // The modal unmounts on close, so initialising to list view here is all the
   // "resets on every open" behaviour needs.
   const [images, setImages] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
-  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; message: string } | null>(null)
   const badge = placementBadge(deck.placement)
   const badgeColors = BADGE[badge.kind]
 
-  const target = exportTarget(format)
-
-  async function handleExport() {
-    const text = target === 'arena' ? buildArenaDeck(main, side, deck.archetypeName) : buildMtgoDeck(main, side)
-    try {
-      await navigator.clipboard.writeText(text)
-      setNotice({ tone: 'ok', message: t('modal.export.copied') })
-    } catch {
-      setNotice({ tone: 'error', message: t('modal.export.error') })
-    }
-  }
+  const { target, exportDeck, notice } = useDeckExport(main, side, format, deck.archetypeName)
 
   // Escape to close.
   useEffect(() => {
@@ -219,61 +120,8 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
           }}
         >
           <div className="modal-header-actions">
-            <button
-              type="button"
-              onClick={() => setImages((on) => !on)}
-              aria-pressed={images}
-              aria-label={t(images ? 'modal.view.toList' : 'modal.view.toImages')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                padding: '8px 13px',
-                flex: '0 0 auto',
-                borderRadius: 'var(--r-lg)',
-                border: '1px solid var(--border-line)',
-                background: 'var(--surface-subtle)',
-                color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--fs-sm)',
-                fontWeight: 'var(--fw-semibold)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span aria-hidden="true" style={{ display: 'inline-flex' }}>
-                {images ? <ListIcon /> : <GalleryIcon />}
-              </span>
-              {/* Label is hidden below 640px — the mobile header row has no space
-                  for a third labelled control (see .modal-view-label). */}
-              <span className="modal-view-label">
-                {t(images ? 'modal.view.toList' : 'modal.view.toImages')}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={loading || !!error}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                padding: '8px 13px',
-                borderRadius: 'var(--r-lg)',
-                border: '1px solid var(--neon-border)',
-                background: 'var(--neon-tint-16)',
-                color: 'var(--neon-text)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--fs-sm)',
-                fontWeight: 'var(--fw-semibold)',
-                cursor: loading || error ? 'not-allowed' : 'pointer',
-                opacity: loading || error ? 0.5 : 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span aria-hidden="true">⬇</span>
-              {t(target === 'arena' ? 'modal.export.action' : 'modal.export.mtgo')}
-            </button>
+            <DecklistViewToggle images={images} onToggle={() => setImages((on) => !on)} />
+            <DeckExportButton target={target} disabled={loading || !!error} onExport={exportDeck} />
             <button
               ref={closeRef}
               type="button"
@@ -334,48 +182,7 @@ export function DecklistModal({ deck, format, onClose }: DecklistModalProps) {
         ) : error ? (
           <EmptyState message={t('modal.error')} />
         ) : (
-          <div className={images ? 'decklist-grid decklist-grid-images' : 'decklist-grid'}>
-            <div style={{ padding: '20px 22px', borderRight: '1px solid var(--border-soft)' }}>
-              <SectionHeading label={t('modal.main')} count={t('modal.cards', { count: mainCount })} />
-              {images ? (
-                <div className="decklist-tiles decklist-tiles-main">
-                  {mainTiles.map((line, i) => (
-                    <CardTile key={`mt-${i}-${line.name}`} line={line} />
-                  ))}
-                </div>
-              ) : (
-                <div className="decklist-main-cols">
-                  {CARD_GROUP_ORDER.map((category) => {
-                    const lines = mainGroups[category]
-                    if (lines.length === 0) return null
-                    return (
-                      <Fragment key={category}>
-                        <GroupHeading
-                          label={t(`modal.group.${category}`)}
-                          count={t('modal.cards', { count: sumQuantity(lines) })}
-                        />
-                        {lines.map((line, i) => (
-                          <CardLine key={`m-${category}-${i}-${line.name}`} line={line} />
-                        ))}
-                      </Fragment>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-            <div style={{ padding: '20px 22px', background: 'var(--surface-faint)' }}>
-              <SectionHeading label={t('modal.side')} count={t('modal.cards', { count: sideCount })} />
-              {images ? (
-                <div className="decklist-tiles decklist-tiles-side">
-                  {side.map((line, i) => (
-                    <CardTile key={`st-${i}-${line.name}`} line={line} />
-                  ))}
-                </div>
-              ) : (
-                side.map((line, i) => <CardLine key={`s-${i}-${line.name}`} line={line} />)
-              )}
-            </div>
-          </div>
+          <DecklistBoards main={main} side={side} images={images} />
         )}
       </div>
     </div>

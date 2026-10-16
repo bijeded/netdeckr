@@ -78,7 +78,7 @@ export function finishQuality(placement: string): number | null {
  * top-8 value rather than introducing another tuned constant. It must stay
  * below `finishQuality('1')` so no unranked event can mint a champion.
  */
-const UNRANKED_QUALITY = 0.45
+export const UNRANKED_QUALITY = 0.45
 
 /**
  * Whether an event's recorded standings are presentation order rather than a
