@@ -247,6 +247,29 @@ describe('ArchetypeAnalysis', () => {
       expect(next).toBeDisabled()
     })
 
+    it('returns both card tables to page 1 when the archetype changes', () => {
+      const ids = [1, 2, 3, 4, 5, 6]
+      const manyRows = (prefix: string, count: number): CardStatRow[] => [
+        row('Island', 20, 'Basic Land — Island', ids),
+        ...Array.from({ length: count }, (_, i) => row(`${prefix} ${String(i).padStart(2, '0')}`, 1, 'Instant', ids)),
+        ...Array.from({ length: count }, (_, i) => row(`${prefix} Side ${String(i).padStart(2, '0')}`, 1, 'Instant', ids, 'side')),
+      ]
+      cardStats.rows = manyRows('Dimir', 23)
+      const { rerender } = renderAnalysis()
+      for (const id of ['consensus-table', 'sideboard-plan']) {
+        const table = screen.getByTestId(id)
+        fireEvent.click(within(table).getByRole('button', { name: 'Next page' }))
+        expect(within(table).getByText('2 / 3')).toBeInTheDocument()
+      }
+
+      cardStats.rows = manyRows('Izzet', 12)
+      const izzet = corpusOf(6).map((d) => ({ ...d, archetypeId: 6, archetypeName: 'Izzet Control' }))
+      rerender(<ArchetypeAnalysis format="ST" archetypeName="Izzet Control" corpus={izzet} />)
+      for (const id of ['consensus-table', 'sideboard-plan']) {
+        expect(within(screen.getByTestId(id)).getByText('1 / 2')).toBeInTheDocument()
+      }
+    })
+
     it('shows no pager when every row fits on one page', () => {
       renderAnalysis()
       expect(within(screen.getByTestId('consensus-table')).queryByRole('navigation')).toBeNull()

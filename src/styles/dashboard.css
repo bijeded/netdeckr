@@ -625,7 +625,7 @@
 }
 /* "Analysis →" beside it: the same pill in the T2 cyan, so the two entries read
    as two destinations rather than one control repeated. Text ~10:1 on the
-   expanded card's tinted panel (~7.8:1 on hover). Pending preview confirmation. */
+   expanded card's tinted panel (~7.8:1 on hover). Confirmed on the PR #220 preview. */
 .view-all-pill--analysis {
   background: rgba(127, 216, 255, 0.1);
   border-color: rgba(127, 216, 255, 0.45);
