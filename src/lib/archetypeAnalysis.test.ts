@@ -182,6 +182,20 @@ describe('typeSplit', () => {
     expect(split.reduce((s, p) => s + p.count, 0)).toBe(60)
   })
 
+  it('counts multi-type cards once, so the split totals the mainboard', () => {
+    const main = [
+      card({ typeLine: 'Basic Land — Forest', quantity: 20 }),
+      card({ typeLine: "Enchantment Land — Urza's Saga", quantity: 4 }),
+      card({ typeLine: 'Artifact Creature — Construct', quantity: 16 }),
+      card({ typeLine: 'Enchantment Creature — Gorgon', quantity: 4 }),
+      card({ typeLine: 'Instant', quantity: 16 }),
+    ]
+    const split = typeSplit(main)
+    expect(split.reduce((s, p) => s + p.count, 0)).toBe(60)
+    expect(split.find((p) => p.type === 'lands')?.count).toBe(24)
+    expect(split.find((p) => p.type === 'creatures')?.count).toBe(20)
+  })
+
   it('counts an unresolved type line under other', () => {
     const split = typeSplit([card({ typeLine: null, quantity: 3 })])
     expect(split.find((p) => p.type === 'other')?.count).toBe(3)
