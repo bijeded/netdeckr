@@ -8,7 +8,7 @@
 // produced by the grid's own functions over that slice, so they match
 // the archetype card on the unfiltered Last 2 Weeks view by construction.
 
-import { cardCategory, type CardTypeCategory } from './cardType'
+import { CARD_TYPES, cardCategory, cardType, type CardType } from './cardType'
 import { exportTarget } from './deckExport'
 import type { FormatCode } from './formats'
 import { attachPowerTiers, deriveBreakdown, type DeckForBreakdown } from './metagame'
@@ -242,19 +242,22 @@ export function manaCurve(main: StockCard[]): CurvePoint[] {
 }
 
 export interface TypeSplitPoint {
-  category: CardTypeCategory
+  type: CardType
   count: number
 }
 
-/** Mainboard card counts by the decklist type classification, in display order. */
+/**
+ * Mainboard card counts by card type, in display order. Each card counts once,
+ * so the split sums to the mainboard size. Finer than the decklist grouping,
+ * which the stock list keeps.
+ */
 export function typeSplit(main: StockCard[]): TypeSplitPoint[] {
-  const order: CardTypeCategory[] = ['lands', 'creatures', 'spells', 'other']
-  const counts = new Map<CardTypeCategory, number>(order.map((c) => [c, 0]))
+  const counts = new Map<CardType, number>(CARD_TYPES.map((t) => [t, 0]))
   for (const card of main) {
-    const category = cardCategory(card.typeLine)
-    counts.set(category, (counts.get(category) ?? 0) + card.quantity)
+    const type = cardType(card.typeLine)
+    counts.set(type, (counts.get(type) ?? 0) + card.quantity)
   }
-  return order.map((category) => ({ category, count: counts.get(category) ?? 0 }))
+  return CARD_TYPES.map((type) => ({ type, count: counts.get(type) ?? 0 }))
 }
 
 export type WildcardRarity = 'mythic' | 'rare' | 'uncommon' | 'common'

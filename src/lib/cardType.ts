@@ -17,6 +17,48 @@ export function cardCategory(typeLine: string | null | undefined): CardTypeCateg
   return 'other'
 }
 
+/** The Analysis tab's card-type split, finer than the decklist groups, in display order. */
+export const CARD_TYPES = [
+  'lands',
+  'creatures',
+  'planeswalkers',
+  'battles',
+  'artifacts',
+  'enchantments',
+  'instants',
+  'sorceries',
+  'other',
+] as const
+
+export type CardType = (typeof CARD_TYPES)[number]
+
+// Precedence for a multi-type card: the first of its types in this order wins.
+const TYPE_PRECEDENCE: [word: string, type: CardType][] = [
+  ['land', 'lands'],
+  ['creature', 'creatures'],
+  ['planeswalker', 'planeswalkers'],
+  ['battle', 'battles'],
+  ['artifact', 'artifacts'],
+  ['enchantment', 'enchantments'],
+  ['instant', 'instants'],
+  ['sorcery', 'sorceries'],
+]
+
+/**
+ * Classify a card by its Scryfall type line into one card type, for the
+ * Analysis tab's type split. Unlike `cardCategory`, only the types before the
+ * "—" are read, so a subtype never stands in for a type. Kindred has no bucket:
+ * it always accompanies another type, which decides. A missing type line falls
+ * into `other`.
+ */
+export function cardType(typeLine: string | null | undefined): CardType {
+  const types = (typeLine ?? '').split('—')[0].toLowerCase().split(/\s+/)
+  for (const [word, type] of TYPE_PRECEDENCE) {
+    if (types.includes(word)) return type
+  }
+  return 'other'
+}
+
 /** A mainboard line carrying enough to classify and render it. */
 interface TypedLine {
   typeLine?: string | null

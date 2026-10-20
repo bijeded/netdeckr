@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardCategory, groupMainByType, type CardTypeCategory } from './cardType'
+import { CARD_TYPES, cardCategory, cardType, groupMainByType, type CardTypeCategory } from './cardType'
 
 describe('cardCategory', () => {
   it('classifies lands', () => {
@@ -86,5 +86,59 @@ describe('groupMainByType', () => {
   it('exposes the categories in fixed order', () => {
     const order: CardTypeCategory[] = ['lands', 'creatures', 'spells', 'other']
     expect(Object.keys(groupMainByType([]))).toEqual(order)
+  })
+})
+
+describe('cardType', () => {
+  it('classifies each single card type', () => {
+    expect(cardType('Basic Land — Forest')).toBe('lands')
+    expect(cardType('Creature — Elf Druid')).toBe('creatures')
+    expect(cardType('Legendary Planeswalker — Jace')).toBe('planeswalkers')
+    expect(cardType('Battle — Siege')).toBe('battles')
+    expect(cardType('Artifact')).toBe('artifacts')
+    expect(cardType('Enchantment — Aura')).toBe('enchantments')
+    expect(cardType('Instant')).toBe('instants')
+    expect(cardType('Sorcery')).toBe('sorceries')
+  })
+
+  it('counts a multi-type card under its first type by precedence', () => {
+    expect(cardType('Land Creature — Forest Dryad')).toBe('lands')
+    expect(cardType('Artifact Creature — Construct')).toBe('creatures')
+    expect(cardType("Enchantment Land — Urza's Saga")).toBe('lands')
+    expect(cardType('Artifact Enchantment')).toBe('artifacts')
+    expect(cardType('Legendary Enchantment Creature — God')).toBe('creatures')
+  })
+
+  it('classifies Kindred cards by their other type', () => {
+    expect(cardType('Kindred Sorcery — Goblin')).toBe('sorceries')
+    expect(cardType('Kindred Instant — Faerie')).toBe('instants')
+  })
+
+  it('never classifies by a subtype', () => {
+    expect(cardType('Artifact — Equipment')).toBe('artifacts')
+    expect(cardType('Enchantment — Saga')).toBe('enchantments')
+  })
+
+  it('classifies missing or empty type lines as other', () => {
+    expect(cardType(null)).toBe('other')
+    expect(cardType('')).toBe('other')
+  })
+
+  it('is case-insensitive', () => {
+    expect(cardType('LEGENDARY PLANESWALKER — KAYA')).toBe('planeswalkers')
+  })
+
+  it('exposes the types in display order', () => {
+    expect(CARD_TYPES).toEqual([
+      'lands',
+      'creatures',
+      'planeswalkers',
+      'battles',
+      'artifacts',
+      'enchantments',
+      'instants',
+      'sorceries',
+      'other',
+    ])
   })
 })

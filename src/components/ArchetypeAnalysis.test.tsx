@@ -199,7 +199,9 @@ describe('ArchetypeAnalysis', () => {
       expect(within(curve).getByText('Mana value 1: 40')).toBeInTheDocument()
       const types = screen.getByTestId('type-split')
       expect(within(types).getByText('Lands').nextSibling).toHaveTextContent('20')
-      expect(within(types).getByText('Spells').nextSibling).toHaveTextContent('40')
+      expect(within(types).getByText('Instants').nextSibling).toHaveTextContent('40')
+      // Empty types are left out of the legend.
+      expect(within(types).queryByText('Creatures')).not.toBeInTheDocument()
     })
 
     it('shows wildcard cost for Standard and not for Modern', () => {
