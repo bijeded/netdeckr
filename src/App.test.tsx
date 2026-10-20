@@ -1950,6 +1950,9 @@ describe('Isolated archetype in the URL (?a=)', () => {
       expect(control).toHaveTextContent('Analysis →')
       expect(control).toHaveAccessibleName('Open the Izzet Control analysis')
       expect(control).toHaveClass('view-all-pill')
+      // Its own accent, so the two pills read as two destinations.
+      expect(control).toHaveClass('view-all-pill--analysis')
+      expect(screen.getByTestId('view-all-lists')).not.toHaveClass('view-all-pill--analysis')
       expect(control.parentElement).toBe(screen.getByTestId('view-all-lists').parentElement)
     })
 

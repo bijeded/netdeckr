@@ -43,6 +43,26 @@ export const howItWorksEn: Section[] = [
       "Trend — how that share changed compared to the previous period of the same length, in percentage points. It's left blank when the previous period doesn't have enough decks to compare against, or when a single event is selected.",
     ],
   },
+  { type: 'heading', text: 'The Analysis tab' },
+  {
+    type: 'paragraph',
+    text: [
+      'Open an archetype and choose Analysis → to see how that archetype is built and how it performs. The Analysis tab always covers the format\'s last 2 weeks and every event: the sidebar\'s time frame, event, event size, and tier filters don\'t change it.',
+    ],
+  },
+  {
+    type: 'list',
+    items: [
+      'Stock list — an average list for the archetype. Cards are ranked by how many of its decks play them, weighted so decks that finished deeper at bigger events count more. Each card is placed at the copy count those decks play most often, and the land count and deck size follow the typical deck.',
+      'Power Score — the 0–100 performance score the Tier is based on. It grows the deeper the archetype\'s decks finish, counts bigger events more, and stays cautious when an archetype has only a few results.',
+      'Share, Tier, Top 8 rate, Wins, Decks — the archetype\'s metagame share and tier over the 2 weeks, how often its decks reach the Top 8, how many events it won, and how many decks it has. Top 8 rate only counts events that publish a final ranking.',
+      'Consensus — every mainboard card the archetype\'s decks have played, with the share of decks that play it and the average copies. Core cards are in 90% or more of the decks, Flex cards in 25% or more, and Spicy cards in fewer than 25%.',
+      'Sideboard plan — the same view for sideboard cards: how many of the decks run each one, and how many copies.',
+      'Card types — the stock list\'s mainboard split into lands, creatures, planeswalkers, battles, artifacts, enchantments, instants, and sorceries. A card with two types, like an Artifact Creature, counts once, under the type listed first in that order.',
+      'Arena wildcards — Standard and Pioneer only: how many mythic, rare, uncommon, and common wildcards it takes to build the stock list on MTG Arena, sideboard included and basic lands free. It\'s an approximation, based on each card\'s printed rarity, which can differ from its rarity on Arena.',
+      'Small sample — shown when the archetype has fewer than 5 decks. The numbers still appear, but read them loosely.',
+    ],
+  },
   { type: 'heading', text: 'What we know about you' },
   {
     type: 'paragraph',

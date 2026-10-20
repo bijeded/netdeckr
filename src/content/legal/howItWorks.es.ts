@@ -43,6 +43,26 @@ export const howItWorksEs: Section[] = [
       'Tend. — cómo cambió ese porcentaje respecto al periodo anterior de la misma duración, en puntos porcentuales. Queda en blanco cuando el periodo anterior no tiene suficientes mazos para comparar, o cuando se selecciona un solo evento.',
     ],
   },
+  { type: 'heading', text: 'La pestaña Análisis' },
+  {
+    type: 'paragraph',
+    text: [
+      'Abre un arquetipo y elige Análisis → para ver cómo está construido y qué tal le va. La pestaña Análisis siempre cubre las últimas 2 semanas del formato y todos los eventos: los filtros de periodo, evento, tamaño de evento y tier de la barra lateral no la cambian.',
+    ],
+  },
+  {
+    type: 'list',
+    items: [
+      'Lista base — una lista promedio del arquetipo. Las cartas se ordenan según cuántos de sus mazos las juegan, dando más peso a los mazos que llegaron más lejos en eventos más grandes. Cada carta va con el número de copias que esos mazos juegan con más frecuencia, y la cantidad de tierras y el tamaño del mazo siguen al mazo típico.',
+      'Power Score — la puntuación de rendimiento, de 0 a 100, en la que se basa el Tier. Sube cuanto más lejos llegan los mazos del arquetipo, cuenta más los eventos grandes y es prudente cuando un arquetipo tiene pocos resultados.',
+      'Cuota, Tier, Tasa de Top 8, Victorias, Listas — la cuota de metajuego y el tier del arquetipo en las 2 semanas, qué tan seguido sus mazos llegan al Top 8, cuántos eventos ganó y cuántas listas tiene. La tasa de Top 8 solo cuenta eventos que publican una clasificación final.',
+      'Consenso — todas las cartas de mainboard que han jugado los mazos del arquetipo, con el porcentaje de mazos que la juegan y el promedio de copias. Las cartas Núcleo están en el 90% o más de los mazos, las Flex en el 25% o más, y las Picante en menos del 25%.',
+      'Plan de sideboard — lo mismo para las cartas de sideboard: cuántos de los mazos llevan cada una y cuántas copias.',
+      'Tipos de carta — el mainboard de la lista base dividido en tierras, criaturas, planeswalkers, batallas, artefactos, encantamientos, instantáneos y conjuros. Una carta con dos tipos, como una Criatura Artefacto, cuenta una sola vez, en el tipo que aparece primero en ese orden.',
+      'Comodines de Arena — solo en Standard y Pioneer: cuántos comodines míticos, raros, infrecuentes y comunes hacen falta para armar la lista base en MTG Arena, contando el sideboard y sin contar las tierras básicas. Es una aproximación basada en la rareza impresa de cada carta, que puede no coincidir con su rareza en Arena.',
+      'Muestra pequeña — aparece cuando el arquetipo tiene menos de 5 listas. Las cifras se muestran igual, pero tómalas con cautela.',
+    ],
+  },
   { type: 'heading', text: 'Qué sabemos sobre ti' },
   {
     type: 'paragraph',
