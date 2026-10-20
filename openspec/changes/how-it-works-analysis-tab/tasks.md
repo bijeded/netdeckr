@@ -11,7 +11,7 @@
 
 ## 3. Preview confirmation
 
-- [ ] 3.1 Open the PR, confirm the How It Works page in both locales on the Vercel preview (section placement, bullet wording, length on a phone), and record the outcome in `design.md`
+- [x] 3.1 Open the PR, confirm the How It Works page in both locales on the Vercel preview (section placement, bullet wording, length on a phone), and record the outcome in `design.md`
 
 ## Workflow follow-up
 

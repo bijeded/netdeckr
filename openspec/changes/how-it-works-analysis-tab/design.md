@@ -29,4 +29,8 @@ How It Works content is a typed `Section[]` per locale (`src/content/legal/howIt
 ## Risks / Trade-offs
 
 - [The explanations drift from the tab's behaviour when it changes later] → Bullets name concrete thresholds that the tests pin, so changing a threshold in code without updating the copy is caught only for those facts; the rest relies on review.
-- [The page gets long on phones] → One added section of eight short bullets; effect on reading length is pending visual confirmation on the preview.
+- [The page gets long on phones] → One added section of eight short bullets; reading length confirmed acceptable on the Vercel preview (PR #225).
+
+## Preview outcome
+
+Confirmed on the Vercel preview (PR #225), in English and Spanish: the section's placement after the dashboard explanations, the bullet wording, and the page length on a phone, all as shipped.
