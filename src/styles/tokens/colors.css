@@ -96,4 +96,19 @@
   --rarity-rare: #e9c46a;
   --rarity-uncommon: #b8c4d4;
   --rarity-common: #8b8d9e;
+
+  /* Analysis card-type doughnut slices, in ring order (change
+     analysis-type-split-detail). Validated with the dataviz palette checker on
+     --surface-card, including the ring's wrap-around other↔lands pair: every
+     slice >= 3:1, worst adjacent CVD ΔE 9.4, normal-vision ΔE 15.4. Lands and
+     other are deliberately neutral; the legend labels every slice. */
+  --type-lands: var(--text-muted);
+  --type-creatures: var(--neon-500);
+  --type-planeswalkers: #d95926;
+  --type-battles: #199e70;
+  --type-artifacts: #3987e5;
+  --type-enchantments: #c98500;
+  --type-instants: #d55181;
+  --type-sorceries: #008300;
+  --type-other: #5e6072;
 }

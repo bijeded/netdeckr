@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, Cell, LabelList, Pie, PieChart, ResponsiveContainer, XAxis } from 'recharts'
-import type { CardTypeCategory } from '../lib/cardType'
+import type { CardType } from '../lib/cardType'
 import { WILDCARD_RARITIES, type CurvePoint, type TypeSplitPoint, type WildcardCost } from '../lib/archetypeAnalysis'
 
 interface CompositionRailProps {
@@ -11,13 +11,9 @@ interface CompositionRailProps {
   smallSample: boolean
 }
 
-/** Segment colours, matching the legend dots' CSS classes. */
-const TYPE_COLOR: Record<CardTypeCategory, string> = {
-  lands: 'var(--text-muted)',
-  creatures: 'var(--neon-500)',
-  spells: 'var(--band-flex)',
-  other: 'var(--band-spicy)',
-}
+
+/** Slice colour for a card type — the same token its legend dot uses. */
+const typeColor = (type: CardType) => `var(--type-${type})`
 
 /**
  * The stock list's side rail: mana curve, card-type split, and (Arena formats
@@ -85,7 +81,7 @@ export function CompositionRail({ curve, types, wildcards, smallSample }: Compos
                 <Pie
                   data={types.filter((p) => p.count > 0)}
                   dataKey="count"
-                  nameKey="category"
+                  nameKey="type"
                   innerRadius="62%"
                   outerRadius="100%"
                   paddingAngle={2}
@@ -95,7 +91,7 @@ export function CompositionRail({ curve, types, wildcards, smallSample }: Compos
                   {types
                     .filter((p) => p.count > 0)
                     .map((p) => (
-                      <Cell key={p.category} fill={TYPE_COLOR[p.category]} />
+                      <Cell key={p.type} fill={typeColor(p.type)} />
                     ))}
                 </Pie>
               </PieChart>
@@ -106,9 +102,9 @@ export function CompositionRail({ curve, types, wildcards, smallSample }: Compos
             {types
               .filter((p) => p.count > 0)
               .map((p) => (
-                <li key={p.category}>
-                  <span className={`analysis-legend-dot analysis-type-${p.category}`} aria-hidden="true" />
-                  <span>{t(`modal.group.${p.category}`)}</span>
+                <li key={p.type}>
+                  <span className={`analysis-legend-dot analysis-type-${p.type}`} aria-hidden="true" />
+                  <span>{t(`analysis.composition.types.${p.type}`)}</span>
                   <span className="analysis-figure">{p.count}</span>
                 </li>
               ))}

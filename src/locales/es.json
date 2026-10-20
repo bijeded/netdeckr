@@ -172,7 +172,7 @@
     },
     "composition": {
       "consensusTitle": "Consenso",
-      "sideboardTitle": "Plan de banquillo",
+      "sideboardTitle": "Plan de sideboard",
       "card": "Carta",
       "played": "Jugada",
       "bands": {
@@ -183,6 +183,17 @@
       "curveTitle": "Curva de maná",
       "curveAxis": "Valor de maná",
       "typesTitle": "Tipos de carta",
+      "types": {
+        "lands": "Tierras",
+        "creatures": "Criaturas",
+        "planeswalkers": "Planeswalkers",
+        "battles": "Batallas",
+        "artifacts": "Artefactos",
+        "enchantments": "Encantamientos",
+        "instants": "Instantáneos",
+        "sorceries": "Conjuros",
+        "other": "Otros"
+      },
       "wildcardsTitle": "Comodines de Arena",
       "rarity": {
         "mythic": "Mítica",

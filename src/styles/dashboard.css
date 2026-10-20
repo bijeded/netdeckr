@@ -1003,10 +1003,15 @@
   color: var(--text-primary);
   pointer-events: none;
 }
-.analysis-type-lands { background: var(--text-muted); }
-.analysis-type-creatures { background: var(--neon-500); }
-.analysis-type-spells { background: var(--band-flex); }
-.analysis-type-other { background: var(--band-spicy); }
+.analysis-type-lands { background: var(--type-lands); }
+.analysis-type-creatures { background: var(--type-creatures); }
+.analysis-type-planeswalkers { background: var(--type-planeswalkers); }
+.analysis-type-battles { background: var(--type-battles); }
+.analysis-type-artifacts { background: var(--type-artifacts); }
+.analysis-type-enchantments { background: var(--type-enchantments); }
+.analysis-type-instants { background: var(--type-instants); }
+.analysis-type-sorceries { background: var(--type-sorceries); }
+.analysis-type-other { background: var(--type-other); }
 .analysis-legend {
   flex: 1 1 auto;
   display: grid;

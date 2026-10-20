@@ -183,6 +183,17 @@
       "curveTitle": "Mana curve",
       "curveAxis": "Mana value",
       "typesTitle": "Card types",
+      "types": {
+        "lands": "Lands",
+        "creatures": "Creatures",
+        "planeswalkers": "Planeswalkers",
+        "battles": "Battles",
+        "artifacts": "Artifacts",
+        "enchantments": "Enchantments",
+        "instants": "Instants",
+        "sorceries": "Sorceries",
+        "other": "Other"
+      },
       "wildcardsTitle": "Arena wildcards",
       "rarity": {
         "mythic": "Mythic",

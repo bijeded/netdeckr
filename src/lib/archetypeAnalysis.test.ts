@@ -157,14 +157,34 @@ describe('manaCurve', () => {
 })
 
 describe('typeSplit', () => {
-  it('counts lands, creatures, spells, and other', () => {
+  it('counts each card type separately and sums to the mainboard', () => {
     const main = [
-      card({ typeLine: 'Basic Land — Island', quantity: 24 }),
-      card({ typeLine: 'Creature — Faerie', quantity: 20 }),
-      card({ typeLine: 'Instant', quantity: 14 }),
-      card({ typeLine: 'Artifact', quantity: 2 }),
+      card({ typeLine: 'Basic Land — Island', quantity: 22 }),
+      card({ typeLine: 'Creature — Faerie', quantity: 14 }),
+      card({ typeLine: 'Legendary Planeswalker — Jace', quantity: 2 }),
+      card({ typeLine: 'Artifact', quantity: 4 }),
+      card({ typeLine: 'Enchantment', quantity: 4 }),
+      card({ typeLine: 'Instant', quantity: 8 }),
+      card({ typeLine: 'Sorcery', quantity: 6 }),
     ]
-    expect(typeSplit(main).map((p) => p.count)).toEqual([24, 20, 14, 2])
+    const split = typeSplit(main)
+    expect(split.map((p) => [p.type, p.count])).toEqual([
+      ['lands', 22],
+      ['creatures', 14],
+      ['planeswalkers', 2],
+      ['battles', 0],
+      ['artifacts', 4],
+      ['enchantments', 4],
+      ['instants', 8],
+      ['sorceries', 6],
+      ['other', 0],
+    ])
+    expect(split.reduce((s, p) => s + p.count, 0)).toBe(60)
+  })
+
+  it('counts an unresolved type line under other', () => {
+    const split = typeSplit([card({ typeLine: null, quantity: 3 })])
+    expect(split.find((p) => p.type === 'other')?.count).toBe(3)
   })
 })
 
