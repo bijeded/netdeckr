@@ -13,7 +13,7 @@
 
 ## 3. Preview confirmation
 
-- [ ] 3.1 Open the PR, confirm on the Vercel preview the doughnut colours, the legend at its tallest real archetype, the unchanged stock list grouping, and the Spanish "Plan de sideboard" heading; record the confirmed colour values and legend layout in `design.md`
+- [x] 3.1 Open the PR, confirm on the Vercel preview the doughnut colours, the legend at its tallest real archetype, the unchanged stock list grouping, and the Spanish "Plan de sideboard" heading; record the confirmed colour values and legend layout in `design.md`
 
 ## Workflow follow-up
 
