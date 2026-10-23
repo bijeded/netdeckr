@@ -2050,7 +2050,7 @@ describe('Isolated archetype in the URL (?a=)', () => {
   })
 })
 
-describe('Grid sort order (Popular / Power)', () => {
+describe('Grid sort order (Popularity / Power)', () => {
   const deck = (id: number, archetypeName: string) => ({
     id,
     sourceDeckId: `d${id}`,
@@ -2107,6 +2107,8 @@ describe('Grid sort order (Popular / Power)', () => {
     render(<App />)
     expect(popular()).toHaveAttribute('aria-pressed', 'true')
     expect(power()).toHaveAttribute('aria-pressed', 'false')
+    expect(popular()).toHaveTextContent('Popularity')
+    expect(power()).toHaveTextContent('Power')
     expect(screen.getByRole('group', { name: 'Sort archetypes' })).toBeInTheDocument()
     expect(shown()[0]).toBe('Popular 00')
     expect(shown()).not.toContain('Hidden Ace')
@@ -2126,7 +2128,7 @@ describe('Grid sort order (Popular / Power)', () => {
     // The two least popular of the share top 12 are displaced.
     expect(order).not.toContain('Popular 10')
     expect(order).not.toContain('Popular 11')
-    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 by performance')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 most powerful archetypes')
     expect(sortParam()).toBe('power')
     // Reordering re-derives the grid from the loaded data: same hook inputs, no new query.
     expect(useMetagame.mock.calls.at(-1)).toEqual(argsBefore)
@@ -2154,7 +2156,7 @@ describe('Grid sort order (Popular / Power)', () => {
     render(<App />)
     act(() => fireEvent.click(power()))
     expect(shown()).toEqual(['Hidden Ace', 'Rare Gem', 'Popular 10', 'Popular 11'])
-    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 4 by performance')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 4 most powerful archetypes')
   })
 
   it('orders a tier filter by score and keeps the tier caption', () => {
@@ -2200,7 +2202,7 @@ describe('Grid sort order (Popular / Power)', () => {
     act(() => fireEvent.click(screen.getByTestId('reset-filters')))
     expect(power()).toHaveAttribute('aria-pressed', 'true')
     expect(shown()[0]).toBe('Hidden Ace')
-    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 by performance')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 most powerful archetypes')
 
     act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T3' } }))
     act(() => fireEvent.click(screen.getByRole('button', { name: 'Clear filters' })))
@@ -2244,6 +2246,8 @@ describe('Grid sort order (Popular / Power)', () => {
     render(<App />)
     act(() => fireEvent.click(power()))
     expect(screen.getByRole('group', { name: 'Ordenar arquetipos' })).toBeInTheDocument()
-    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 por rendimiento')
+    expect(popular()).toHaveTextContent('Popularidad')
+    expect(power()).toHaveTextContent('Poder')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 arquetipos más poderosos')
   })
 })

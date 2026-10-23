@@ -6,15 +6,15 @@ The grid ranks archetypes only by metagame share and shows the top 12. An archet
 
 ## What Changes
 
-- Add a sort control to the grid's caption row, next to "Reset", with two options: **Popular** (the default, current behavior) and **Power**.
+- Add a sort control to the grid's caption row, next to "Reset", with two options: **Popularity** (the default, current behavior) and **Power**.
 - Under Power, the grid takes every archetype in the current window and filtered view, orders them by tier (T1 first, then T2, T3, fringe), then by Power Score within a tier, then by share, then by name. It then applies the same 12-card cap as the popularity view. A strong but rarely played archetype can now enter the top 12.
 - The ordering uses the same Last-2-Weeks Power Score that sets the tier badge, so the order and the badges always agree, whatever window is selected. Only archetypes present in the current window are eligible.
 - The Power Score number is never shown on the grid. It stays visible only on the Analysis tab.
 - Cards are numbered 1..N in the active order.
-- The caption names the active order: the default caption becomes "Top 12 by performance" (localized) under Power. Tier, event, and size-class captions are unchanged.
+- The caption names the active order: the default caption becomes "Top 12 most powerful archetypes" (localized) under Power. Tier, event, and size-class captions are unchanged.
 - The sort combines with filters: within a tier filter it orders that tier, and with an event or size filter it orders the uncapped field. While an archetype is isolated, the control stays rendered but disabled.
 - The sort is a view preference, not a filter. "Reset" and "Clear filters" do not change it, and it does not enable "Reset".
-- The selected order is persisted in the URL as `?sort=power`. The param is absent for the default, and an invalid value falls back to Popular. A shared link reopens the same order.
+- The selected order is persisted in the URL as `?sort=power`. The param is absent for the default, and an invalid value falls back to Popularity. A shared link reopens the same order.
 - The share bar keeps meaning metagame share, so under Power the bars no longer decrease from card to card.
 - The How It Works page explains the Power order in one sentence.
 - All new copy is localized in ES and EN.

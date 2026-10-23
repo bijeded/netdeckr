@@ -25,10 +25,10 @@ describe('How It Works — trending table values', () => {
 
 describe('How It Works — grid sort order', () => {
   it.each([
-    ['en', howItWorksEn, /by tier and then by how well they perform, not by how often they are played/],
-    ['es', howItWorksEs, /por tier y luego por qué tan bien les va, no por qué tan seguido se juegan/],
-  ] as const)('%s explains the Popular and Power orders', (_, sections, power) => {
-    const item = listItems(sections).find((i) => i.startsWith('Popular / Power — '))
+    ['en', howItWorksEn, 'Popularity / Power — ', /by tier and then by how well they perform, not by how often they are played/],
+    ['es', howItWorksEs, 'Popularidad / Poder — ', /por tier y luego por qué tan bien les va, no por qué tan seguido se juegan/],
+  ] as const)('%s explains the Popularity and Power orders', (_, sections, label, power) => {
+    const item = listItems(sections).find((i) => i.startsWith(label))
     expect(item).toBeDefined()
     expect(item).toMatch(power)
   })

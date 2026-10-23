@@ -46,10 +46,10 @@ A new hook in `src/hooks/useSortOrder.ts` backs `sort` in the URL: `power` → `
 The format and window setters already preserve unrelated params, so the order surviving a format/window switch needs no extra code. `clearFilters` does not touch it.
 
 ### 5. Control: a two-option segmented control, `role="group"` with `aria-pressed`
-A new `SortOrderToggle.tsx` renders two buttons, Popular and Power, inside `role="group"` with a localized `aria-label`. The active one has `aria-pressed="true"`.
+A new `SortOrderToggle.tsx` renders two buttons, Popularity and Power, inside `role="group"` with a localized `aria-label`. The active one has `aria-pressed="true"`.
 
 - *Alternative:* reuse `ArchetypeTabToggle`'s `role="tablist"`. Rejected: tabs imply switching panels. This reorders the same panel.
-- *Alternative:* a single toggle pill like the time-window pill (names the current state, glyph names the move). Rejected for now: Popular / Power aren't a natural pair the way 7 days → 2 weeks widens, so both labels should be visible. **Pending visual confirmation** on the preview. If the segmented control crowds the caption row on mobile, the single-pill form is the fallback.
+- *Alternative:* a single toggle pill like the time-window pill (names the current state, glyph names the move). Rejected for now: Popularity / Power aren't a natural pair the way 7 days → 2 weeks widens, so both labels should be visible. **Pending visual confirmation** on the preview. If the segmented control crowds the caption row on mobile, the single-pill form is the fallback.
 - Disabled while isolated: rendered, `disabled` on both buttons, so the row does not reflow (same rationale as the always-rendered Reset).
 
 Placement: the caption row's right cell becomes a flex group, `[SortOrderToggle] [Reset]`. **Pending visual confirmation:**
@@ -62,7 +62,13 @@ Do not set these values up front; record them here once confirmed on the preview
 **Mobile layout, decided on the preview.** The plan was the same side-by-side arrangement at every width, which is how Reset alone had always sat. It was overturned on the first preview: at ~375px the sort control and Reset beside the caption squeezed "Top 12 most popular archetypes" into a three-line column. At ≤ 640px the controls now drop to their own full-width row below the caption, with the sort control on the left and Reset still right-aligned. Both stay inside the caption row container, so they remain visible without opening the sidebar. Desktop is unchanged. The segmented control stays: the problem was the row's arrangement, not the control's form, so the single-pill fallback is not needed. The gap and the toggle's height are still pending confirmation.
 
 ### 6. Captions
-New i18n keys `dashboard.powerCaption` ("Top {{count}} by performance" / ES equivalent) and the control's labels. The caption selection in `App.tsx` changes only in its final fallback (`popularity` → `power` caption by order). Tier, event, and size captions are untouched, per spec.
+New i18n keys `dashboard.powerCaption` ("Top {{count}} most powerful archetypes" / ES equivalent) and the control's labels. The caption selection in `App.tsx` changes only in its final fallback (`popularity` → `power` caption by order). Tier, event, and size captions are untouched, per spec.
+
+**Copy, decided on the preview.** The first build shipped the caption "Top 12 by performance" and the options "Popular / Power", with "Power" left in English in ES as well, following "Power Score". The user replaced them on the preview:
+- the caption is "Top 12 most powerful archetypes" / "Top 12 arquetipos más poderosos", so it reads as the counterpart of "Top 12 most popular archetypes";
+- the options are "Popularity / Power" in EN and "Popularidad / Poder" in ES. Both options name a quality, and "Poder" is translated because it is a label, not the "Power Score" name.
+
+The `popular` / `power` codes and the `sort=power` param are unchanged.
 
 ### 7. How It Works copy
 One added sentence in the Tier area of `howItWorks.en.ts` / `howItWorks.es.ts`, plus the matching test assertion.

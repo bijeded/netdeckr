@@ -17,7 +17,7 @@
   - default with no param;
   - `sort=power` restoring Power;
   - an unknown value removed from the URL;
-  - Popular deleting the param;
+  - Popularity deleting the param;
   - no history entry added (`history.length` unchanged);
   - other params (`f`, `w`, `a`, `tab`) left intact.
 
@@ -32,10 +32,10 @@
   - **Caption:** switch only the default fallback to `dashboard.powerCaption_one` / `_other` under Power.
   - **Copy:** add `dashboard.powerCaption_*` and the control's label strings to `en.json` and `es.json`.
   - **Tests:** in `App.test.tsx` (Supabase hooks mocked, since CI has no env), cover:
-    - default Popular order and caption;
+    - default Popularity order and caption;
     - switching to Power reordering cards without a new fetch;
     - a low-share T1 archetype entering the top 12 and displacing a popular one;
-    - the "Top 12 by performance" caption and the fewer-than-12 count;
+    - the "Top 12 most powerful archetypes" caption and the fewer-than-12 count;
     - tier filter and event/size filter ordering with their captions unchanged;
     - the control disabled while isolated, with the order restored after Back;
     - Reset / Clear filters keeping Power;
@@ -48,7 +48,7 @@
 
 ## 4. How It Works page
 
-- [x] 4.1 Add one sentence on the Popular and Power orders to the Tier area of `howItWorks.en.ts` and `howItWorks.es.ts`, stating that Power orders archetypes by tier and then by how well they perform, not by how often they are played. In `howItWorks.test.ts`, assert that both locales mention the two orders (spec "Dashboard data points explained"). Verify: `npm run test -- howItWorks` passes, including the same-structure test across locales.
+- [x] 4.1 Add one sentence on the Popularity and Power orders to the Tier area of `howItWorks.en.ts` and `howItWorks.es.ts`, stating that Power orders archetypes by tier and then by how well they perform, not by how often they are played. In `howItWorks.test.ts`, assert that both locales mention the two orders (spec "Dashboard data points explained"). Verify: `npm run test -- howItWorks` passes, including the same-structure test across locales.
 
 ## 5. Integration
 

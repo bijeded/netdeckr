@@ -3,18 +3,18 @@
 ## ADDED Requirements
 
 ### Requirement: Grid sort order
-The grid caption row SHALL offer a localized sort control, beside the main-window "Reset" control, with exactly two options: Popular and Power. Popular, the default, orders archetypes by share as specified by "Display the archetype breakdown". Power orders them by performance as specified by "Power order ranking". The control SHALL show which option is active, be operable by keyboard with a visible focus indicator, and stay visible on narrow viewports without opening the sidebar.
+The grid caption row SHALL offer a localized sort control, beside the main-window "Reset" control, with exactly two options: Popularity and Power. Popularity, the default, orders archetypes by share as specified by "Display the archetype breakdown". Power orders them by performance as specified by "Power order ranking". The control SHALL show which option is active, be operable by keyboard with a visible focus indicator, and stay visible on narrow viewports without opening the sidebar.
 
-#### Scenario: Popular is the default order
+#### Scenario: Popularity is the default order
 - **WHEN** the dashboard loads with no sort param in the URL
-- **THEN** the sort control shows Popular as active and the grid is ordered by share descending
+- **THEN** the sort control shows Popularity as active and the grid is ordered by share descending
 
 #### Scenario: Switching to Power reorders the grid
 - **WHEN** the user selects Power in the sort control
 - **THEN** the grid is re-derived in the Power order, with no further request to the database
 
-#### Scenario: Switching back to Popular restores the share order
-- **WHEN** the Power order is active and the user selects Popular
+#### Scenario: Switching back to Popularity restores the share order
+- **WHEN** the Power order is active and the user selects Popularity
 - **THEN** the grid returns to the share-descending order and the popularity caption
 
 #### Scenario: Sort control is reachable on mobile
@@ -57,7 +57,7 @@ Under the Power order the grid SHALL rank the archetypes of the current view by 
 - **THEN** no archetype card shows its Power Score as a number, and each card's share percentage and share bar still show its metagame share
 
 ### Requirement: Power order cap and caption
-In the default (time-frame-only, unfiltered) view, the Power order SHALL select the top 12 archetypes from every archetype in the window, ranked by "Power order ranking", rather than reordering the 12 most popular. Its caption SHALL read "Top 12 by performance" (localized), or the actual count when fewer than 12 exist. Narrowed views keep their existing caps and captions; under the Power order their archetypes are shown in Power order.
+In the default (time-frame-only, unfiltered) view, the Power order SHALL select the top 12 archetypes from every archetype in the window, ranked by "Power order ranking", rather than reordering the 12 most popular. Its caption SHALL read "Top 12 most powerful archetypes" (localized), or the actual count when fewer than 12 exist. Narrowed views keep their existing caps and captions; under the Power order their archetypes are shown in Power order.
 
 #### Scenario: A rarely played strong archetype enters the top 12
 - **WHEN** the default view has more than 12 archetypes, the Power order is active, and an archetype ranked below 12th by share ranks within the top 12 by Power order
@@ -65,11 +65,11 @@ In the default (time-frame-only, unfiltered) view, the Power order SHALL select 
 
 #### Scenario: Power caption in the default view
 - **WHEN** the default view has more than 12 archetypes and the Power order is active
-- **THEN** exactly 12 cards are shown and the caption reads "Top 12 by performance"
+- **THEN** exactly 12 cards are shown and the caption reads "Top 12 most powerful archetypes"
 
 #### Scenario: Fewer archetypes than the cap under Power
 - **WHEN** the default view has 12 or fewer archetypes and the Power order is active
-- **THEN** all of them are shown and the caption names the actual count (e.g. "Top 8 by performance")
+- **THEN** all of them are shown and the caption names the actual count (e.g. "Top 8 most powerful archetypes")
 
 #### Scenario: Tier filter under Power
 - **WHEN** a tier filter is active and the Power order is active
@@ -91,22 +91,22 @@ While an archetype is isolated, the sort control SHALL remain rendered in place 
 - **THEN** the grid returns in the Power order and the sort control is enabled again
 
 ### Requirement: Sort order persisted in the URL
-The Power order SHALL be persisted in the URL as `sort=power` alongside the other params, and the Popular order SHALL be represented by the absence of the param. A link carrying `sort=power` SHALL open the grid in the Power order. An unknown `sort` value SHALL be removed silently and Popular applied. Changing the order SHALL NOT add a history entry. The order SHALL be kept across format and window switches.
+The Power order SHALL be persisted in the URL as `sort=power` alongside the other params, and the Popularity order SHALL be represented by the absence of the param. A link carrying `sort=power` SHALL open the grid in the Power order. An unknown `sort` value SHALL be removed silently and Popularity applied. Changing the order SHALL NOT add a history entry. The order SHALL be kept across format and window switches.
 
 #### Scenario: Power link restores the order
 - **WHEN** the user loads a URL carrying `sort=power`
 - **THEN** the grid is shown in the Power order once data loads, with Power active in the sort control
 
-#### Scenario: Popular leaves no param
-- **WHEN** the user selects Popular
+#### Scenario: Popularity leaves no param
+- **WHEN** the user selects Popularity
 - **THEN** the URL carries no `sort` param
 
 #### Scenario: Unknown sort value is ignored
 - **WHEN** the user loads a URL carrying an unknown `sort` value
-- **THEN** the param is removed from the URL and the Popular order is applied, with no error
+- **THEN** the param is removed from the URL and the Popularity order is applied, with no error
 
 #### Scenario: Changing the order adds no history entry
-- **WHEN** the user switches between Popular and Power
+- **WHEN** the user switches between Popularity and Power
 - **THEN** the browser's Back action does not step back through those switches
 
 #### Scenario: Order survives a format switch
@@ -131,7 +131,7 @@ The sort order SHALL be a view preference, not a filter. "Clear filters" and the
 ## MODIFIED Requirements
 
 ### Requirement: Display the archetype breakdown
-The dashboard SHALL derive the metagame breakdown for the selected format and window from the decks stored in Supabase — grouping the window's decks by archetype and computing each archetype's share as its deck count divided by the total number of decks in that format+window — and, in the default (time-frame-only, unfiltered) view, display up to the top 12 archetypes in the active grid sort order (see "Grid sort order"), which defaults to share (deck count) descending. Each archetype SHALL be shown as a card containing its rank — its position in the active sort order (zero-padded, e.g. `01`), its archetype name in English, its color-identity mana pips, its signature-card art (a placeholder gradient when no art is available), and its share percentage rendered in a monospace font with exactly one decimal (e.g. `14.2%`). Above the freshness line, the dashboard SHALL show a localized caption naming how many archetypes are shown and in which order (e.g. "Top 12 most popular archetypes" under the popularity order, "Top 12 by performance" under the Power order, or the actual count when fewer than 12 exist). Because the breakdown is derived from the same decks shown in the drill-down, every displayed archetype SHALL have at least one deck.
+The dashboard SHALL derive the metagame breakdown for the selected format and window from the decks stored in Supabase — grouping the window's decks by archetype and computing each archetype's share as its deck count divided by the total number of decks in that format+window — and, in the default (time-frame-only, unfiltered) view, display up to the top 12 archetypes in the active grid sort order (see "Grid sort order"), which defaults to share (deck count) descending. Each archetype SHALL be shown as a card containing its rank — its position in the active sort order (zero-padded, e.g. `01`), its archetype name in English, its color-identity mana pips, its signature-card art (a placeholder gradient when no art is available), and its share percentage rendered in a monospace font with exactly one decimal (e.g. `14.2%`). Above the freshness line, the dashboard SHALL show a localized caption naming how many archetypes are shown and in which order (e.g. "Top 12 most popular archetypes" under the popularity order, "Top 12 most powerful archetypes" under the Power order, or the actual count when fewer than 12 exist). Because the breakdown is derived from the same decks shown in the drill-down, every displayed archetype SHALL have at least one deck.
 
 The decks the breakdown is derived from SHALL be the format's **legal** decks only: a deck holding a card banned in that format is excluded from the corpus before the breakdown, its shares, and its performance figures are derived. Consequently the share denominator counts legal decks only, an archetype with no legal deck in the window does not appear at all, and an archetype with both keeps only its legal decks in its share, its rank, and its drill-down.
 
