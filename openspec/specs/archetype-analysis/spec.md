@@ -119,31 +119,6 @@ The Analysis tab SHALL show six headline figures in the style of the dashboard h
 - **WHEN** the 2-week corpus has events on some days and none on others
 - **THEN** the share-per-day chart plots the archetype's share of that day's decks on each day with events and shows no value on days without events
 
-### Requirement: Consensus card table
-The Analysis tab SHALL list every mainboard card seen in the analysed decks with its inclusion (share of decks playing it) and average copies among decks that play it, labelled "Avg" as in the trending tables, banded as core (≥ 90% inclusion), flex (≥ 25%), or spicy (below 25%), and ordered by the stock list ranking.
-
-#### Scenario: Cards are banded by inclusion
-- **WHEN** a card is played by 30 of 32 decks, another by 12 of 32, and another by 2 of 32
-- **THEN** they appear as core, flex, and spicy respectively, each with its inclusion and average copies
-
-### Requirement: Card tables are paged
-The consensus table and the sideboard plan SHALL each show at most 10 rows at a time, with localized previous/next controls and a page indicator when they hold more than 10 rows. The first page SHALL be shown whenever the archetype's card data changes.
-
-#### Scenario: A long table pages
-- **WHEN** the consensus table holds 24 cards
-- **THEN** it shows the first 10 with a "1 / 3" indicator, the previous control disabled, and the next control moving to rows 11–20
-
-#### Scenario: A short table has no pager
-- **WHEN** a table holds 10 cards or fewer
-- **THEN** all of them are shown and no page controls appear
-
-### Requirement: Sideboard plan
-The Analysis tab SHALL list every sideboard card seen in the analysed decks with its inclusion and average copies among decks that play it, ordered by the stock list ranking.
-
-#### Scenario: Sideboard cards with inclusion
-- **WHEN** the analysed decks run sideboard cards
-- **THEN** each appears with its inclusion and average copies
-
 ### Requirement: Mana curve and card-type split
 The Analysis tab SHALL show the stock list mainboard's mana curve (non-land card counts by mana value, with the highest bucket open-ended) and its split by card type into lands, creatures, planeswalkers, battles, artifacts, enchantments, instants, and sorceries, plus "other" for a card whose type line is unresolved. This split SHALL NOT change the decklist type grouping used to group the stock list.
 
@@ -201,7 +176,7 @@ For Standard and Pioneer only, the Analysis tab SHALL show the number of mythic,
 - **THEN** no wildcard cost is shown
 
 ### Requirement: Small-sample label
-When the archetype has fewer than 5 analysed decks, the stock list, consensus table, sideboard plan, and curve SHALL still render, each carrying a localized label that the sample is small.
+When the archetype has fewer than 5 analysed decks, the stock list and curve SHALL still render, each carrying a localized label that the sample is small.
 
 #### Scenario: Four decks show the label
 - **WHEN** the archetype has 4 decks in the 2-week corpus
@@ -219,7 +194,7 @@ While the analysis card data loads, the Analysis tab SHALL show a loading indica
 - **THEN** the stock list and composition sections show a localized error, and the performance section and Lists tab still work
 
 ### Requirement: Localized analysis UI
-All user-facing text on the Analysis tab — section headings, labels, bands, notes, chart axes and tooltips, export action, and confirmations — SHALL be provided through react-i18next in Spanish and English, with card and archetype names left in English in both locales.
+All user-facing text on the Analysis tab — section headings, labels, notes, chart axes and tooltips, export action, and confirmations — SHALL be provided through react-i18next in Spanish and English, with card and archetype names left in English in both locales.
 
 #### Scenario: Analysis in both locales
 - **WHEN** the user views the Analysis tab in Spanish or English
