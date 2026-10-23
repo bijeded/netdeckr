@@ -102,7 +102,7 @@ The How It Works page SHALL include a section on the archetype Analysis tab, in 
 
 #### Scenario: Each part of the tab is explained
 - **WHEN** the How It Works page is displayed in English or Spanish
-- **THEN** the section has one entry each for the stock list, Power Score, the performance figures, the consensus bands, the sideboard plan, card types, Arena wildcards, and the small-sample label, each starting with that part's on-screen name
+- **THEN** the section has one entry each for the stock list, Power Score, the performance figures, card types, Arena wildcards, and the small-sample label, each starting with that part's on-screen name
 
 #### Scenario: Stock list and Power Score are explained
 - **WHEN** the reader looks up the stock list and Power Score
@@ -110,7 +110,7 @@ The How It Works page SHALL include a section on the archetype Analysis tab, in 
 
 #### Scenario: Bands and wildcards are explained
 - **WHEN** the reader looks up the consensus bands and Arena wildcards
-- **THEN** the bands entry gives the Core (90% or more of decks), Flex (25% or more), and Spicy (under 25%) thresholds, and the wildcards entry says it applies to Standard and Pioneer only, excludes basic lands, and is an approximation based on each card's printed rarity
+- **THEN** the section has no entry for the consensus table, its Core / Flex / Spicy bands, or the sideboard plan, since the tab no longer shows them; and the wildcards entry says it applies to Standard and Pioneer only, excludes basic lands, and is an approximation based on each card's printed rarity
 
 #### Scenario: Small sample is explained
 - **WHEN** the reader looks up the small-sample label
