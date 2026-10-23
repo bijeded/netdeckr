@@ -4,7 +4,8 @@
 // entities (no name-mismatch, no empty cards). Lives here (not in JSX or the hook)
 // so it is unit-testable.
 
-import type { Tier } from './tiers'
+import { TIER_ORDER, type Tier } from './tiers'
+import type { SortOrder } from './sortOrder'
 import { archetypePowerScore, assignTiers, windowTrend, T1_MIN_DECKS, type Trend } from './powerScore'
 import { placementBadge } from './placement'
 import type { ShareDelta } from './shareDelta'
@@ -27,6 +28,11 @@ export interface RankedArchetype {
 export interface ArchetypeShare extends RankedArchetype {
   /** Performance tier, from the archetype's 2-week Power Score (not its share). */
   tier: Tier
+  /**
+   * The 2-week Power Score behind `tier`. Drives the grid's Power order only — it
+   * is never rendered on the grid (the Analysis tab shows the number).
+   */
+  powerScore: number
   /** Selected-window-vs-2-week momentum, or null on the baseline window (no arrow). */
   trend: Trend | null
 }
@@ -164,6 +170,7 @@ export function attachPowerTiers(displayed: RankedArchetype[], ctx: PowerContext
   return displayed.map((archetype) => ({
     ...archetype,
     tier: tiers.get(archetype.name) ?? 'Otros',
+    powerScore: scores.get(archetype.name) ?? 0,
     trend: ctx.isBaseline
       ? null
       : windowTrend(
@@ -171,4 +178,21 @@ export function attachPowerTiers(displayed: RankedArchetype[], ctx: PowerContext
           ctx.twoWeekPlacements.get(archetype.name) ?? [],
         ),
   }))
+}
+
+/**
+ * Order a tiered breakdown for the grid and renumber `rank` 1..N in that order.
+ * `popular` is share descending; `power` is tier (T1 first), then 2-week Power
+ * Score within a tier, then share. Both break remaining ties by name. Tier comes
+ * before score because the Tier-1 deck floor can demote a high scorer to T2, and a
+ * raw-score order would then put a T2 badge above T1 badges. Returns a new array.
+ */
+export function orderBreakdown<T extends ArchetypeShare>(list: T[], order: SortOrder): T[] {
+  const byShare = (a: T, b: T) => b.sharePct - a.sharePct || a.name.localeCompare(b.name)
+  const compare =
+    order === 'power'
+      ? (a: T, b: T) =>
+          TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier) || b.powerScore - a.powerScore || byShare(a, b)
+      : byShare
+  return [...list].sort(compare).map((archetype, index) => ({ ...archetype, rank: index + 1 }))
 }

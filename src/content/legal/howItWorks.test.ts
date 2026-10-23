@@ -23,6 +23,17 @@ describe('How It Works — trending table values', () => {
   })
 })
 
+describe('How It Works — grid sort order', () => {
+  it.each([
+    ['en', howItWorksEn, /by tier and then by how well they perform, not by how often they are played/],
+    ['es', howItWorksEs, /por tier y luego por qué tan bien les va, no por qué tan seguido se juegan/],
+  ] as const)('%s explains the Popular and Power orders', (_, sections, power) => {
+    const item = listItems(sections).find((i) => i.startsWith('Popular / Power — '))
+    expect(item).toBeDefined()
+    expect(item).toMatch(power)
+  })
+})
+
 /** The Analysis tab section: the paragraph and list that follow its heading. */
 function analysisSection(sections: Section[], heading: string): { intro: string; items: string[] } {
   const start = sections.findIndex((s) => s.type === 'heading' && s.text === heading)

@@ -479,6 +479,36 @@
    not the violet primary: the caption beside it is already --neon-text-soft, and
    violet-on-violet made the control disappear into the row. It is equally not
    --up — that triad is the ShareDelta pill rendered on the cards just below. */
+/* The caption row's right cell: the sort control, then Reset. Gap pending
+   confirmation on the preview. */
+.caption-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--sp-3);
+}
+/* Popular / Power order switch (change sort-archetypes-by-power). Takes the
+   segmented-control shape of the Lists / Analysis toggle but not its T2 cyan: on
+   this row cyan would read as a tier, the caption beside it is violet, and Reset
+   is green — so the selected option is a neutral raised fill. Every value here is
+   pending confirmation on the preview. */
+.sort-toggle {
+  border-color: var(--border-line);
+}
+.sort-toggle .tab-toggle-option:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+.sort-toggle .tab-toggle-option[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+.sort-toggle .tab-toggle-option:disabled {
+  cursor: default;
+  color: var(--text-faint);
+}
+.sort-toggle .tab-toggle-option[aria-pressed='true']:disabled {
+  background: transparent;
+}
 .reset-filters {
   flex: 0 0 auto;
   padding: 7px 14px;

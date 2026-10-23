@@ -35,6 +35,7 @@ export const howItWorksEn: Section[] = [
       'Share delta — how that share changed compared to the previous period of the same length (for example, this week versus last week).',
       "Tier (T1, T2, T3, or Rogue) — how well an archetype actually performs, based on how deep its decks tend to finish in tournaments, weighted so results from bigger events count for more. This is about performance, not popularity, so a heavily-played but underperforming archetype can rank below a smaller one that keeps winning.",
       "The arrow next to the tier — whether that archetype's recent performance is trending up, down, or holding steady compared to the previous stretch.",
+      'Popular / Power — how the archetype cards are ordered. Popular, the default, puts the most-played archetypes first. Power orders them by tier and then by how well they perform, not by how often they are played, so a rarely played archetype that keeps winning can make the top 12.',
       'Top Creatures, Top Spells, Top Sideboard Cards, and Top New Cards — the individual cards played the most across the decks in view, ranked by Copies.',
       'Top New Cards — only cards printed in the two most recent main sets, reprints and nonbasic lands included, counting mainboard and sideboard copies together. Not shown in Pre-Modern, which receives no new sets.',
       'Avg — the average number of copies in the decks that play the card, rounded. 4x means those decks run a full playset.',
