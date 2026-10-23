@@ -463,15 +463,25 @@
   margin: var(--sp-7) 0 0;
 }
 
-/* Caption row: the grid caption and freshness line on the left, the Reset control
-   right-aligned and centred against that block. Same arrangement at every width —
-   giving Reset its own row on mobile would cost a row of height where there is
-   least of it and pull the control away from the caption it belongs to. */
+/* Caption row: the grid caption and freshness line on the left, the sort control
+   and Reset right-aligned and centred against that block. On mobile the controls
+   drop to their own row below the caption: Reset alone fitted beside it, but with
+   the sort control as well the caption was squeezed into a three-line column
+   (confirmed on the preview of sort-archetypes-by-power). */
 .caption-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
+}
+@media (max-width: 640px) {
+  .caption-row {
+    flex-wrap: wrap;
+    row-gap: var(--sp-3);
+  }
+  .caption-row > :first-child {
+    flex: 1 1 100%;
+  }
 }
 /* Enabled, it is the way out of a filtered view and has to read as an action, so
    it takes the accent treatment (tint, accent rim, accent text) rather than the
@@ -486,6 +496,14 @@
   flex: 0 0 auto;
   align-items: center;
   gap: var(--sp-3);
+}
+/* Mobile: the controls' own full-width row — sort control left, Reset still
+   right-aligned. Kept after the base rule so it wins at equal specificity. */
+@media (max-width: 640px) {
+  .caption-actions {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
 }
 /* Popular / Power order switch (change sort-archetypes-by-power). Takes the
    segmented-control shape of the Lists / Analysis toggle but not its T2 cyan: on

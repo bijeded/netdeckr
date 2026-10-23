@@ -59,6 +59,8 @@ Placement: the caption row's right cell becomes a flex group, `[SortOrderToggle]
 
 Do not set these values up front; record them here once confirmed on the preview.
 
+**Mobile layout, decided on the preview.** The plan was the same side-by-side arrangement at every width, which is how Reset alone had always sat. It was overturned on the first preview: at ~375px the sort control and Reset beside the caption squeezed "Top 12 most popular archetypes" into a three-line column. At ≤ 640px the controls now drop to their own full-width row below the caption, with the sort control on the left and Reset still right-aligned. Both stay inside the caption row container, so they remain visible without opening the sidebar. Desktop is unchanged. The segmented control stays: the problem was the row's arrangement, not the control's form, so the single-pill fallback is not needed. The gap and the toggle's height are still pending confirmation.
+
 ### 6. Captions
 New i18n keys `dashboard.powerCaption` ("Top {{count}} by performance" / ES equivalent) and the control's labels. The caption selection in `App.tsx` changes only in its final fallback (`popularity` → `power` caption by order). Tier, event, and size captions are untouched, per spec.
 
@@ -70,7 +72,7 @@ One added sentence in the Tier area of `howItWorks.en.ts` / `howItWorks.es.ts`, 
 - [Share bars stop decreasing under Power. *Calculated:* the bar is share-scaled and the order is not share-ordered. Whether that reads as intended or as broken is **pending visual confirmation**.] → If it reads as broken, consider muting the bar under Power. That would be a spec change, decided on the preview.
 - [Strict rank order implies precision the tiers smooth over. *Calculated:* within a tier, adjacent scores can differ by under 1 point, and the score is never shown.] → Tier-first ordering bounds the effect to within-tier position. The calibration constants are unchanged.
 - [Fringe-tier archetypes with no usable placements all score 0.] → The share-then-name tiebreak makes their order deterministic. They sort last and rarely reach the 12-card cut.
-- [Caption-row crowding on narrow viewports. *Pending visual confirmation.*] → The single-pill form (Decision 5) is the fallback.
+- [Caption-row crowding on narrow viewports. *Seen on the preview:* the caption wrapped to three lines.] → The controls get their own row at ≤ 640px (Decision 5). The single-pill fallback was not needed.
 - [`powerScore` on `ArchetypeShare` could later be rendered by accident.] → `ArchetypeCard` props do not include it. A test asserts that no score number appears on the grid under Power.
 
 ## Migration Plan
