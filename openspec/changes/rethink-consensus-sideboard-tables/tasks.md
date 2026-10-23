@@ -17,7 +17,7 @@
 ## 4. Integration
 
 - [x] 4.1 Run the CI checks locally: `rtk proxy npm run lint`, `npm run type-check`, `npm run test`, and `npm run build`. Verify all four pass. The scraper is untouched, so `pytest` is not needed.
-- [ ] 4.2 Open the PR and confirm on the Vercel preview (CLAUDE.md merge exception 1) that the Analysis tab shows no Consensus or Sideboard Plan table, the performance funnel bar looks unchanged, and the tab's end spacing looks right on desktop and mobile. Record the outcome in design.md (Decision 3, which is pending visual confirmation). Verify: the user confirms the preview.
+- [x] 4.2 Open the PR and confirm on the Vercel preview (CLAUDE.md merge exception 1) that the Analysis tab shows no Consensus or Sideboard Plan table, the performance funnel bar looks unchanged, and the tab's end spacing looks right on desktop and mobile. Record the outcome in design.md (Decision 3, which is pending visual confirmation). Verify: the user confirms the preview.
 
 ## Workflow follow-up
 

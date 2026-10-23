@@ -41,7 +41,7 @@ It has one consumer. Git history can bring it back if the information returns in
 Remove the `.analysis-two-col` wrapper, which only the tables use, along with its `composition-pending` fallback. The stock list section already shows the card-data loading and error state, so the "Analysis loading and failure states" requirement is still met without the fallback. ~~No test references `composition-pending`, so no test needs to move.~~ *Superseded while writing tasks:* no test names the panel's test id, but the card-data error test in `ArchetypeAnalysis.test.tsx` expects the error message twice, once in the stock list and once in this panel. That test changes to expect the message exactly once, inside `stock-list`.
 
 - *Alternative: keep the fallback panel.* Rejected. It would show a second copy of a spinner or error that the stock list section already shows.
-- After this change the tab ends with the performance section. Whether the bottom spacing looks right with nothing below it is **pending visual confirmation** on the Vercel preview. No spacing change is planned up front.
+- After this change the tab ends with the performance section. Whether the bottom spacing looks right with nothing below it was **pending visual confirmation** on the Vercel preview. No spacing change was planned up front. **Confirmed on the PR #227 preview:** the spacing looks right on desktop and mobile, so no spacing change is needed.
 
 ### 4. CSS: remove table rules, keep `.analysis-panel-body`
 
@@ -53,7 +53,7 @@ Delete `--band-core` and `--band-spicy`. Rename `--band-flex` to a funnel-scoped
 
 - *Alternative: keep `--band-flex` as it is.* Rejected. A "band" token with no bands would mislead whoever edits it next.
 - *Alternative: point the funnel at an existing token, such as the T2 cyan.* Rejected. That changes a color this change has no reason to touch.
-- Visual effect: none (**calculated**: the same hex value, so the gradient renders identically).
+- Visual effect: none (**calculated**: the same hex value, so the gradient renders identically; **confirmed** unchanged on the PR #227 preview).
 
 ### 6. Copy: remove only strings with no other reader
 
@@ -63,7 +63,7 @@ In `en.json` and `es.json`, remove `analysis.composition.{consensusTitle, sidebo
 
 - [The trending tables are not a full replacement] They show the top 10 per board and follow the sidebar filters. The removed tables listed every card over the fixed 2-week, all-events corpus, so the long tail of spicy one-ofs is no longer visible anywhere. → Accepted, since users found the tables redundant. The spec's Migration notes point users to the trending tables with the archetype isolated. If this information is ever wanted back, it should be a new proposal, not a revert.
 - [Hidden CSS consumers] A deleted class or token could still be referenced somewhere else. → Before deleting, search `src` for each selector and token. Lint, type-check and the Vercel preview catch what's left.
-- [The tab's end looks unfinished] → Pending visual confirmation on the preview (Decision 3). Any spacing fix that's needed gets recorded here once confirmed.
+- [The tab's end looks unfinished] → Checked on the preview (Decision 3). Confirmed fine on desktop and mobile; no fix needed.
 
 ## Migration Plan
 
