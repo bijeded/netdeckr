@@ -463,15 +463,25 @@
   margin: var(--sp-7) 0 0;
 }
 
-/* Caption row: the grid caption and freshness line on the left, the Reset control
-   right-aligned and centred against that block. Same arrangement at every width —
-   giving Reset its own row on mobile would cost a row of height where there is
-   least of it and pull the control away from the caption it belongs to. */
+/* Caption row: the grid caption and freshness line on the left, the sort control
+   and Reset right-aligned and centred against that block. On mobile the controls
+   drop to their own row below the caption: Reset alone fitted beside it, but with
+   the sort control as well the caption was squeezed into a three-line column
+   (confirmed on the preview of sort-archetypes-by-power). */
 .caption-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
+}
+@media (max-width: 640px) {
+  .caption-row {
+    flex-wrap: wrap;
+    row-gap: var(--sp-3);
+  }
+  .caption-row > :first-child {
+    flex: 1 1 100%;
+  }
 }
 /* Enabled, it is the way out of a filtered view and has to read as an action, so
    it takes the accent treatment (tint, accent rim, accent text) rather than the
@@ -479,6 +489,44 @@
    not the violet primary: the caption beside it is already --neon-text-soft, and
    violet-on-violet made the control disappear into the row. It is equally not
    --up — that triad is the ShareDelta pill rendered on the cards just below. */
+/* The caption row's right cell: the sort control, then Reset. Gap confirmed on
+   the preview. */
+.caption-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--sp-3);
+}
+/* Mobile: the controls' own full-width row — sort control left, Reset still
+   right-aligned. Kept after the base rule so it wins at equal specificity. */
+@media (max-width: 640px) {
+  .caption-actions {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+}
+/* Popularity / Power order switch (change sort-archetypes-by-power). Takes the
+   segmented-control shape of the Lists / Analysis toggle but not its T2 cyan: on
+   this row cyan would read as a tier, the caption beside it is violet, and Reset
+   is green — so the selected option is a neutral raised fill. Confirmed on the
+   preview. */
+.sort-toggle {
+  border-color: var(--border-line);
+}
+.sort-toggle .tab-toggle-option:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+.sort-toggle .tab-toggle-option[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+.sort-toggle .tab-toggle-option:disabled {
+  cursor: default;
+  color: var(--text-faint);
+}
+.sort-toggle .tab-toggle-option[aria-pressed='true']:disabled {
+  background: transparent;
+}
 .reset-filters {
   flex: 0 0 auto;
   padding: 7px 14px;

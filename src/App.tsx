@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatSelection } from './hooks/useFormatSelection'
 import { useWindowSelection } from './hooks/useWindowSelection'
+import { useSortOrder } from './hooks/useSortOrder'
 import { useMetagame, type MetagameTotals } from './hooks/useMetagame'
 import { useLastUpdated } from './hooks/useLastUpdated'
 import { FORMATS } from './lib/formats'
@@ -22,7 +23,8 @@ import { DeckCard } from './components/DeckCard'
 import { DecklistModal } from './components/DecklistModal'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { Analytics } from '@vercel/analytics/react'
-import { GRID_DISPLAY_CAP } from './lib/metagame'
+import { GRID_DISPLAY_CAP, orderBreakdown } from './lib/metagame'
+import { SortOrderToggle } from './components/SortOrderToggle'
 import { TierSelector } from './components/TierSelector'
 import { FilterModal, type FilterModalRow } from './components/FilterModal'
 import { ManaPips } from './components/ManaPips'
@@ -56,6 +58,7 @@ function App() {
   const { t, i18n } = useTranslation()
   const { format, setFormat } = useFormatSelection()
   const { window: metaWindow, setWindow } = useWindowSelection()
+  const { sortOrder, setSortOrder } = useSortOrder()
   const { page, setPage } = useLegalPage()
   // The active legal page's content, in the current locale. Only meaningful
   // when `page` is non-null (guarded at the render site below).
@@ -205,8 +208,8 @@ function App() {
   const freshness = lastUpdated ? relativeTimeFromNow(lastUpdated, new Date(), i18n.language) : ''
 
   // Grid mode precedence: an isolated archetype (one card) beats the Tier filter
-  // (all of a tier's cards, uncapped) beats the default popularity view (top N by
-  // share). The full corpus stays reachable via the StatCard total and the filters.
+  // (all of a tier's cards, uncapped) beats the default view (top N in the active
+  // sort order). The full corpus stays reachable via the StatCard total and the filters.
   const archetypeFiltered = archetypeName !== null
   const tierFiltered = !archetypeFiltered && tier !== null
   // The selected event's label (name + abbreviated date + size when known),
@@ -272,15 +275,20 @@ function App() {
     trendingSliceTotals,
   )
 
+  // The sort order applies before every grid mode below, so the default view's
+  // cap takes the top N *in that order* — under Power, a rarely played strong
+  // archetype can enter it. `breakdown` itself stays in share order (maxPct, the
+  // filters and the StatCards read it).
+  const orderedBreakdown = orderBreakdown(breakdown, sortOrder)
   const visibleBreakdown = archetypeFiltered
-    ? breakdown.filter((a) => a.name === archetypeName)
+    ? orderedBreakdown.filter((a) => a.name === archetypeName)
     : tierFiltered
-      ? breakdown.filter((a) => a.tier === tier)
+      ? orderedBreakdown.filter((a) => a.tier === tier)
       : // A narrowed field — a single event, or one size class — is shown in
-        // full (uncapped); only the default popularity view caps at the top N.
+        // full (uncapped); only the default view caps at the top N.
         contextLabel !== null
-        ? breakdown
-        : breakdown.slice(0, GRID_DISPLAY_CAP)
+        ? orderedBreakdown
+        : orderedBreakdown.slice(0, GRID_DISPLAY_CAP)
   // The grid caption sits above the freshness line and always names the view the
   // user is looking at. The fringe tier reuses the shared "Rogue"/"Otros" label.
   const tierLabel =
@@ -299,7 +307,9 @@ function App() {
         : t('dashboard.tierCaption', { tier: tierLabel, count: visibleBreakdown.length })
       : contextLabel !== null
         ? contextLabel
-        : t('dashboard.topCaption', { count: visibleBreakdown.length })
+        : t(sortOrder === 'power' ? 'dashboard.powerCaption' : 'dashboard.topCaption', {
+            count: visibleBreakdown.length,
+          })
   // The isolated archetype auto-expands its full (uncapped) deck list; with no
   // matching decks under the combined filters, fall through to the empty state.
   const isolatedDecks = archetypeFiltered ? (fullDecksByArchetype[archetypeName] ?? []) : []
@@ -597,8 +607,8 @@ function App() {
                 />
               </div>
             </div>
-            {/* Caption row: caption + freshness on the left, Reset right-aligned
-                against the block on both layouts. */}
+            {/* Caption row: caption + freshness on the left, the sort control and
+                Reset right-aligned against the block on both layouts. */}
             <div className="caption-row">
               <div>
                 <div
@@ -629,17 +639,22 @@ function App() {
                   </div>
                 )}
               </div>
-              {/* Always rendered, disabled when idle: appearing and disappearing
-                  would resize this row and shove the grid on every filter change. */}
-              <button
-                type="button"
-                data-testid="reset-filters"
-                className="reset-filters"
-                disabled={!filtersActive}
-                onClick={clearFilters}
-              >
-                {t('filters.reset')}
-              </button>
+              <div className="caption-actions">
+                {/* Disabled, not hidden, while an archetype is isolated (one card,
+                    nothing to order) — same no-reflow rule as Reset beside it. */}
+                <SortOrderToggle value={sortOrder} onChange={setSortOrder} disabled={archetypeFiltered} />
+                {/* Always rendered, disabled when idle: appearing and disappearing
+                    would resize this row and shove the grid on every filter change. */}
+                <button
+                  type="button"
+                  data-testid="reset-filters"
+                  className="reset-filters"
+                  disabled={!filtersActive}
+                  onClick={clearFilters}
+                >
+                  {t('filters.reset')}
+                </button>
+              </div>
             </div>
 
             {/* Main */}
@@ -684,7 +699,7 @@ function App() {
                     const showAnalysis = isolated && archetypeTab === 'analysis'
                     return (
                       <ArchetypeCard
-                        key={archetype.rank}
+                        key={archetype.name}
                         rank={archetype.rank}
                         name={archetype.name}
                         colors={archetype.colorIdentity}

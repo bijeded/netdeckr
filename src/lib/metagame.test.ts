@@ -2,10 +2,13 @@ import { describe, it, expect } from 'vitest'
 import {
   deriveBreakdown,
   attachPowerTiers,
+  orderBreakdown,
   GRID_DISPLAY_CAP,
+  type ArchetypeShare,
   type DeckForBreakdown,
   type RankedArchetype,
 } from './metagame'
+import { archetypePowerScore } from './powerScore'
 
 function d(archetypeName: string, over: Partial<DeckForBreakdown> = {}): DeckForBreakdown {
   return { archetypeName, colorIdentity: '', placement: '1', artImageUrl: null, artCropUrl: null, ...over }
@@ -317,5 +320,124 @@ describe('attachPowerTiers', () => {
     expect(order.indexOf(byName['Ladder'].tier)).toBeGreaterThan(
       order.indexOf(byName['Bracket'].tier),
     )
+  })
+})
+
+describe('attachPowerTiers powerScore', () => {
+  it('carries the same 2-week score that sets the tier', () => {
+    const twoWeekPlacements = new Map<string, string[]>([
+      ['A', Array(8).fill('1')],
+      ['B', Array(8).fill('9-16')],
+    ])
+    const twoWeekSizes = new Map<string, (number | null)[]>([
+      ['A', Array(8).fill(128)],
+      ['B', Array(8).fill(32)],
+    ])
+    const out = attachPowerTiers([ranked('A'), ranked('B', { rank: 2 })], {
+      twoWeekPlacements,
+      twoWeekSizes,
+      twoWeekFieldNames: ['A', 'B'],
+      selectedPlacements: twoWeekPlacements,
+      isBaseline: true,
+    })
+    const byName = Object.fromEntries(out.map((a) => [a.name, a]))
+    expect(byName['A'].powerScore).toBe(archetypePowerScore(Array(8).fill('1'), Array(8).fill(128), []))
+    expect(byName['B'].powerScore).toBe(archetypePowerScore(Array(8).fill('9-16'), Array(8).fill(32), []))
+    expect(byName['A'].powerScore).toBeGreaterThan(byName['B'].powerScore)
+  })
+
+  it('keeps a high score that the Tier-1 floor demotes to T2', () => {
+    // Two champion finishes at huge events score just above a 12-deck champion run,
+    // but fall below the T1 deck floor. The lower archetypes form their own clusters.
+    const twoWeekPlacements = new Map<string, string[]>([
+      ['Few', ['1', '1']],
+      ['Many', Array(12).fill('1')],
+      ['MidA', Array(12).fill('3-4')],
+      ['MidB', Array(12).fill('5-8')],
+      ['LowA', Array(12).fill('17-32')],
+      ['LowB', Array(12).fill('33-64')],
+    ])
+    const twoWeekSizes = new Map<string, (number | null)[]>(
+      [...twoWeekPlacements.keys()].map((n) => [n, n === 'Few' ? [4096, 4096] : Array(12).fill(63)]),
+    )
+    const names = [...twoWeekPlacements.keys()]
+    const out = attachPowerTiers(names.map((n, i) => ranked(n, { rank: i + 1 })), {
+      twoWeekPlacements,
+      twoWeekSizes,
+      twoWeekFieldNames: names,
+      selectedPlacements: twoWeekPlacements,
+      isBaseline: true,
+    })
+    const byName = Object.fromEntries(out.map((a) => [a.name, a]))
+    expect(byName['Many'].tier).toBe('T1')
+    expect(byName['Few'].tier).toBe('T2')
+    expect(byName['Few'].powerScore).toBeGreaterThan(byName['Many'].powerScore)
+    // …and the Power order still places it after the T1 archetype.
+    expect(orderBreakdown(out, 'power').map((a) => a.name).slice(0, 2)).toEqual(['Many', 'Few'])
+  })
+})
+
+describe('orderBreakdown', () => {
+  function share(name: string, over: Partial<ArchetypeShare> = {}): ArchetypeShare {
+    return { ...ranked(name), tier: 'T3', powerScore: 0, trend: null, ...over }
+  }
+
+  it('popular orders by share descending, then name, and renumbers rank', () => {
+    const out = orderBreakdown(
+      [
+        share('Beta', { rank: 9, sharePct: 10 }),
+        share('Alpha', { rank: 7, sharePct: 10 }),
+        share('Gamma', { rank: 3, sharePct: 30 }),
+      ],
+      'popular',
+    )
+    expect(out.map((a) => a.name)).toEqual(['Gamma', 'Alpha', 'Beta'])
+    expect(out.map((a) => a.rank)).toEqual([1, 2, 3])
+  })
+
+  it('power puts every higher tier first, even over a higher score', () => {
+    const out = orderBreakdown(
+      [
+        share('Fringe', { tier: 'Otros', powerScore: 0, sharePct: 40 }),
+        share('Demoted', { tier: 'T2', powerScore: 90, sharePct: 2 }),
+        share('Third', { tier: 'T3', powerScore: 20, sharePct: 30 }),
+        share('Top', { tier: 'T1', powerScore: 60, sharePct: 5 }),
+      ],
+      'power',
+    )
+    expect(out.map((a) => a.name)).toEqual(['Top', 'Demoted', 'Third', 'Fringe'])
+  })
+
+  it('power orders by score within a tier', () => {
+    const out = orderBreakdown(
+      [share('Lower', { tier: 'T1', powerScore: 55, sharePct: 20 }), share('Higher', { tier: 'T1', powerScore: 61, sharePct: 3 })],
+      'power',
+    )
+    expect(out.map((a) => a.name)).toEqual(['Higher', 'Lower'])
+  })
+
+  it('power breaks equal tier and score by share, then name', () => {
+    const out = orderBreakdown(
+      [
+        share('Zed', { tier: 'T2', powerScore: 40, sharePct: 5 }),
+        share('Bee', { tier: 'T2', powerScore: 40, sharePct: 5 }),
+        share('Big', { tier: 'T2', powerScore: 40, sharePct: 9 }),
+      ],
+      'power',
+    )
+    expect(out.map((a) => a.name)).toEqual(['Big', 'Bee', 'Zed'])
+  })
+
+  it('power renumbers rank in the new order without mutating the input', () => {
+    const input = [share('Popular', { rank: 1, tier: 'T3', sharePct: 30 }), share('Strong', { rank: 2, tier: 'T1', sharePct: 3 })]
+    const out = orderBreakdown(input, 'power')
+    expect(out.map((a) => [a.name, a.rank])).toEqual([
+      ['Strong', 1],
+      ['Popular', 2],
+    ])
+    expect(input.map((a) => [a.name, a.rank])).toEqual([
+      ['Popular', 1],
+      ['Strong', 2],
+    ])
   })
 })

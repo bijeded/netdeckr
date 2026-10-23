@@ -64,9 +64,9 @@ export function ArchetypeCard({
 }: ArchetypeCardProps) {
   const hue = hueFromName(name)
   const active = selected || expanded
-  // Track the specific URL that failed rather than a boolean, so a card reused
-  // for a different archetype (the grid keys by rank) doesn't suppress a new,
-  // valid image after an earlier one 404'd.
+  // Track the specific URL that failed rather than a boolean, so a card whose
+  // art changes (e.g. a new signature card) doesn't suppress a new, valid image
+  // after an earlier one 404'd.
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   // Prefer the cropped art; fall back to the normal image, then the gradient.
   const artUrl = artCropUrl ?? artImageUrl

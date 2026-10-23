@@ -2049,3 +2049,205 @@ describe('Isolated archetype in the URL (?a=)', () => {
     expect(screen.getByRole('combobox', { name: 'Event' })).toHaveValue('')
   })
 })
+
+describe('Grid sort order (Popularity / Power)', () => {
+  const deck = (id: number, archetypeName: string) => ({
+    id,
+    sourceDeckId: `d${id}`,
+    player: `Player ${id}`,
+    placement: '1',
+    eventName: 'RCQ',
+    eventDate: '2026-07-05',
+    archetypeName,
+    colorIdentity: 'R',
+  })
+  /**
+   * 14 archetypes in share order. Popular 00–11 fill the top 12 by share; two
+   * rarely played archetypes rank 13th and 14th by share but lead by performance.
+   */
+  const breakdown = [
+    ...Array.from({ length: 12 }, (_, i) => ({
+      rank: i + 1,
+      name: `Popular ${String(i).padStart(2, '0')}`,
+      colorIdentity: 'R',
+      sharePct: 30 - i,
+      tier: i < 2 ? 'T2' : 'T3',
+      powerScore: i < 2 ? 50 - i : 30 - i,
+      trend: null,
+      wins: 0,
+    })),
+    { rank: 13, name: 'Rare Gem', colorIdentity: 'U', sharePct: 2, tier: 'T1', powerScore: 61, trend: null, wins: 0 },
+    { rank: 14, name: 'Hidden Ace', colorIdentity: 'B', sharePct: 1, tier: 'T1', powerScore: 87.6, trend: null, wins: 0 },
+  ]
+  const LOADED = {
+    breakdown,
+    decksByArchetype: { 'Popular 00': [deck(1, 'Popular 00')] },
+    fullDecksByArchetype: { 'Popular 00': [deck(1, 'Popular 00')] },
+    events: [{ id: 10, name: 'RCQ', eventDate: '2026-07-05', playerCount: 128, deckCount: 14 }],
+    totals: { events: 1, archetypes: 14, decks: 40 },
+    loading: false,
+    error: null,
+  }
+  const grid = () => screen.getByTestId('archetype-grid')
+  /** Card names in on-screen order. */
+  const shown = () =>
+    breakdown
+      .map((a) => a.name)
+      .filter((name) => grid().textContent!.includes(name))
+      .sort((a, b) => grid().textContent!.indexOf(a) - grid().textContent!.indexOf(b))
+  const sortParam = () => new URLSearchParams(window.location.search).get('sort')
+  const power = () => screen.getByTestId('sort-order-power')
+  const popular = () => screen.getByTestId('sort-order-popular')
+
+  beforeEach(() => {
+    useMetagame.mockReturnValue(LOADED)
+  })
+
+  it('defaults to Popular: share order, popularity caption, no sort param', () => {
+    render(<App />)
+    expect(popular()).toHaveAttribute('aria-pressed', 'true')
+    expect(power()).toHaveAttribute('aria-pressed', 'false')
+    expect(popular()).toHaveTextContent('Popularity')
+    expect(power()).toHaveTextContent('Power')
+    expect(screen.getByRole('group', { name: 'Sort archetypes' })).toBeInTheDocument()
+    expect(shown()[0]).toBe('Popular 00')
+    expect(shown()).not.toContain('Hidden Ace')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 most popular archetypes')
+    expect(sortParam()).toBeNull()
+  })
+
+  it('reorders by tier then score under Power, letting rarely played strong archetypes into the top 12', () => {
+    render(<App />)
+    const argsBefore = useMetagame.mock.calls.at(-1)
+    act(() => fireEvent.click(power()))
+
+    expect(power()).toHaveAttribute('aria-pressed', 'true')
+    const order = shown()
+    expect(order).toHaveLength(12)
+    expect(order.slice(0, 4)).toEqual(['Hidden Ace', 'Rare Gem', 'Popular 00', 'Popular 01'])
+    // The two least popular of the share top 12 are displaced.
+    expect(order).not.toContain('Popular 10')
+    expect(order).not.toContain('Popular 11')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 most powerful archetypes')
+    expect(sortParam()).toBe('power')
+    // Reordering re-derives the grid from the loaded data: same hook inputs, no new query.
+    expect(useMetagame.mock.calls.at(-1)).toEqual(argsBefore)
+  })
+
+  it('renumbers ranks in the active order and never shows the Power Score', () => {
+    render(<App />)
+    act(() => fireEvent.click(power()))
+    const first = grid().textContent!.indexOf('Hidden Ace')
+    expect(grid().textContent!.slice(Math.max(0, first - 20), first)).toContain('#1')
+    expect(grid().textContent).not.toMatch(/87\.6|\b88\b|61\b/)
+  })
+
+  it('returns to the share order and caption when Popular is selected again', () => {
+    render(<App />)
+    act(() => fireEvent.click(power()))
+    act(() => fireEvent.click(popular()))
+    expect(shown()[0]).toBe('Popular 00')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 most popular archetypes')
+    expect(sortParam()).toBeNull()
+  })
+
+  it('captions the actual count under Power when fewer than the cap exist', () => {
+    useMetagame.mockReturnValue({ ...LOADED, breakdown: breakdown.slice(10) })
+    render(<App />)
+    act(() => fireEvent.click(power()))
+    expect(shown()).toEqual(['Hidden Ace', 'Rare Gem', 'Popular 10', 'Popular 11'])
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 4 most powerful archetypes')
+  })
+
+  it('orders a tier filter by score and keeps the tier caption', () => {
+    render(<App />)
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T1' } }))
+    const tierCaption = screen.getByTestId('grid-caption').textContent
+    expect(shown()).toEqual(['Rare Gem', 'Hidden Ace'])
+    act(() => fireEvent.click(power()))
+    expect(shown()).toEqual(['Hidden Ace', 'Rare Gem'])
+    expect(screen.getByTestId('grid-caption').textContent).toBe(tierCaption)
+  })
+
+  it('orders an event view uncapped and keeps the event caption', () => {
+    render(<App />)
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Event' }), { target: { value: '10' } }))
+    const eventCaption = screen.getByTestId('grid-caption').textContent
+    act(() => fireEvent.click(power()))
+    expect(shown()).toHaveLength(14)
+    expect(shown()[0]).toBe('Hidden Ace')
+    expect(screen.getByTestId('grid-caption').textContent).toBe(eventCaption)
+  })
+
+  it('disables the control while an archetype is isolated and restores the order on Back', () => {
+    render(<App />)
+    act(() => fireEvent.click(power()))
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Archetype' }), { target: { value: 'Popular 00' } }))
+    expect(screen.getByTestId('sort-order')).toBeInTheDocument()
+    expect(power()).toBeDisabled()
+    expect(popular()).toBeDisabled()
+
+    act(() => fireEvent.click(screen.getByTestId('leave-archetype')))
+    expect(power()).toBeEnabled()
+    expect(shown()[0]).toBe('Hidden Ace')
+    expect(sortParam()).toBe('power')
+  })
+
+  it('is kept by Reset and Clear filters, and does not enable Reset on its own', () => {
+    render(<App />)
+    act(() => fireEvent.click(power()))
+    expect(screen.getByTestId('reset-filters')).toBeDisabled()
+
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T3' } }))
+    act(() => fireEvent.click(screen.getByTestId('reset-filters')))
+    expect(power()).toHaveAttribute('aria-pressed', 'true')
+    expect(shown()[0]).toBe('Hidden Ace')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 most powerful archetypes')
+
+    act(() => fireEvent.change(screen.getByRole('combobox', { name: 'Tiers' }), { target: { value: 'T3' } }))
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'Clear filters' })))
+    expect(power()).toHaveAttribute('aria-pressed', 'true')
+    expect(sortParam()).toBe('power')
+  })
+
+  it('restores Power from a shared link', () => {
+    setUrl('?f=ST&sort=power')
+    render(<App />)
+    expect(power()).toHaveAttribute('aria-pressed', 'true')
+    expect(shown()[0]).toBe('Hidden Ace')
+  })
+
+  it('keeps the order across window and format switches', () => {
+    setUrl('?sort=power')
+    const { rerender } = render(<App />)
+    act(() => fireEvent.click(screen.getByTestId('window-pill')))
+    expect(sortParam()).toBe('power')
+    expect(shown()[0]).toBe('Hidden Ace')
+
+    useFormatSelection.mockReturnValue({ format: 'MO', setFormat })
+    act(() => rerender(<App />))
+    expect(sortParam()).toBe('power')
+    expect(power()).toHaveAttribute('aria-pressed', 'true')
+    expect(shown()[0]).toBe('Hidden Ace')
+  })
+
+  it('keeps an expanded card expanded across a toggle', () => {
+    useMetagame.mockReturnValue({ ...LOADED, breakdown: [breakdown[0], breakdown[13]] })
+    render(<App />)
+    act(() => fireEvent.click(screen.getByRole('button', { name: /Popular 00/ })))
+    expect(screen.getByTestId('deck-list')).toBeInTheDocument()
+    act(() => fireEvent.click(power()))
+    expect(shown()).toEqual(['Hidden Ace', 'Popular 00'])
+    expect(screen.getByTestId('deck-list')).toBeInTheDocument()
+  })
+
+  it('localizes the control and the Power caption in Spanish', async () => {
+    await act(() => i18n.changeLanguage('es'))
+    render(<App />)
+    act(() => fireEvent.click(power()))
+    expect(screen.getByRole('group', { name: 'Ordenar arquetipos' })).toBeInTheDocument()
+    expect(popular()).toHaveTextContent('Popularidad')
+    expect(power()).toHaveTextContent('Poder')
+    expect(screen.getByTestId('grid-caption').textContent).toBe('Top 12 arquetipos más poderosos')
+  })
+})
