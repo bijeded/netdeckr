@@ -49,17 +49,15 @@ The format and window setters already preserve unrelated params, so the order su
 A new `SortOrderToggle.tsx` renders two buttons, Popularity and Power, inside `role="group"` with a localized `aria-label`. The active one has `aria-pressed="true"`.
 
 - *Alternative:* reuse `ArchetypeTabToggle`'s `role="tablist"`. Rejected: tabs imply switching panels. This reorders the same panel.
-- *Alternative:* a single toggle pill like the time-window pill (names the current state, glyph names the move). Rejected for now: Popularity / Power aren't a natural pair the way 7 days → 2 weeks widens, so both labels should be visible. **Pending visual confirmation** on the preview. If the segmented control crowds the caption row on mobile, the single-pill form is the fallback.
+- *Alternative:* a single toggle pill like the time-window pill (names the current state, glyph names the move). Rejected for now: Popularity / Power aren't a natural pair the way 7 days → 2 weeks widens, so both labels should be visible. The plan kept the single-pill form as a fallback in case the segmented control crowded the caption row on mobile. **Confirmed on the preview:** the segmented control stays and the fallback was not needed.
 - Disabled while isolated: rendered, `disabled` on both buttons, so the row does not reflow (same rationale as the always-rendered Reset).
 
-Placement: the caption row's right cell becomes a flex group, `[SortOrderToggle] [Reset]`. **Pending visual confirmation:**
-- the gap between the two controls;
-- whether the toggle reuses the `.tab-toggle` treatment or needs a smaller variant to sit at Reset's height;
-- the wrapping behavior at ~375px.
+Placement: the caption row's right cell becomes a flex group, `[SortOrderToggle] [Reset]`. These values were left open until the preview, and the user confirmed the final one on desktop and mobile:
+- the gap between the two controls: `--sp-3` (11px);
+- the toggle reuses the `.tab-toggle` shape and height, with a neutral `.sort-toggle` variant rather than the T2 cyan; no smaller variant was needed;
+- the wrapping behavior at ~375px: see the mobile layout below.
 
-Do not set these values up front; record them here once confirmed on the preview.
-
-**Mobile layout, decided on the preview.** The plan was the same side-by-side arrangement at every width, which is how Reset alone had always sat. It was overturned on the first preview: at ~375px the sort control and Reset beside the caption squeezed "Top 12 most popular archetypes" into a three-line column. At ≤ 640px the controls now drop to their own full-width row below the caption, with the sort control on the left and Reset still right-aligned. Both stay inside the caption row container, so they remain visible without opening the sidebar. Desktop is unchanged. The segmented control stays: the problem was the row's arrangement, not the control's form, so the single-pill fallback is not needed. The gap and the toggle's height are still pending confirmation.
+**Mobile layout, decided on the preview.** The plan was the same side-by-side arrangement at every width, which is how Reset alone had always sat. It was overturned on the first preview: at ~375px the sort control and Reset beside the caption squeezed "Top 12 most popular archetypes" into a three-line column. At ≤ 640px the controls now drop to their own full-width row below the caption, with the sort control on the left and Reset still right-aligned. Both stay inside the caption row container, so they remain visible without opening the sidebar. Desktop is unchanged. The segmented control stays: the problem was the row's arrangement, not the control's form, so the single-pill fallback is not needed. The gap and the toggle's height were confirmed on the final preview (see above).
 
 ### 6. Captions
 New i18n keys `dashboard.powerCaption` ("Top {{count}} most powerful archetypes" / ES equivalent) and the control's labels. The caption selection in `App.tsx` changes only in its final fallback (`popularity` → `power` caption by order). Tier, event, and size captions are untouched, per spec.
@@ -75,7 +73,7 @@ One added sentence in the Tier area of `howItWorks.en.ts` / `howItWorks.es.ts`, 
 
 ## Risks / Trade-offs
 
-- [Share bars stop decreasing under Power. *Calculated:* the bar is share-scaled and the order is not share-ordered. Whether that reads as intended or as broken is **pending visual confirmation**.] → If it reads as broken, consider muting the bar under Power. That would be a spec change, decided on the preview.
+- [Share bars stop decreasing under Power. *Calculated:* the bar is share-scaled and the order is not share-ordered. *Confirmed on the preview:* it reads as intended.] → No change. The bar keeps showing share in both orders.
 - [Strict rank order implies precision the tiers smooth over. *Calculated:* within a tier, adjacent scores can differ by under 1 point, and the score is never shown.] → Tier-first ordering bounds the effect to within-tier position. The calibration constants are unchanged.
 - [Fringe-tier archetypes with no usable placements all score 0.] → The share-then-name tiebreak makes their order deterministic. They sort last and rarely reach the 12-card cut.
 - [Caption-row crowding on narrow viewports. *Seen on the preview:* the caption wrapped to three lines.] → The controls get their own row at ≤ 640px (Decision 5). The single-pill fallback was not needed.

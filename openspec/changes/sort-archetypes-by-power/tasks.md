@@ -53,7 +53,7 @@
 ## 5. Integration
 
 - [x] 5.1 Run the CI checks locally: `rtk proxy npm run lint`, `npm run type-check`, `npm run test`, and `npm run build`. Verify all four pass. The scraper is untouched, so `pytest` is not needed.
-- [ ] 5.2 Open the PR and confirm on the Vercel preview (CLAUDE.md merge exception 1), on desktop and at ~375px:
+- [x] 5.2 Open the PR and confirm on the Vercel preview (CLAUDE.md merge exception 1), on desktop and at ~375px:
   - the segmented control versus the single-pill fallback, and its fit beside Reset on the caption row;
   - the gap and height of the control next to Reset;
   - whether share bars that no longer decrease under Power read as intended.

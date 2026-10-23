@@ -9,7 +9,7 @@ interface SortOrderToggleProps {
 }
 
 /**
- * The grid's Popular / Power order switch: a two-option segmented control. It
+ * The grid's Popularity / Power order switch: a two-option segmented control. It
  * reorders the same grid rather than switching panels, so it is a group of
  * toggle buttons (`aria-pressed`), not a tab list like the archetype tab toggle.
  */
