@@ -171,15 +171,6 @@
       "noEvents": "Sin eventos"
     },
     "composition": {
-      "consensusTitle": "Consenso",
-      "sideboardTitle": "Plan de sideboard",
-      "card": "Carta",
-      "played": "Jugada",
-      "bands": {
-        "core": "Núcleo",
-        "flex": "Flex",
-        "spicy": "Picante"
-      },
       "curveTitle": "Curva de maná",
       "curveAxis": "Valor de maná",
       "typesTitle": "Tipos de carta",
@@ -202,11 +193,7 @@
         "common": "Común"
       },
       "cards_one": "{{count}} carta",
-      "cards_other": "{{count}} cartas",
-      "pagerLabel": "Páginas de {{table}}",
-      "prevPage": "Página anterior",
-      "nextPage": "Página siguiente",
-      "pageOf": "{{page}} / {{pages}}"
+      "cards_other": "{{count}} cartas"
     }
   },
   "language": {

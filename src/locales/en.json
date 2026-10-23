@@ -171,15 +171,6 @@
       "noEvents": "No events"
     },
     "composition": {
-      "consensusTitle": "Consensus",
-      "sideboardTitle": "Sideboard plan",
-      "card": "Card",
-      "played": "Played",
-      "bands": {
-        "core": "Core",
-        "flex": "Flex",
-        "spicy": "Spicy"
-      },
       "curveTitle": "Mana curve",
       "curveAxis": "Mana value",
       "typesTitle": "Card types",
@@ -202,11 +193,7 @@
         "common": "Common"
       },
       "cards_one": "{{count}} card",
-      "cards_other": "{{count}} cards",
-      "pagerLabel": "{{table}} pages",
-      "prevPage": "Previous page",
-      "nextPage": "Next page",
-      "pageOf": "{{page}} / {{pages}}"
+      "cards_other": "{{count}} cards"
     }
   },
   "language": {

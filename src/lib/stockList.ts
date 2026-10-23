@@ -1,6 +1,5 @@
-// Pure construction of an archetype's averaged "stock" decklist and the
-// consensus tables behind it, from the per-card aggregate the
-// `archetype_card_stats` RPC returns. No JSX, no data access — see
+// Pure construction of an archetype's averaged "stock" decklist from the
+// per-card aggregate the `archetype_card_stats` RPC returns. No JSX, no data access — see
 // openspec/changes/archetype-analysis/design.md (Decisions 2 and 3).
 //
 // The RPC only groups; every weighting rule lives here and in powerScore.ts, so
@@ -51,36 +50,12 @@ export interface StockCard {
   rarity: string | null
 }
 
-export type ConsensusBand = 'core' | 'flex' | 'spicy'
-
-/** One row of the consensus table (mainboard) or sideboard plan. */
-export interface ConsensusRow {
-  name: string
-  typeLine: string | null
-  imageUrl: string | null
-  /** Decks playing the card, out of `StockListResult.deckCount`. */
-  decks: number
-  /** Plain inclusion: share of decks playing it, 0–100. */
-  inclusionPct: number
-  /** Mean copies among the decks that play it. */
-  avgCopies: number
-  band: ConsensusBand
-}
-
 export interface StockListResult {
   main: StockCard[]
   side: StockCard[]
-  /** Mainboard rows, in stock-list ranking order. */
-  consensus: ConsensusRow[]
-  /** Sideboard rows, in stock-list ranking order. */
-  sideboardPlan: ConsensusRow[]
   /** Decks the list was built from (those present in both the RPC rows and the corpus). */
   deckCount: number
 }
-
-/** Plain-inclusion band floors, in percent. */
-export const CORE_MIN_PCT = 90
-export const FLEX_MIN_PCT = 25
 
 // A deck with no parseable standing still counts toward inclusion, at the
 // lowest finish bucket (finishQuality's "beyond"), rather than vanishing at 0.
@@ -119,15 +94,8 @@ export function modeHigh(values: number[]): number {
   return best
 }
 
-export function bandOf(inclusionPct: number): ConsensusBand {
-  if (inclusionPct >= CORE_MIN_PCT) return 'core'
-  if (inclusionPct >= FLEX_MIN_PCT) return 'flex'
-  return 'spicy'
-}
-
 interface RankedCard {
   row: CardStatRow
-  decks: number
   weighted: number
   avgCopies: number
   copies: number
@@ -168,7 +136,7 @@ function fill(ranked: RankedCard[], slots: number): StockCard[] {
 }
 
 /**
- * Build the stock list and consensus tables for one archetype.
+ * Build the stock list for one archetype.
  *
  * `decks` is the archetype's analysed corpus (legal, last 2 weeks). RPC entries
  * for decks outside it are ignored, so the two sources cannot disagree at a
@@ -204,7 +172,6 @@ export function buildStockList(rows: CardStatRow[], decks: WeightedDeckInput[]):
     if (quantities.length === 0) continue
     const ranked: RankedCard = {
       row,
-      decks: quantities.length,
       weighted: weightSum,
       avgCopies: quantities.reduce((s, q) => s + q, 0) / quantities.length,
       copies: modeHigh(quantities),
@@ -215,7 +182,7 @@ export function buildStockList(rows: CardStatRow[], decks: WeightedDeckInput[]):
   const deckIds = [...contributing]
   const deckCount = deckIds.length
   if (deckCount === 0) {
-    return { main: [], side: [], consensus: [], sideboardPlan: [], deckCount: 0 }
+    return { main: [], side: [], deckCount: 0 }
   }
 
   // Weighted inclusion = Σ weights of decks playing / Σ weights of all decks.
@@ -246,24 +213,5 @@ export function buildStockList(rows: CardStatRow[], decks: WeightedDeckInput[]):
     .filter((c): c is StockCard => c !== undefined)
   const side = fill(rankedSide, sideSize)
 
-  const toRow = (card: RankedCard): ConsensusRow => {
-    const inclusionPct = (card.decks / deckCount) * 100
-    return {
-      name: card.row.name,
-      typeLine: card.row.typeLine,
-      imageUrl: card.row.imageUrl,
-      decks: card.decks,
-      inclusionPct,
-      avgCopies: card.avgCopies,
-      band: bandOf(inclusionPct),
-    }
-  }
-
-  return {
-    main,
-    side,
-    consensus: rankedMain.map(toRow),
-    sideboardPlan: rankedSide.map(toRow),
-    deckCount,
-  }
+  return { main, side, deckCount }
 }

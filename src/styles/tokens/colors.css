@@ -83,12 +83,9 @@
   --down-on-dark: #ff9aab;
   --flat-on-dark: #ffdd8a;
 
-  /* Archetype analysis — consensus bands (change archetype-analysis). Deliberately
-     none of --up/--down/--flat, so a band never reads as a trend. Each clears
-     4.5:1 as text on --surface-card: core ~8.5, flex ~11.7, spicy ~10.0. */
-  --band-core: #c79bff;
-  --band-flex: #7fd8ff;
-  --band-spicy: #ff9ee0;
+  /* Archetype analysis — end color of the performance funnel's finish bars.
+     Deliberately not --up/--down/--flat, so the funnel never reads as a trend. */
+  --funnel-accent: #7fd8ff;
 
   /* Arena wildcard rarity pips, after the set-symbol colours. As text on
      --surface-card: mythic ~7.2, rare ~11.2, uncommon ~10.6, common ~5.7. */

@@ -130,8 +130,9 @@ describe('ArchetypeAnalysis', () => {
     cardStats.error = { message: 'timeout' }
     cardStats.rows = []
     renderAnalysis()
-    // Both card-data regions (stock list and composition) say so.
-    expect(screen.getAllByText('Could not load card data. Try reloading the page.')).toHaveLength(2)
+    // Only the stock list depends on card data; the message appears once, there.
+    expect(screen.getAllByText('Could not load card data. Try reloading the page.')).toHaveLength(1)
+    expect(within(screen.getByTestId('stock-list')).getByText('Could not load card data. Try reloading the page.')).toBeInTheDocument()
     expect(screen.getByText('Last 2 weeks · all events')).toBeInTheDocument()
     expect(screen.getByTestId('analysis-performance')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /export to mtg arena/i })).toBeDisabled()
@@ -172,25 +173,10 @@ describe('ArchetypeAnalysis', () => {
       expect(screen.queryByText(/league deck/)).toBeNull()
     })
 
-    it('bands consensus rows with plain inclusion and average copies', () => {
-      const ids = [1, 2, 3, 4, 5, 6]
-      cardStats.rows = [
-        row('Island', 20, 'Basic Land — Island', ids),
-        row('Bomb', 40, 'Instant', ids),
-        row('Spice', 1, 'Instant', [1]),
-        row('Answer', 15, 'Instant', ids, 'side'),
-      ]
+    it('shows no consensus table or sideboard plan', () => {
       renderAnalysis()
-      const table = screen.getByTestId('consensus-table')
-      const rows = within(table).getAllByRole('row').slice(1)
-      const byName = (name: string) => rows.find((r) => within(r).queryByText(name))!
-      expect(byName('Bomb')).toHaveAttribute('data-band', 'core')
-      expect(byName('Spice')).toHaveAttribute('data-band', 'spicy')
-      expect(within(byName('Bomb')).getByText('6/6')).toBeInTheDocument()
-      expect(within(byName('Bomb')).getByText('40.0x')).toBeInTheDocument()
-      expect(within(table).getByRole('columnheader', { name: 'Avg' })).toBeInTheDocument()
-      const side = screen.getByTestId('sideboard-plan')
-      expect(within(side).getByText('Answer')).toBeInTheDocument()
+      expect(screen.queryByTestId('consensus-table')).toBeNull()
+      expect(screen.queryByTestId('sideboard-plan')).toBeNull()
     })
 
     it('lists the curve values and type split for the stock list', () => {
@@ -218,61 +204,9 @@ describe('ArchetypeAnalysis', () => {
     it('labels every composition section on a small sample', () => {
       cardStats.rows = rowsFor(4)
       renderAnalysis({ corpus: corpusOf(4) })
-      for (const id of ['stock-list', 'consensus-table', 'sideboard-plan', 'mana-curve']) {
+      for (const id of ['stock-list', 'mana-curve']) {
         expect(within(screen.getByTestId(id)).getByTestId('small-sample')).toBeInTheDocument()
       }
-    })
-
-    it('pages the consensus table ten rows at a time', () => {
-      const ids = [1, 2, 3, 4, 5, 6]
-      cardStats.rows = [
-        row('Island', 20, 'Basic Land — Island', ids),
-        ...Array.from({ length: 23 }, (_, i) => row(`Spell ${String(i).padStart(2, '0')}`, 1, 'Instant', ids.slice(0, 6 - (i % 6)))),
-      ]
-      renderAnalysis()
-      const table = screen.getByTestId('consensus-table')
-      const bodyRows = () => within(table).getAllByRole('row').slice(1)
-      expect(bodyRows()).toHaveLength(10)
-      expect(within(table).getByText('1 / 3')).toBeInTheDocument()
-      const prev = within(table).getByRole('button', { name: 'Previous page' })
-      const next = within(table).getByRole('button', { name: 'Next page' })
-      expect(prev).toBeDisabled()
-      const firstPage = bodyRows().map((r) => r.textContent)
-
-      fireEvent.click(next)
-      expect(within(table).getByText('2 / 3')).toBeInTheDocument()
-      expect(bodyRows().map((r) => r.textContent)).not.toEqual(firstPage)
-      fireEvent.click(next)
-      expect(bodyRows()).toHaveLength(4)
-      expect(next).toBeDisabled()
-    })
-
-    it('returns both card tables to page 1 when the archetype changes', () => {
-      const ids = [1, 2, 3, 4, 5, 6]
-      const manyRows = (prefix: string, count: number): CardStatRow[] => [
-        row('Island', 20, 'Basic Land — Island', ids),
-        ...Array.from({ length: count }, (_, i) => row(`${prefix} ${String(i).padStart(2, '0')}`, 1, 'Instant', ids)),
-        ...Array.from({ length: count }, (_, i) => row(`${prefix} Side ${String(i).padStart(2, '0')}`, 1, 'Instant', ids, 'side')),
-      ]
-      cardStats.rows = manyRows('Dimir', 23)
-      const { rerender } = renderAnalysis()
-      for (const id of ['consensus-table', 'sideboard-plan']) {
-        const table = screen.getByTestId(id)
-        fireEvent.click(within(table).getByRole('button', { name: 'Next page' }))
-        expect(within(table).getByText('2 / 3')).toBeInTheDocument()
-      }
-
-      cardStats.rows = manyRows('Izzet', 12)
-      const izzet = corpusOf(6).map((d) => ({ ...d, archetypeId: 6, archetypeName: 'Izzet Control' }))
-      rerender(<ArchetypeAnalysis format="ST" archetypeName="Izzet Control" corpus={izzet} />)
-      for (const id of ['consensus-table', 'sideboard-plan']) {
-        expect(within(screen.getByTestId(id)).getByText('1 / 2')).toBeInTheDocument()
-      }
-    })
-
-    it('shows no pager when every row fits on one page', () => {
-      renderAnalysis()
-      expect(within(screen.getByTestId('consensus-table')).queryByRole('navigation')).toBeNull()
     })
   })
 })
