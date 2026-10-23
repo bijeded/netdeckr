@@ -841,15 +841,8 @@
   gap: var(--sp-5);
   align-items: start;
 }
-.analysis-two-col {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  gap: var(--sp-5);
-  align-items: start;
-}
 @media (max-width: 960px) {
-  .analysis-stock-row,
-  .analysis-two-col {
+  .analysis-stock-row {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -927,7 +920,7 @@
 .analysis-bar-top4 { opacity: 0.7; }
 .analysis-bar-top8 { opacity: 0.55; }
 .analysis-bar-deeper { background: var(--text-muted); opacity: 0.45; }
-.analysis-bar-finish { background: linear-gradient(90deg, var(--neon-600), var(--band-flex)); }
+.analysis-bar-finish { background: linear-gradient(90deg, var(--neon-600), var(--funnel-accent)); }
 
 .analysis-funnel,
 .analysis-size-list {
@@ -1071,91 +1064,8 @@
   color: var(--text-primary);
 }
 
-/* Consensus / sideboard tables. */
-.analysis-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-sm);
-}
-.analysis-table th {
-  padding: 10px 14px;
-  text-align: left;
-  font-family: var(--font-display);
-  font-size: var(--fs-2xs);
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--track-wide);
-  text-transform: uppercase;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-soft);
-}
-.analysis-table td {
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border-hair);
-  color: var(--text-secondary);
-  vertical-align: middle;
-}
-.analysis-table .analysis-num {
-  text-align: right;
-}
-.analysis-band-core { --band-color: var(--band-core); }
-.analysis-band-flex { --band-color: var(--band-flex); }
-.analysis-band-spicy { --band-color: var(--band-spicy); }
-.analysis-card-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  min-width: 0;
-}
-.analysis-band-chip {
-  flex: 0 0 auto;
-  min-width: 44px;
-  font-family: var(--font-mono);
-  font-size: var(--fs-2xs);
-  text-transform: uppercase;
-  color: var(--band-color);
-}
 @media (max-width: 640px) {
   .analysis-panel-body {
     padding: 16px;
   }
-  .analysis-band-chip {
-    display: none;
-  }
-  .analysis-table th,
-  .analysis-table td {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-}
-
-/* Consensus / sideboard pager: ← n / N →, ten rows a page. */
-.analysis-pager {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--sp-3);
-  padding: 10px 14px;
-}
-.analysis-pager-status {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--text-secondary);
-}
-.analysis-pager-button {
-  width: 32px;
-  height: 28px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border-line);
-  background: var(--surface-faint);
-  color: var(--text-secondary);
-  font-size: var(--fs-sm);
-  cursor: pointer;
-}
-.analysis-pager-button:hover:not(:disabled) {
-  border-color: var(--neon-border);
-  color: var(--neon-text-soft);
-}
-.analysis-pager-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }

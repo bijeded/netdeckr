@@ -4,7 +4,6 @@ import {
   deckWeight,
   medianRounded,
   modeHigh,
-  bandOf,
   type CardStatRow,
   type WeightedDeckInput,
 } from './stockList'
@@ -81,12 +80,6 @@ describe('helpers', () => {
     expect(modeHigh([2, 2, 3])).toBe(2)
   })
 
-  it('bands by plain inclusion', () => {
-    expect(bandOf(93.75)).toBe('core')
-    expect(bandOf(37.5)).toBe('flex')
-    expect(bandOf(6.25)).toBe('spicy')
-  })
-
   it('weights unranked and unparseable finishes without dropping them', () => {
     expect(deckWeight({ id: 1, placement: '1', playerCount: 64, unranked: true })).toBeCloseTo(UNRANKED_QUALITY)
     expect(deckWeight({ id: 1, placement: '', playerCount: 64, unranked: false })).toBeCloseTo(0.1)
@@ -99,8 +92,9 @@ describe('buildStockList', () => {
       1: [['Card A', 1, INSTANT]],
       2: [['Card B', 1, INSTANT]],
     })
+    // The median mainboard is one card, so only the higher-ranked card is placed.
     const result = buildStockList(rows, [deck(1, '1', 256), deck(2, '17-32', 20)])
-    expect(names(result.consensus)).toEqual(['Card A', 'Card B'])
+    expect(names(result.main)).toEqual(['Card A'])
   })
 
   it('treats each basic land type as its own card', () => {
@@ -191,33 +185,10 @@ describe('buildStockList', () => {
     const rows = rowsFrom({ 1: [['Card A', 4, INSTANT]], 99: [['Card Z', 4, INSTANT]] })
     const result = buildStockList(rows, [deck(1)])
     expect(result.deckCount).toBe(1)
-    expect(names(result.consensus)).toEqual(['Card A'])
-  })
-
-  it('bands consensus rows by plain inclusion', () => {
-    const lists: Record<number, Line[]> = {}
-    for (let i = 1; i <= 32; i++) {
-      const lines: Line[] = sixty(24, 'base')
-      if (i <= 30) lines.push(['Staple', 1, INSTANT])
-      if (i <= 12) lines.push(['Flexy', 1, INSTANT])
-      if (i <= 2) lines.push(['Spicy', 1, INSTANT])
-      lists[i] = lines
-    }
-    const decks = Array.from({ length: 32 }, (_, i) => deck(i + 1))
-    const result = buildStockList(rowsFrom(lists), decks)
-    const byName = new Map(result.consensus.map((r) => [r.name, r]))
-    expect(byName.get('Staple')).toMatchObject({ band: 'core', decks: 30 })
-    expect(byName.get('Flexy')).toMatchObject({ band: 'flex', decks: 12 })
-    expect(byName.get('Spicy')).toMatchObject({ band: 'spicy', decks: 2 })
+    expect(names(result.main)).toEqual(['Card A'])
   })
 
   it('returns an empty result when no rows match the corpus', () => {
-    expect(buildStockList([], [deck(1)])).toEqual({
-      main: [],
-      side: [],
-      consensus: [],
-      sideboardPlan: [],
-      deckCount: 0,
-    })
+    expect(buildStockList([], [deck(1)])).toEqual({ main: [], side: [], deckCount: 0 })
   })
 })

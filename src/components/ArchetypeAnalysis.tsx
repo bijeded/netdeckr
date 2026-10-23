@@ -6,7 +6,6 @@ import { DeckExportButton } from './DeckExportButton'
 import { Spinner } from './Spinner'
 import { EmptyState } from './EmptyState'
 import { AnalysisPerformance } from './AnalysisPerformance'
-import { ConsensusTable } from './ConsensusTable'
 import { CompositionRail } from './CompositionRail'
 import { useArchetypeCardStats } from '../hooks/useArchetypeCardStats'
 import { useDeckExport } from '../hooks/useDeckExport'
@@ -122,29 +121,6 @@ export function ArchetypeAnalysis({ format, archetypeName, corpus }: ArchetypeAn
       </div>
 
       <AnalysisPerformance performance={performance} />
-
-      {cardsReady ? (
-        <div className="analysis-two-col">
-          <ConsensusTable
-            title={t('analysis.composition.consensusTitle')}
-            rows={stock.consensus}
-            deckCount={stock.deckCount}
-            testId="consensus-table"
-            smallSample={smallSample}
-          />
-          <ConsensusTable
-            title={t('analysis.composition.sideboardTitle')}
-            rows={stock.sideboardPlan}
-            deckCount={stock.deckCount}
-            testId="sideboard-plan"
-            smallSample={smallSample}
-          />
-        </div>
-      ) : (
-        <section className="analysis-panel" data-testid="composition-pending">
-          {cardsPending}
-        </section>
-      )}
     </div>
   )
 }

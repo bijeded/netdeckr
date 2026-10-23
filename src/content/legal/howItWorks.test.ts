@@ -45,8 +45,6 @@ describe('How It Works — Analysis tab', () => {
         stock: 'Stock list',
         power: 'Power Score',
         figures: 'Share, Tier, Top 8 rate, Wins, Decks',
-        consensus: 'Consensus',
-        sideboard: 'Sideboard plan',
         types: 'Card types',
         wildcards: 'Arena wildcards',
         small: 'Small sample',
@@ -61,8 +59,6 @@ describe('How It Works — Analysis tab', () => {
         stock: 'Lista base',
         power: 'Power Score',
         figures: 'Cuota, Tier, Tasa de Top 8, Victorias, Listas',
-        consensus: 'Consenso',
-        sideboard: 'Plan de sideboard',
         types: 'Tipos de carta',
         wildcards: 'Comodines de Arena',
         small: 'Muestra pequeña',
@@ -75,8 +71,8 @@ describe('How It Works — Analysis tab', () => {
     expect(items.map((item) => item.split(' — ')[0])).toEqual(Object.values(parts))
 
     const entry = (name: string) => items.find((item) => item.startsWith(`${name} — `)) ?? ''
-    expect(entry(parts.consensus)).toMatch(/90%/)
-    expect(entry(parts.consensus)).toMatch(/25%/)
+    // The consensus table, its bands, and the sideboard plan are gone from the tab.
+    expect(items.join(' ')).not.toMatch(/\b(Core|Núcleo|Spicy|Picante|Consensus|Consenso)\b|sideboard plan|plan de sideboard/i)
     expect(entry(parts.wildcards)).toMatch(/Standard/)
     expect(entry(parts.wildcards)).toMatch(/Pioneer/)
     expect(entry(parts.small)).toMatch(/\b5\b/)
